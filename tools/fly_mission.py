@@ -34,8 +34,11 @@ def read_params(path: Path) -> list[tuple[str, float, bool]]:
     return entries
 
 
-async def connect(address: str) -> System:
-    drone = System()
+async def connect(address: str, server_port: int = 50051, gcs_sysid: int = 245) -> System:
+    # Each System() spawns its own mavsdk_server on `server_port`. Flying several
+    # vehicles at once needs a distinct port and a distinct GCS sysid per flight,
+    # or the second one fails to bind and the vehicles share a ground-station id.
+    drone = System(port=server_port, sysid=gcs_sysid)
     await drone.connect(system_address=address)
     print(f"[link] waiting for vehicle on {address} ...", flush=True)
     async for state in drone.core.connection_state():
@@ -50,7 +53,7 @@ async def connect(address: str) -> System:
 
 
 async def run(args) -> int:
-    drone = await connect(args.url)
+    drone = await connect(args.url, args.server_port, args.gcs_sysid)
 
     if args.params:
         for name, value, is_int in read_params(Path(args.params)):
@@ -67,8 +70,15 @@ async def run(args) -> int:
     data = await drone.mission_raw.import_qgroundcontrol_mission(str(Path(args.plan).resolve()))
     items = data.mission_items
     print(f"[plan]  {len(items)} mission items; commands={[i.command for i in items]}", flush=True)
+
+    # PX4 persists the mission AND the current item index in dataman, across restarts.
+    # Without clearing and resetting the index, a vehicle whose last run ended on the RTL
+    # item resumes *there*: it "returns to launch" from 1 m and disarms without ever taking
+    # off. Measured 24 Sep 2026 on SITL instances 1 and 2.
+    await drone.mission_raw.clear_mission()
     await drone.mission_raw.upload_mission(items)
-    print("[plan]  uploaded to PX4 and accepted", flush=True)
+    await drone.mission_raw.set_current_mission_item(0)
+    print("[plan]  uploaded to PX4 and accepted; current item reset to 0", flush=True)
 
     track: list[dict] = []
     stop = asyncio.Event()
@@ -136,6 +146,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("plan")
     parser.add_argument("--url", default="udpin://0.0.0.0:14540")
+    parser.add_argument("--server-port", type=int, default=50051,
+                        help="gRPC port for this flight's mavsdk_server; must differ per concurrent vehicle")
+    parser.add_argument("--gcs-sysid", type=int, default=245,
+                        help="MAVLink system id this ground station presents as")
     parser.add_argument("--params")
     parser.add_argument("--track")
     parser.add_argument("--timeout", type=float, default=900.0)

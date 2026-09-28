@@ -84,6 +84,24 @@ it fails or times out, the mission is written exactly the same.
 | `src/flight_planner/cli.py` | Wires the whole run; hard-stops if the guardrail rejects the plan. |
 | `tests/` | Unit tests for parser, scanners, plan writer, guardrail, RAG, CLI. |
 
+### Tools
+
+| Path | Role |
+|---|---|
+| `tools/plot_mission.py` | Draws a plan over satellite imagery — fence, OpsArea, per-drone lanes, ingress. |
+| `tools/plot_track.py` | Flown track against the plan it was flying; cross-track and altitude hold. |
+| `tools/plot_exclusion.py` | Highlights legs that cross an excluded notch. |
+| `tools/fly_mission.py` | Uploads a `.plan` to PX4 (SITL or real) via MAVSDK and flies it. |
+| `tools/sitl_swarm.sh` | Launches N PX4 SITL instances into **one** Gazebo world. See the multi-vehicle addendum. |
+| `tools/swarm_record.py` | Records every SITL vehicle's position on one wall clock. |
+| `tools/swarm_separation.py` | Measures closest approach per pair against the guardrail's limits. |
+| `tools/mavlink_bridge.py` | Puts a serial flight controller on UDP; can rewrite its system id. |
+| `tools/drone_agent.py` | One vehicle's agent: prepare, start, status, abort. Runs beside the aircraft. |
+| `tools/swarm_deploy.py` | Orchestrator: plan, push, prepare, **barrier**, launch together, watch. |
+| `tools/test_handshake.py` | Fault-injection tests for the launch handshake, against live SITL. |
+| `tools/viz_voronoi.py` | Debug view of the voronoi partition. |
+| `tools/qgc_capture/` | Scripted QGC screenshots (X11 clicks; fragile by nature). |
+
 ---
 
 ## Parameter reference
@@ -264,6 +282,12 @@ python3 tools/plot_track.py ops/pulau-ubin-west.kml missions/ubin/mission_drones
 `fly_mission.py` uploads through MAVSDK's *QGroundControl plan importer*, so it exercises
 the real `.plan` file rather than a hand-built item list — if PX4 accepts the upload, the
 file is genuinely valid.
+
+> **Flying more than one drone at a time?** This section covers a single vehicle. For
+> several aircraft in one world — launching the swarm, watching them all in one QGC,
+> flying every mission at once, and measuring whether they stayed apart — see
+> **[Addendum — multi-vehicle demos](#addendum--multi-vehicle-demos-sitl-and-real-hardware-1624-sep-2026)**
+> at the end of this file.
 
 ### Four things that will bite you (all found the hard way, 08 Sep 2026)
 
@@ -562,3 +586,336 @@ is kept as a config option (`turn_style: "pre_yaw"` in a config JSON; no CLI fla
 where controlling *where the nose points* — e.g. a forward-looking sensor cued onto the next
 lane early — matters more than bank angle, and only with the gimbal in heading-lock mode
 (a follow-mode gimbal would swing the camera with every pre-rotation).
+
+---
+
+# Addendum — multi-vehicle demos, SITL and real hardware (16–24 Sep 2026)
+
+Everything above plans and flies **one** aircraft at a time. This addendum covers running
+several at once: three simulated drones in one Gazebo world, watching them in a single
+QGroundControl, measuring whether they actually stayed apart, and the separate problem of
+attaching several *real* flight controllers to one ground station.
+
+## Quick start: three drones, one world, one command
+
+```bash
+cd ~/drone-dev/FlightPlanner
+
+tools/sitl_swarm.sh start toapayoh 3     # three x500 over Toa Payoh, headless
+tools/sitl_swarm.sh status               # what is running, on which ports
+tools/sitl_swarm.sh stop                 # kills PX4 and the Gazebo server
+```
+
+`HEADLESS= tools/sitl_swarm.sh start toapayoh 3` opens the Gazebo 3D window as well.
+`SPACING=10` moves the spawn points further apart; `MODEL=gz_x500_gimbal` changes the
+airframe.
+
+PX4 derives everything from the instance index `-i N`, which is the single most important
+thing to get right — three instances launched *without* it are all instance 0, all claim
+`MAV_SYS_ID 1`, and all fight over the same ports:
+
+| instance | `MAV_SYS_ID` | working dir | GCS link (QGC) | API link (MAVSDK) | gz model |
+|---|---|---|---|---|---|
+| 0 | 1 | `rootfs/0` | 18570 | 14540 | `x500_0` |
+| 1 | 2 | `rootfs/1` | 18571 | 14541 | `x500_1` |
+| 2 | 3 | `rootfs/2` | 18572 | 14542 | `x500_2` |
+
+Each instance gets **its own `rootfs/<i>`, and therefore its own dataman** — the stale
+mission/geofence trap described earlier in this file cannot leak from one vehicle to
+another.
+
+The launcher waits for the Gazebo world's `/clock` topic before starting instance 1.
+Instance 0 brings up the server; if the others race it, you get a half-built world.
+
+## Watching all of them in one QGroundControl
+
+Start the swarm **first**, then QGC. It auto-connects on UDP 14550 and every instance
+announces itself there with a distinct system id.
+
+```bash
+~/drone-dev/QGroundControl.AppImage
+```
+
+- **Top bar, left** — a vehicle dropdown (`Vehicle 1 ▾`) appears only when more than one
+  vehicle is connected. It is the quickest check that all N registered.
+- **Top right of the Fly view** — `Single` / `Multi-Vehicle` radio buttons. Switch to
+  **Multi-Vehicle** for one card per aircraft, each with its own attitude ball, compass,
+  mode and Arm button.
+- **Start Mission** at the top of that panel applies to *every* vehicle at once.
+
+QGC's autoconnect listens on **14550 and nowhere else**, and the port is not configurable
+(v4.4.3 has no `udpListenPort` setting). Anything on another port needs a link added by
+hand under *Application Settings → Comm Links → Add*; autoconnect will never find it.
+
+## Flying every drone's mission simultaneously
+
+```bash
+source ~/drone-dev/venv/bin/activate
+for i in 1 2 3; do
+  python3 tools/fly_mission.py missions/toapayoh/mission_drones/drone-$i.plan \
+    --url "udpin://0.0.0.0:$((14539+i))" \
+    --server-port $((50060+i)) \
+    --gcs-sysid $((244+i)) \
+    --params sar_turn_params.params \
+    --track missions/toapayoh/track-drone$i.json &
+done
+wait
+```
+
+`--server-port` and `--gcs-sysid` exist for exactly this: each `System()` spawns its own
+`mavsdk_server`, and without distinct ports the second and third flights fail to bind and
+every flight presents as the same ground station.
+
+This runs happily alongside QGC, because the flights use the **API** ports (14540+i) and
+QGC uses the **GCS** port (14550).
+
+Two traps worth knowing before you debug the wrong thing:
+
+- **`mavsdk_server` outlives its Python process.** One was found holding UDP 14540 for
+  29 hours after its script exited, silently blocking every new run. Check with
+  `ss -lunp | grep 14540` before blaming the simulator.
+- **The flight ends with `TIMEOUT`, and that is normal.** `fly_mission.py` waits for
+  `current >= total`, and PX4's RTL item never reports as reached. The mission completed;
+  only the detector gave up.
+
+## Measuring whether they actually stayed apart
+
+The guardrail proves the *plan* keeps every pair separated. Measuring the *flight* needs
+all vehicles on one clock, which the per-flight tracks do not give you — each stamps t=0 at
+its own arming moment, and 2 s of skew is 24 m at survey speed.
+
+```bash
+python3 tools/swarm_record.py missions/toapayoh/common-clock.json --vehicles 3 --seconds 900
+python3 tools/swarm_separation.py missions/toapayoh/common-clock.json
+```
+
+`swarm_separation.py` reports, for every pair, the closest approach while **both are
+airborne** (vehicles parked a few metres apart on the ground break both limits trivially
+and for the whole time they sit there), and flags any moment inside both
+`MIN_VERTICAL_SEPARATION_M` (2.0) and `MIN_HORIZONTAL_SEPARATION_M` (20.0).
+
+**`swarm_record.py` and QGC cannot both run.** See the rule below.
+
+Measured example — Toa Payoh, 3 drones at 30/32/28 m, all launched from one point,
+23 Sep 2026:
+
+| pair | both airborne | min horizontal | verdict |
+|---|---|---|---|
+| drone-1 v drone-2 | 440 s | **17.8 m** | 1.0 s inside both limits |
+| drone-1 v drone-3 | 440 s | 76.8 m | clear |
+| drone-2 v drone-3 | 564 s | 93.6 m | clear |
+
+Once dispersed, no pair came within 76 m. The single breach is at the **launch point** —
+which is the known gap: the guardrail reasons about survey legs, not about N aircraft
+leaving one GCS point. The same run also confirmed the RTL layer collapse in flight:
+drone-3 climbed off its 28 m layer to 30.0 m to come home, onto drone-1's layer.
+
+## The rule that breaks every multi-vehicle setup: one consumer per link
+
+PX4 SITL starts its GCS link with no remote specified, which means: *announce to
+127.0.0.1:14550 until somebody talks to me, then speak to that partner alone* — permanently,
+even after that partner exits.
+
+So anything that attaches to `18570+i` silently blinds QGroundControl, and restarting the
+swarm is the only cure. Measured, same listener both times:
+
+| | heartbeats on 14550 |
+|---|---|
+| after something had touched 18570-2 | **none** |
+| fresh swarm, nothing attached | sysid 1: 21, sysid 2: 20, sysid 3: 20 |
+
+**Leave `18570+i` for QGroundControl. Use `14540+i` for tooling.** The same rule holds on
+serial: two processes on one flight controller each read half the byte stream, and both
+break. This is also why the eventual companion-computer design needs a MAVLink router — so
+a GCS, an agent and a logger can all watch one vehicle without stealing the socket.
+
+## Real flight controllers: several boards that all claim to be vehicle 1
+
+Identical boards ship with identical identity. The three MicoAir743v2 units used here are
+all `MAV_SYS_ID 1` and all report USB serial `0`, so `/dev/serial/by-id/` collapses to a
+single symlink and cannot address them. Only `/dev/serial/by-path/` separates them, by
+physical hub socket — and `ttyACM` numbering follows plug order, not port order.
+
+Connect all three to one QGC as they are and you do **not** get three vehicles: QGC keys
+vehicles by system id, shows one, and pops *"Vehicle 1 Switching communication to secondary
+link"* as it flaps between them. When configuring boards this is a hazard, not a cosmetic
+problem — a parameter write can land on the wrong aircraft. **Configure one board at a
+time.**
+
+`tools/mavlink_bridge.py` puts a board on UDP, and can give it an identity it does not have:
+
+```bash
+# pass-through: one board, its own port, identity untouched
+python3 tools/mavlink_bridge.py --serial /dev/ttyACM0 --udp 127.0.0.1:14551
+
+# rewrite: board stays MAV_SYS_ID 1 internally, appears to the GCS as vehicle 2
+python3 tools/mavlink_bridge.py --serial /dev/ttyACM1 --udp 127.0.0.1:14550 --as-sysid 2
+```
+
+`--as-sysid` patches the system id in the raw frame and recomputes the X25 checksum, then
+maps `target_system` back on commands travelling the other way. The bridge claims its tty
+with `TIOCEXCL`, so QGC's serial autoconnect cannot open the same device and kill it.
+
+All three arrangements were measured against three boards (24 Sep 2026):
+
+| arrangement | our own tooling | one shared QGC |
+|---|---|---|
+| same id, one port per board | 3 separable streams | one vehicle, link-flapping |
+| **distinct ids (bridge-rewritten), all on 14550** | **3 separable streams** | **3 vehicles** |
+| distinct ids, on ports other than 14550 | 3 separable streams | nothing — *Disconnected* |
+
+So the only arrangement that puts several aircraft on one QGC screen is **ids rewritten in
+the bridge, all delivered to 14550** — with no aircraft reconfigured. The alternative is
+writing distinct `MAV_SYS_ID` to each board (1–250, `@reboot_required`, so power-cycle
+after), which is permanent and equally valid.
+
+**Identity uniqueness is only required where streams merge.** A consumer that owns exactly
+one vehicle on its own link never needs it.
+
+> **Not yet proven:** the bridge's telemetry direction is measured — three boards, zero CRC
+> failures — but **no command has ever been sent through a rewritten id**. Upload a mission
+> to a rewritten vehicle and confirm it lands on the right board before trusting this near
+> an aircraft.
+
+## Troubleshooting
+
+| symptom | cause | fix |
+|---|---|---|
+| QGC shows no vehicles | something attached to `18570+i` | restart the swarm; nothing less works |
+| QGC shows one vehicle instead of N | instances launched without `-i` | use `sitl_swarm.sh` |
+| Second/third flight fails to start | `mavsdk_server` port clash | distinct `--server-port` per flight |
+| A port is busy with nothing running | orphaned `mavsdk_server` | `ss -lunp \| grep 14540`, kill by PID |
+| Bridge dies: *multiple access on port* | QGC opened the same tty | current bridge takes `TIOCEXCL`; start it before QGC |
+| Real board connected but not on the map | no GPS fix — bench boards have none | expected; check the satellite count in QGC |
+| Gazebo world half-built | instances raced to start the server | `sitl_swarm.sh` waits for `/clock`; use it |
+
+Kill by numeric PID, or with a pattern that cannot match your own shell — `pgrep -f
+"mavlink_bridge.py"` matches the command line running it:
+
+```bash
+ps -eo pid,cmd | awk '/mavlink[_]bridge/ {print $1}' | while read p; do kill "$p"; done
+```
+
+---
+
+# Addendum — the launch handshake (28 Sep 2026)
+
+Flying several aircraft from one command needs more than a plan each. This is the protocol
+that gets two drones into the air together, and refuses to get either of them into the air
+alone.
+
+## Running it
+
+```bash
+# against the SITL swarm
+tools/sitl_swarm.sh start toapayoh 2
+python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir missions/toapayoh/mission_drones
+
+# plan from a KML in the same command
+python3 tools/swarm_deploy.py --fleet fleet.yaml --kml ops/pulau-ubin-west.kml
+
+# bench run: verify everything, never arm
+python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --dry-run
+
+# bring everyone home
+python3 tools/swarm_deploy.py --fleet fleet.yaml --abort
+```
+
+`fleet.yaml` maps each planner **slot** (`drone-N.plan`) to a vehicle's permanent
+**sysid**, a host, and a **link**. The link is the only line that changes between a
+simulated vehicle, a board on USB (maintenance only) and a flight controller behind an
+ELRS radio.
+
+## The sequence
+
+```
+ orchestrator                         agent (one per vehicle, stays alive)
+      │ ssh: prepare --resident ────────▶ verify sysid, clear mission, load params,
+      │                                   upload, reset index, preflight contract
+      │ ◀──── {ready, token: run7:a3f9…}
+      │                                   ── holds the link, heartbeating ──
+      │ BARRIER  all ready, or nobody arms
+      │ stdin: START run7:a3f9… <epoch> ▶ check token, arm, MISSION_START
+      │ ◀──── {started, t_epoch}
+      │ stdin: STATUS  (every 10 s) ────▶ mode, waypoint, altitude, battery
+      │ stdin: ABORT ───────────────────▶ RTL
+```
+
+Three design points, each of which came from something that went wrong:
+
+**Agents stay resident.** PX4 will not arm for a ground station it has not heard from
+recently — the arm returns `MAV_RESULT_TEMPORARILY_REJECTED` and only a statustext sweep
+reveals *"Arming denied: Resolve system health failures first"*. An agent that exits after
+`prepare` has to re-establish that relationship from cold at exactly the wrong moment;
+cheap on localhost UDP, expensive on a radio. One connection, prepare through landing.
+
+**A run token binds START to what was prepared.** The token is the run id plus a hash of
+the plan actually uploaded. Without it, `start` has no memory that `prepare` happened: it
+would arm a vehicle that was never verified, or one whose plan changed in between. The
+barrier checks that every drone *said* ready; the token checks that the thing about to arm
+is the thing that was checked.
+
+**Each agent holds its own failsafe.** If the orchestrator goes silent for `--failsafe-s`
+(default 60 s) after launch, the agent returns its aircraft to launch unprompted. Without
+it, a workstation that dies after takeoff leaves aircraft flying with no supervisor.
+
+## The preflight contract
+
+The checks a `.plan` cannot express. Every one came from a real setting found on real
+hardware:
+
+| check | why |
+|---|---|
+| identity | the sysid answering matches the slot handed over |
+| mission_uploaded | read back the count, do not trust the ack |
+| fence_ceiling | boards were found with `GF_MAX_VER_DIST` 5–7 m and `GF_ACTION` = Land |
+| rtl_altitude | `RTL_RETURN_ALT` above the mission's top layer, or RTL descends into it |
+| rc_loss_action | `NAV_RCL_ACT` not Land — on an ELRS link, RC loss is also C2 loss |
+| gps_fix / position_estimate | no position, no AUTO mission |
+| battery | above `MIN_BATTERY_FRACTION` |
+
+Per-drone overrides in `fleet.yaml` are how RTL separation is applied — each aircraft gets
+its own `RTL_RETURN_ALT`, so two drones coming home never collapse onto one layer:
+
+```yaml
+  - slot: 1
+    set: {RTL_RETURN_ALT: 35}
+  - slot: 2
+    set: {RTL_RETURN_ALT: 45}
+```
+
+Flown 28 Sep: *"RTL: start return at 36 m"* and *"at 46 m"* — ten metres apart, against
+both collapsing onto 30 m on 23 Sep.
+
+## Testing it
+
+```bash
+tools/sitl_swarm.sh start toapayoh 2
+python3 tools/test_handshake.py                    # the whole matrix
+python3 tools/test_handshake.py --only dead_link   # one case
+```
+
+A handshake is defined by what it does when things go wrong, and the happy path exercises
+none of that. Every case injects a **real** condition — writes an actual parameter to an
+actual vehicle, points at an actual dead port, lets an actual process go silent:
+
+| case | injected | must happen |
+|---|---|---|
+| `happy_path` | — | both READY, barrier passes |
+| `barrier_refuses_on_unready` | `GF_MAX_VER_DIST=7` on one vehicle | refused, names `fence_ceiling`, **nobody** arms |
+| `unreachable_host` | a host that does not resolve | barrier refuses, no traceback |
+| `dead_link` | a UDP port with no vehicle | prepare times out, barrier refuses |
+| `wrong_vehicle_answers` | slot 1's link pointed at vehicle 2 | identity check refuses |
+| `token_mismatch` | `START` with a token never issued | agent refuses |
+| `ssh_localhost` | the remote path over real ssh | prepare runs remotely, both READY |
+| `agent_failsafe` | launch, then go silent | agent RTLs on its own, vehicle in AUTO.RTL |
+
+`unreachable_host` found a real defect on its first run: `push()` used `check=True`, so an
+unreachable agent crashed the orchestrator with a traceback instead of failing the barrier.
+That is what the matrix is for.
+
+## Not yet proven
+
+The SSH path has only ever run against **localhost**. It exercises `scp`, remote
+invocation, the stdin command channel and the JSON round-trip — everything except a
+different machine, on arm64, across the switch.
