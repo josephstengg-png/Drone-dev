@@ -44,6 +44,21 @@ backpacks:
       MAVLink bridge verified on this board 28 Sep 2026: packets_up 0 -> 25 and gcs
       registered 10.0.0.101, same behaviour as ARTEX106.
 
+      IDENTITY DISPUTED as of the later diagnostic on 28 Sep. ARTEX112 was reported
+      powered OFF and ARTEX113 left ON, yet this BSSID is still the only one broadcasting,
+      seen by jetson-1, jetson-2 and the workstation alike, and ARTEX113 appears nowhere --
+      not as an AP, and not as a client on the office LAN (full /24 sweep for an ELRS web
+      page found nothing). This board also still reports packets_up 25 and gcs 10.0.0.101,
+      the exact volatile counters left from the earlier test, so it has NOT power-cycled.
+      A board that was switched off and back on would read 0 and "IP UNSET".
+
+      The reading that fits every observation is that 02:70:07:61:E4:CB is ARTEX113, which
+      has been on and in wifi mode throughout, and that ARTEX112 was powered over USB-C but
+      never in wifi mode -- so it never broadcast, and switching it off changed nothing
+      observable. That is inference, not proof. Do not trust this label until settled:
+      power ARTEX112 back on into wifi mode while 113 stays up; whichever BSSID is NEW is
+      ARTEX112.
+
   ARTEX113:
     bssid: null            # not yet seen -- power it and run tools/elrs_pair.py --discover
     ssid: "ExpressLRS TX Backpack 000000"
