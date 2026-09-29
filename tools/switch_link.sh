@@ -10,6 +10,12 @@
 # fails at both ends and neither side has an IPv4 address to be reached at. That is a layer-3
 # outage only -- the switch is passing traffic fine, 1000 Mb carrier on every populated port.
 #
+# ONE CAVEAT, learned the hard way 29 Sep 2026. A "no reply" from ff02::1 means no host has
+# CONFIGURED this link -- not that no host is attached. jetson-2 sat in port 8 with
+# carrier=1 at 1000 Mb while NetworkManager held the device `disconnected` with no profile
+# bound, and a device NM has not brought up gets no IPv6 link-local either, so it answered
+# nothing. Check `carrier` on the far side before concluding a board is powered off.
+#
 # THE WAY IN IS IPv6 LINK-LOCAL. Every interface with carrier self-assigns an fe80:: address
 # with no server, no lease and no configuration, and every IP host answers the all-nodes
 # multicast ff02::1. So a Jetson with no usable IPv4 is still reachable:
