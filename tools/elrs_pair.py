@@ -35,9 +35,14 @@ def ssh(host: str, cmd: str, timeout: int = 120) -> tuple[int, str]:
 
 
 def attached(host: str) -> str | None:
+    """The BSSID this host is on, or None. An unreachable host is None, not its ssh error
+    -- letting the error text through prints it in the address column and makes an
+    offline board look like it is attached to something."""
     rc, out = ssh(host, f"iw dev {WIFI} link 2>/dev/null | awk '/Connected to/{{print $3}}'")
     out = out.strip().lower()
-    return out or None
+    if rc != 0 or not out or ":" not in out or len(out) != 17:
+        return None
+    return out
 
 
 def scan(host: str) -> list[tuple[str, str, str]]:
