@@ -68,16 +68,35 @@ setup() {
     ssh -o StrictHostKeyChecking=accept-new "$USER_NAME@$target" bash -s <<REMOTE
 set -e
 ETH=\$(nmcli -t -f DEVICE,TYPE dev status | awk -F: '\$2=="ethernet"{print \$1; exit}')
-echo "  ethernet device: \$ETH"
-# A static profile, added rather than editing whatever is there, so the DHCP one survives
-# for when this board goes back on a served network.
+MAC=\$(cat /sys/class/net/\$ETH/address | tr 'a-f' 'A-F')
+echo "  ethernet device: \$ETH  mac \$MAC"
 echo jetson | sudo -S -p '' nmcli con add type ethernet ifname "\$ETH" con-name switch-static \
     ipv4.method manual ipv4.addresses $newip/24 ipv6.method link-local \
-    connection.autoconnect yes connection.autoconnect-priority 20 2>/dev/null || \
-echo jetson | sudo -S -p '' nmcli con modify switch-static ipv4.addresses $newip/24
+    connection.autoconnect yes 2>/dev/null || true
+# Harden it so the demo cannot lose the board: bind the profile to this NIC's burned-in
+# MAC so it can never bind the wrong interface, refuse MAC randomisation, win against the
+# leftover DHCP profile on the same device, and never install a default route (the switch
+# is isolated and has no gateway, so a default through it would black-hole traffic).
+echo jetson | sudo -S -p '' nmcli con modify switch-static \
+    ipv4.addresses $newip/24 \
+    802-3-ethernet.mac-address "\$MAC" \
+    ethernet.cloned-mac-address permanent \
+    connection.autoconnect yes \
+    connection.autoconnect-priority 20 \
+    connection.autoconnect-retries 0 \
+    ipv4.never-default yes \
+    ipv6.method link-local
 echo jetson | sudo -S -p '' nmcli con up switch-static >/dev/null
 sleep 2
 ip -br addr show "\$ETH"
+# On Ubuntu 24.04 NetworkManager is only rendering netplan: the live profiles sit in
+# /run, which is tmpfs and is wiped every boot. The persistent copy must exist in
+# /etc/netplan or the address is gone after a power cycle.
+if sudo -n grep -rq "$newip" /etc/netplan/ 2>/dev/null || echo jetson | sudo -S -p '' grep -rq "$newip" /etc/netplan/ 2>/dev/null; then
+    echo "  persisted to /etc/netplan -- survives reboot"
+else
+    echo "  WARNING: not found in /etc/netplan; this address will NOT survive a reboot"
+fi
 REMOTE
 }
 
