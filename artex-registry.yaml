@@ -29,7 +29,8 @@ backpacks:
       evening of 28 Sep; powered down or carried off.
 
   ARTEX112:
-    bssid: null            # never observed -- see notes
+    bssid: null            # RETIRED -- faulty, never observed on air. See notes.
+    retired: "2026-09-30: faults that could not be fixed; replaced by ARTEX115"
     ssid: "ExpressLRS TX Backpack 000000"
     ap_ip: 10.0.0.1
     mavlink: {listen: 14555, send: 14550, protocol: UDP}
@@ -72,8 +73,18 @@ backpacks:
       MISSION_ITEM_INT/s, 4.9 kB/s clean, 5.8% loss at 200/s, packets_up 1514) were taken
       on ARTEX106 and are unaffected.
 
+  ARTEX115:
+    bssid: "02:70:07:61:E0:6E"
+    ssid: "ExpressLRS TX Backpack 000000"
+    mavlink: {listen: 14555, send: 14550, protocol: UDP}
+    notes: >
+      Brought in 30 Sep 2026 to replace ARTEX112, which had faults that could not be
+      fixed. Identified under the clean condition the registry asks for: it was the ONLY
+      ELRS AP on air, seen by jetson-1 at signal 69 and the workstation at 74, with
+      ARTEX113 powered down. No ambiguity.
+
 # One Jetson, one backpack. The pairing is enforced, not advisory: elrs_pair.py refuses to
 # finish if two Jetsons end up on the same BSSID.
 pairing:
-  jetson-1: ARTEX112
+  jetson-1: ARTEX115
   jetson-2: ARTEX113
