@@ -558,6 +558,11 @@ python3 tools/swarm_deploy.py --fleet fleet.yaml --kml ops/pulau-ubin-west.kml
 # never arms (refuses an armed vehicle). Success = the autopilot returned the same mission.
 python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --upload-only
 
+# handshake -> push plans -> prepare (barrier) -> workstation authorises ARM -> agents arm,
+# hold --arm-hold-s, then disarm. Never starts the mission. --qgc opens QGroundControl on
+# the workstation (observer only; it is not on the automation path).
+python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --arm-only --qgc
+
 # bench run: verify everything, never arm
 python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --dry-run
 
@@ -698,7 +703,7 @@ That is what the matrix is for.
 | `tools/sitl_swarm.sh` | Launches N PX4 SITL instances into **one** Gazebo world. |
 | `tools/swarm_record.py` | Records every SITL vehicle's position on one wall clock. |
 | `tools/swarm_separation.py` | Closest approach per pair against the guardrail's limits. |
-| `tools/drone_agent.py` | One vehicle's agent: prepare, **upload**, start, status, abort. **Runs on the companion.** |
+| `tools/drone_agent.py` | One vehicle's agent: prepare, **upload**, **arm/disarm** (resident `ARM <token>` / `DISARM` verbs), start, status, abort. **Runs on the companion.** |
 | `tools/swarm_deploy.py` | Orchestrator: plan, push, prepare, **barrier**, launch together, watch. |
 | `tools/test_handshake.py` | Fault-injection matrix for the handshake, against live SITL. |
 | `tools/switch_link.sh` | Find and address a companion on the unmanaged switch, over IPv6 link-local. |

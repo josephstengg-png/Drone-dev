@@ -414,7 +414,15 @@ def resident_loop(conn, args, token: str) -> int:
     relationship from cold -- cheap on localhost UDP, expensive on a radio whose
     round-trip is tens of milliseconds. One connection from prepare through landing.
     """
-    state = dict(failsafe_armed=False, last_cmd=time.time())
+    state = dict(failsafe_armed=False, last_cmd=time.time(), armed_only=False)
+
+    def disarm_if_left_armed():
+        # We armed it for an arm-only test and the orchestrator is gone: do not leave
+        # motors armed with nobody watching.
+        if state["armed_only"]:
+            log("[resident] leaving while armed by ARM -- disarming")
+            do_disarm(conn)
+            state["armed_only"] = False
 
     def watchdog():
         while True:
@@ -451,6 +459,27 @@ def resident_loop(conn, args, token: str) -> int:
             emit(dict(verb="start", slot=args.slot, sysid=conn.target_system, **r))
             state["last_cmd"] = time.time()
             state["failsafe_armed"] = bool(r.get("started"))
+            if r.get("started"):
+                state["armed_only"] = False
+
+        elif verb == "ARM":
+            given = parts[1] if len(parts) > 1 else ""
+            if given != token:
+                emit(dict(verb="arm", slot=args.slot, sysid=conn.target_system,
+                          armed=False,
+                          error=f"token mismatch: given {given!r}, prepared {token!r}"))
+                continue
+            at = float(parts[2]) if len(parts) > 2 else None
+            r = do_arm(conn, at)
+            state["armed_only"] = bool(r.get("armed"))
+            emit(dict(verb="arm", slot=args.slot, sysid=conn.target_system, **r))
+            state["last_cmd"] = time.time()
+
+        elif verb == "DISARM":
+            r = do_disarm(conn)
+            if r.get("disarmed"):
+                state["armed_only"] = False
+            emit(dict(verb="disarm", slot=args.slot, sysid=conn.target_system, **r))
 
         elif verb == "STATUS":
             emit(dict(verb="status", slot=args.slot, sysid=conn.target_system,
@@ -463,6 +492,7 @@ def resident_loop(conn, args, token: str) -> int:
                       **do_abort(conn, action)))
 
         elif verb == "QUIT":
+            disarm_if_left_armed()
             emit(dict(verb="quit", slot=args.slot, sysid=conn.target_system))
             return 0
 
@@ -470,6 +500,7 @@ def resident_loop(conn, args, token: str) -> int:
             emit(dict(verb="error", slot=args.slot, error=f"unknown command {verb!r}"))
 
     log("[resident] stdin closed")
+    disarm_if_left_armed()
     return 0
 
 
@@ -553,27 +584,58 @@ def cmd_prepare(args) -> int:
     return 0 if ready else 1
 
 
-def do_start(conn, at: float | None) -> dict:
-    """Arm, then MISSION_START. Returns the report; the caller decides how to emit it."""
+def hold_for(at: float | None, what: str) -> None:
     if at:
         wait = at - time.time()
         if wait > 0:
-            log(f"[start] holding {wait:.2f}s for the shared launch instant")
+            log(f"[{what}] holding {wait:.2f}s for the shared instant")
             time.sleep(wait)
 
-    armed, deadline, last_try = False, time.time() + 20, 0.0
+
+def do_arm(conn, at: float | None = None) -> dict:
+    """Arm and wait to SEE the armed heartbeat. Never starts the mission."""
+    hold_for(at, "arm")
+    reason, deadline, last_try = None, time.time() + 20, 0.0
     while time.time() < deadline:
         if time.time() - last_try > 3.0:
             conn.mav.command_long_send(conn.target_system, 1,
                                        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
                                        0, 1, 0, 0, 0, 0, 0, 0)
             last_try = time.time()
+        ack = conn.recv_match(type="COMMAND_ACK", blocking=False)
+        if ack is not None and ack.command == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM \
+                and ack.result != mavutil.mavlink.MAV_RESULT_ACCEPTED:
+            reason = f"arm command result {ack.result}"
         hb = conn.recv_match(type="HEARTBEAT", blocking=True, timeout=2)
-        if hb and (hb.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED):
-            armed = True
-            break
-    if not armed:
-        return dict(started=False, armed=False, error="vehicle did not arm")
+        if hb and hb.get_srcSystem() == conn.target_system \
+                and (hb.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED):
+            log("[arm] armed")
+            return dict(armed=True, t_epoch=time.time())
+    return dict(armed=False, error="vehicle did not arm" + (f" ({reason})" if reason else ""))
+
+
+def do_disarm(conn) -> dict:
+    """Disarm and wait to SEE the disarmed heartbeat."""
+    deadline, last_try = time.time() + 15, 0.0
+    while time.time() < deadline:
+        if time.time() - last_try > 3.0:
+            conn.mav.command_long_send(conn.target_system, 1,
+                                       mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                                       0, 0, 0, 0, 0, 0, 0, 0)
+            last_try = time.time()
+        hb = conn.recv_match(type="HEARTBEAT", blocking=True, timeout=2)
+        if hb and hb.get_srcSystem() == conn.target_system \
+                and not (hb.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED):
+            log("[disarm] disarmed")
+            return dict(armed=False, disarmed=True)
+    return dict(armed=True, disarmed=False, error="vehicle did not disarm")
+
+
+def do_start(conn, at: float | None) -> dict:
+    """Arm, then MISSION_START. Returns the report; the caller decides how to emit it."""
+    arm = do_arm(conn, at)
+    if not arm["armed"]:
+        return dict(started=False, armed=False, error=arm["error"])
 
     log("[start] armed")
     conn.mav.command_long_send(conn.target_system, 1,

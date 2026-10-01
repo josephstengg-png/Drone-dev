@@ -5,6 +5,7 @@
     python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir missions/toapayoh/mission_drones
     python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --dry-run
     python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --upload-only
+    python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --arm-only [--qgc]
     python3 tools/swarm_deploy.py --fleet fleet.yaml --abort
 
 The sequence, and why each step is there:
@@ -80,6 +81,24 @@ def log(msg: str) -> None:
     print(msg, flush=True)
 
 
+def open_qgc() -> None:
+    """Launch the workstation's QGC detached, unless one is already running."""
+    appimage = ROOT.parent / "QGroundControl.AppImage"
+    if subprocess.run(["pgrep", "-f", "[Q]GroundControl"],
+                      capture_output=True).returncode == 0:
+        log("[qgc] already running")
+        return
+    if not appimage.exists():
+        log(f"[qgc] {appimage} not found -- not opened")
+        return
+    if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+        log("[qgc] no display in this session -- not opened")
+        return
+    subprocess.Popen([str(appimage)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     start_new_session=True)
+    log("[qgc] opened")
+
+
 def host_argv(drone: dict, argv: list[str]) -> tuple[list[str], str | None]:
     """The command to run an agent verb where this drone's agent lives, and its cwd."""
     host = drone.get("host", "local")
@@ -89,6 +108,29 @@ def host_argv(drone: dict, argv: list[str]) -> tuple[list[str], str | None]:
     inner = " ".join(shlex.quote(a) for a in argv)
     return (["ssh", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new",
              host, f"cd {quote_remote(remote)} && {inner}"], None)
+
+
+def arm_only(sessions: list, hold_s: float) -> int:
+    """The barrier passed: authorise ARM everywhere, hold, DISARM. No mission start."""
+    log("[authorize] workstation authorises ARM on every drone")
+    for s in sessions:
+        s.send(f"ARM {s.token}")
+    arms = [s.await_verb("arm", 40.0) for s in sessions]
+    for s, r in zip(sessions, arms):
+        log(f"[arm] slot {s.slot} sysid {r.get('sysid')}: "
+            + ("ARMED" if r.get("armed") else f"NOT ARMED -- {r.get('error')}"))
+    ok = all(r.get("armed") for r in arms)
+    if ok:
+        log(f"[arm] every drone armed -- holding {hold_s:.0f}s")
+        time.sleep(hold_s)
+    log("[disarm] disarming every drone")
+    for s in sessions:
+        s.send("DISARM")
+    downs = [s.await_verb("disarm", 30.0) for s in sessions]
+    for s, r in zip(sessions, downs):
+        log(f"[disarm] slot {s.slot}: " + ("DISARMED" if r.get("disarmed")
+                                           else f"STILL ARMED -- {r.get('error')}"))
+    return 0 if ok and all(r.get("disarmed") for r in downs) else 1
 
 
 def upload_one(drone: dict, plan: Path) -> dict:
@@ -265,6 +307,13 @@ def main() -> int:
     ap.add_argument("--upload-only", action="store_true",
                     help="push each plan, upload it to its aircraft, read it back, stop. "
                          "No params, no preflight, never arms.")
+    ap.add_argument("--arm-only", action="store_true",
+                    help="after the barrier, authorise ARM on every drone, hold, then "
+                         "DISARM. Never starts a mission.")
+    ap.add_argument("--arm-hold-s", type=float, default=5.0,
+                    help="with --arm-only: how long to stay armed before disarming")
+    ap.add_argument("--qgc", action="store_true",
+                    help="open QGroundControl on this workstation if it is not running")
     ap.add_argument("--abort", action="store_true",
                     help="one-shot RTL to every drone, then exit")
     ap.add_argument("--at-in", type=float, default=None,
@@ -329,6 +378,9 @@ def main() -> int:
                 log(f"[upload] slot {d['slot']}: FAILED -- {why}")
         return 0 if all(r.get("verified") for r in results) else 1
 
+    if args.qgc:
+        open_qgc()
+
     # 3. prepare -- agents stay resident from here on
     log("[prepare] starting agents")
     sessions = [AgentSession(d, plans[d["slot"]], params, run_id, args.failsafe_s)
@@ -356,6 +408,9 @@ def main() -> int:
         if args.dry_run:
             log("[dry-run] stopping before arming, as asked")
             return 0
+
+        if args.arm_only:
+            return arm_only(sessions, args.arm_hold_s)
 
         # 5. start
         at = time.time() + (args.at_in if args.at_in is not None else START_SKEW_LEAD_S)
