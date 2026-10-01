@@ -3,6 +3,8 @@
 
     python3 tools/drone_agent.py prepare --link udpin://:14540 --expect-sysid 1 \
         --plan missions/toapayoh/mission_drones/drone-1.plan --params sar_turn_params.params
+    python3 tools/drone_agent.py upload  --link udpin://:14540 --expect-sysid 1 \
+        --plan missions/toapayoh/mission_drones/drone-1.plan
     python3 tools/drone_agent.py start   --link udpin://:14540 --expect-sysid 1
     python3 tools/drone_agent.py status  --link udpin://:14540 --expect-sysid 1
     python3 tools/drone_agent.py abort   --link udpin://:14540 --expect-sysid 1
@@ -37,6 +39,9 @@ from pymavlink import mavutil
 INT_PARAM_TYPES = {1, 2, 3, 4, 5, 6, 7, 8}
 HEARTBEAT_TIMEOUT_S = 20.0
 MISSION_UPLOAD_TIMEOUT_S = 120.0
+UPLOAD_S_PER_ITEM = 4.0      # ELRS measured ~1 s/item; leave 4x headroom for a bad link
+# PX4 stores MISSION_ITEM_INT, so a plan's local-relative frame 3 reads back as 6 and 0 as 5.
+FRAME_EQUIV = {3: 6, 0: 5}
 PARAM_READ_ATTEMPTS = 3
 NAV_COMMANDS_WITH_ALTITUDE = {16, 22, 21, 82}      # waypoint, takeoff, land, spline
 MIN_BATTERY_FRACTION = 0.30
@@ -206,7 +211,7 @@ def plan_to_items(plan_path: Path) -> tuple[list[dict], float]:
     return items, top_alt
 
 
-def upload_mission(conn, items: list[dict]) -> None:
+def upload_mission(conn, items: list[dict], timeout: float = MISSION_UPLOAD_TIMEOUT_S) -> None:
     """Mission protocol: COUNT, serve each request, wait for ACK.
 
     PX4 keeps the mission AND the current item index in dataman across restarts, and
@@ -220,7 +225,7 @@ def upload_mission(conn, items: list[dict]) -> None:
     conn.recv_match(type="MISSION_ACK", blocking=True, timeout=5)
 
     conn.mav.mission_count_send(conn.target_system, 1, len(items), MT)
-    sent, deadline = set(), time.time() + MISSION_UPLOAD_TIMEOUT_S
+    sent, deadline = set(), time.time() + timeout
     while time.time() < deadline:
         msg = conn.recv_match(type=["MISSION_REQUEST", "MISSION_REQUEST_INT",
                                     "MISSION_ACK"], blocking=True, timeout=5)
@@ -253,6 +258,76 @@ def mission_count_onboard(conn) -> int | None:
                               mavutil.mavlink.MAV_MISSION_ACCEPTED,
                               mavutil.mavlink.MAV_MISSION_TYPE_MISSION)
     return msg.count
+
+
+def download_mission(conn, attempts: int = 4) -> list[dict] | None:
+    """Read the whole mission back from the vehicle, item by item. None if it cannot."""
+    MT = mavutil.mavlink.MAV_MISSION_TYPE_MISSION
+    count = None
+    for _ in range(attempts):
+        conn.mav.mission_request_list_send(conn.target_system, 1, MT)
+        msg = conn.recv_match(type="MISSION_COUNT", blocking=True, timeout=6)
+        if msg is not None:
+            count = msg.count
+            break
+    if count is None:
+        return None
+
+    def fetch(seq: int):
+        for _ in range(attempts):
+            conn.mav.mission_request_int_send(conn.target_system, 1, seq, MT)
+            deadline = time.time() + 5
+            while time.time() < deadline:
+                m = conn.recv_match(type="MISSION_ITEM_INT", blocking=True, timeout=1)
+                if m is not None and m.seq == seq:
+                    return m
+        return None
+
+    items = []
+    for seq in range(count):
+        m = fetch(seq)
+        if m is None:
+            log(f"[readback] item {seq}/{count} never arrived")
+            return None
+        items.append(dict(seq=m.seq, frame=m.frame, command=m.command,
+                          p1=m.param1, p2=m.param2, p3=m.param3, p4=m.param4,
+                          x=m.x, y=m.y, z=m.z))
+    conn.mav.mission_ack_send(conn.target_system, 1,
+                              mavutil.mavlink.MAV_MISSION_ACCEPTED, MT)
+    return items
+
+
+def diff_items(sent: list[dict], got: list[dict]) -> list[str]:
+    """Human-readable differences between what we sent and what the vehicle holds."""
+    if len(sent) != len(got):
+        return [f"{len(got)} items on board, {len(sent)} sent"]
+    norm = lambda f: FRAME_EQUIV.get(f, f)
+    out = []
+    for a, b in zip(sent, got):
+        bad = []
+        if a["command"] != b["command"]:
+            bad.append("command")
+        if norm(a["frame"]) != norm(b["frame"]):
+            bad.append("frame")
+        if a["x"] != b["x"] or a["y"] != b["y"]:
+            bad.append("position")
+        bad += [k for k in ("p1", "p2", "p3", "p4", "z") if abs(a[k] - b[k]) > 1e-3]
+        if bad:
+            out.append(f"item {a['seq']}: {'/'.join(bad)} differ")
+    return out
+
+
+def vehicle_armed(conn) -> bool | None:
+    """Armed state from the VEHICLE's own heartbeat (not ours, not another GCS's)."""
+    deadline = time.time() + 8
+    while time.time() < deadline:
+        msg = conn.recv_match(type="HEARTBEAT", blocking=True, timeout=2)
+        if msg is None or msg.get_srcSystem() != conn.target_system:
+            continue
+        if msg.type == mavutil.mavlink.MAV_TYPE_GCS:
+            continue
+        return bool(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED)
+    return None
 
 
 # ---------------------------------------------------------------- preflight contract
@@ -398,6 +473,45 @@ def resident_loop(conn, args, token: str) -> int:
     return 0
 
 
+def cmd_upload(args) -> int:
+    """Put a plan on the aircraft and prove it is there. Never arms, never starts.
+
+    Replaces whatever mission the vehicle holds. Refuses an armed vehicle. Success means
+    the autopilot read the same mission back, not merely that it said ACK.
+    """
+    conn = connect(args.link, args.expect_sysid)
+    plan_path = Path(args.plan)
+    items, top_alt = plan_to_items(plan_path)
+    log(f"[plan] {plan_path.name}: {len(items)} items, top altitude {top_alt:.1f} m")
+
+    armed = vehicle_armed(conn)
+    if armed is not False:
+        raise RuntimeError("refusing to upload: vehicle is ARMED" if armed else
+                           "refusing to upload: no heartbeat from the vehicle to check "
+                           "its arming state")
+
+    t0 = time.time()
+    upload_mission(conn, items, timeout=max(MISSION_UPLOAD_TIMEOUT_S,
+                                            UPLOAD_S_PER_ITEM * len(items)))
+    upload_s = time.time() - t0
+    log(f"[upload] {len(items)} items in {upload_s:.1f} s ({upload_s / len(items):.2f} s/item)")
+
+    got = download_mission(conn)
+    problems = (["could not read the mission back from the vehicle"] if got is None
+                else diff_items(items, got))
+    for pr in problems:
+        log(f"[readback] {pr}")
+    verified = not problems
+    log(f"[readback] {'VERIFIED' if verified else 'FAILED'}: "
+        f"{len(got) if got else 0} of {len(items)} items on the vehicle")
+    emit(dict(verb="upload", slot=args.slot, sysid=conn.target_system, verified=verified,
+              uploaded=len(items), onboard=None if got is None else len(got),
+              problems=problems, upload_s=round(upload_s, 1), top_alt_m=top_alt,
+              plan=str(plan_path),
+              plan_sha=hashlib.sha256(plan_path.read_bytes()).hexdigest()[:12]))
+    return 0 if verified else 1
+
+
 def cmd_prepare(args) -> int:
     conn = connect(args.link, args.expect_sysid)
     plan_path = Path(args.plan)
@@ -521,7 +635,7 @@ def cmd_abort(args) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("verb", choices=["prepare", "start", "status", "abort"])
+    ap.add_argument("verb", choices=["prepare", "upload", "start", "status", "abort"])
     ap.add_argument("--link", required=True,
                     help="udpin://:14540, serial:///dev/ttyACM0, udpout://host:port")
     ap.add_argument("--expect-sysid", type=int, default=None,
@@ -542,11 +656,11 @@ def main() -> int:
     ap.add_argument("--action", choices=["rtl", "land"], default="rtl")
     args = ap.parse_args()
 
-    if args.verb == "prepare" and not args.plan:
-        ap.error("prepare needs --plan")
+    if args.verb in ("prepare", "upload") and not args.plan:
+        ap.error(f"{args.verb} needs --plan")
 
     try:
-        return {"prepare": cmd_prepare, "start": cmd_start,
+        return {"prepare": cmd_prepare, "upload": cmd_upload, "start": cmd_start,
                 "status": cmd_status, "abort": cmd_abort}[args.verb](args)
     except Exception as exc:
         log(f"[error] {type(exc).__name__}: {exc}")

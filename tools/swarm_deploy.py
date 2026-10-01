@@ -4,6 +4,7 @@
     python3 tools/swarm_deploy.py --fleet fleet.yaml --kml ops/pulau-ubin-west.kml
     python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir missions/toapayoh/mission_drones
     python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --dry-run
+    python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --upload-only
     python3 tools/swarm_deploy.py --fleet fleet.yaml --abort
 
 The sequence, and why each step is there:
@@ -43,6 +44,7 @@ import threading
 import time
 import uuid
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import yaml
@@ -52,6 +54,7 @@ ROOT = HERE.parent
 AGENT_REL = "tools/drone_agent.py"
 PREPARE_TIMEOUT_S = 180.0
 START_TIMEOUT_S = 60.0
+UPLOAD_TIMEOUT_S = 900.0      # upload + read-back; ~1 s/item each way over ELRS
 STATUS_TIMEOUT_S = 20.0
 START_SKEW_LEAD_S = 3.0
 WATCH_POLL_S = 10.0
@@ -75,6 +78,40 @@ def quote_remote(path: str) -> str:
 
 def log(msg: str) -> None:
     print(msg, flush=True)
+
+
+def host_argv(drone: dict, argv: list[str]) -> tuple[list[str], str | None]:
+    """The command to run an agent verb where this drone's agent lives, and its cwd."""
+    host = drone.get("host", "local")
+    if host in LOCAL_HOSTS:
+        return argv, str(ROOT)
+    remote = drone.get("remote_dir", "~/FlightPlanner")
+    inner = " ".join(shlex.quote(a) for a in argv)
+    return (["ssh", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new",
+             host, f"cd {quote_remote(remote)} && {inner}"], None)
+
+
+def upload_one(drone: dict, plan: Path) -> dict:
+    """One-shot `upload` verb on the drone's agent. Returns its json reply or an error."""
+    slot = drone["slot"]
+    argv = ["python3", AGENT_REL, "upload", "--link", str(drone["link"]),
+            "--slot", str(slot), "--plan", str(plan)]
+    if drone.get("sysid") is not None:
+        argv += ["--expect-sysid", str(drone["sysid"])]
+    popen_argv, cwd = host_argv(drone, argv)
+    try:
+        r = subprocess.run(popen_argv, cwd=cwd, capture_output=True, text=True,
+                           timeout=UPLOAD_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        return dict(slot=slot, verified=False, error=f"no result within {UPLOAD_TIMEOUT_S:.0f}s")
+    for line in reversed(r.stdout.splitlines()):
+        if line.startswith("{"):
+            try:
+                return json.loads(line)
+            except json.JSONDecodeError:
+                break
+    tail = " | ".join((r.stderr or "").strip().splitlines()[-3:]) or "no output"
+    return dict(slot=slot, verified=False, error=f"agent exited ({r.returncode}): {tail}")
 
 
 class AgentSession:
@@ -103,14 +140,7 @@ class AgentSession:
         for name, value in (drone.get("set") or {}).items():
             argv += ["--set", f"{name}={value}"]
 
-        if self.host in LOCAL_HOSTS:
-            popen_argv, cwd = argv, str(ROOT)
-        else:
-            remote = drone.get("remote_dir", "~/FlightPlanner")
-            inner = " ".join(shlex.quote(a) for a in argv)
-            popen_argv = ["ssh", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new",
-                          self.host, f"cd {quote_remote(remote)} && {inner}"]
-            cwd = None
+        popen_argv, cwd = host_argv(drone, argv)
 
         self.proc = subprocess.Popen(popen_argv, stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -232,6 +262,9 @@ def main() -> int:
     ap.add_argument("--output", default="missions/run/mission.plan")
     ap.add_argument("--dry-run", action="store_true",
                     help="prepare and barrier only -- never arms. Use this on a bench.")
+    ap.add_argument("--upload-only", action="store_true",
+                    help="push each plan, upload it to its aircraft, read it back, stop. "
+                         "No params, no preflight, never arms.")
     ap.add_argument("--abort", action="store_true",
                     help="one-shot RTL to every drone, then exit")
     ap.add_argument("--at-in", type=float, default=None,
@@ -281,6 +314,20 @@ def main() -> int:
     if push_errors:
         log("[barrier] at least one drone is not ready -- NOBODY is armed")
         return 1
+
+    if args.upload_only:
+        log("[upload] uploading and reading back")
+        with ThreadPoolExecutor(max_workers=len(fleet)) as pool:
+            results = list(pool.map(lambda d: upload_one(d, plans[d["slot"]]), fleet))
+        for d, r in zip(fleet, results):
+            if r.get("verified"):
+                log(f"[upload] slot {d['slot']} sysid {r.get('sysid')}: VERIFIED "
+                    f"{r.get('onboard')}/{r.get('uploaded')} items in {r.get('upload_s')} s "
+                    f"(plan {r.get('plan_sha')})")
+            else:
+                why = r.get("error") or "; ".join(r.get("problems") or ["unknown"])
+                log(f"[upload] slot {d['slot']}: FAILED -- {why}")
+        return 0 if all(r.get("verified") for r in results) else 1
 
     # 3. prepare -- agents stay resident from here on
     log("[prepare] starting agents")
