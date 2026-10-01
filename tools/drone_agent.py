@@ -687,6 +687,120 @@ def cmd_status(args) -> int:
     return 0
 
 
+def stream_level_zero_thrust(conn) -> None:
+    """One SET_ATTITUDE_TARGET: level, zero thrust, rates ignored. Offboard needs >2 Hz."""
+    kw = dict(thrust_body=[0.0, 0.0, 0.0]) if _ATT_HAS_BODY_THRUST else {}
+    conn.mav.set_attitude_target_send(int(time.monotonic() * 1000) & 0xFFFFFFFF,
+                                      conn.target_system, 1, 0b00000111,
+                                      [1.0, 0.0, 0.0, 0.0], 0.0, 0.0, 0.0, 0.0, **kw)
+
+
+_ATT_HAS_BODY_THRUST = "thrust_body" in mavutil.mavlink.MAVLink_set_attitude_target_message.fieldnames
+
+
+def vehicle_main_mode(hb) -> int:
+    return (hb.custom_mode >> 16) & 0xFF
+
+
+def cmd_offboard_arm(args) -> int:
+    """Bench test, no GPS needed: stream level/zero-thrust, enter OFFBOARD, arm, hold, disarm.
+
+    Props must be off. Always ends with a disarm attempt, whatever happened."""
+    OFFBOARD = 6
+    conn = connect(args.link, args.expect_sysid)
+    result = dict(verb="offboard-arm", slot=args.slot, sysid=conn.target_system,
+                  offboard=False, armed=False, held_s=0.0, disarmed=False)
+    armed_now = vehicle_armed(conn)
+    if armed_now is not False:
+        result["error"] = "refusing: vehicle is ARMED or silent"
+        emit(result)
+        return 2
+    wo_gps = read_param(conn, "COM_ARM_WO_GPS")
+    result["com_arm_wo_gps"] = wo_gps
+    log(f"[offboard] COM_ARM_WO_GPS={wo_gps}")
+
+    state = dict(armed=False, mode=None)
+
+    def pump(seconds: float, until=None) -> bool:
+        end = time.time() + seconds
+        while time.time() < end:
+            stream_level_zero_thrust(conn)
+            msg = conn.recv_match(blocking=True, timeout=0.05)
+            while msg is not None:
+                kind = msg.get_type()
+                if kind == "HEARTBEAT" and msg.get_srcSystem() == conn.target_system \
+                        and msg.type != mavutil.mavlink.MAV_TYPE_GCS:
+                    state["armed"] = bool(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED)
+                    state["mode"] = vehicle_main_mode(msg)
+                elif kind == "STATUSTEXT":
+                    text = msg.text if isinstance(msg.text, str) else msg.text.decode(errors="replace")
+                    log(f"[vehicle] {text.strip()}")
+                    result.setdefault("vehicle_text", []).append(text.strip())
+                elif kind == "COMMAND_ACK" and msg.command == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM:
+                    result["arm_result"] = msg.result
+                    log(f"[vehicle] arm/disarm ack result {msg.result}")
+                msg = conn.recv_match(blocking=False)
+            if until and until():
+                return True
+            time.sleep(0.05)
+        return until is None
+
+    try:
+        log("[offboard] streaming setpoints")
+        pump(2.0)
+        log("[offboard] requesting OFFBOARD")
+        last = 0.0
+        deadline = time.time() + 10
+        while time.time() < deadline and state["mode"] != OFFBOARD:
+            if time.time() - last > 2.0:
+                conn.mav.command_long_send(conn.target_system, 1,
+                                           mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
+                                           1, OFFBOARD, 0, 0, 0, 0, 0)
+                last = time.time()
+            pump(0.5, lambda: state["mode"] == OFFBOARD)
+        result["offboard"] = state["mode"] == OFFBOARD
+        if not result["offboard"]:
+            result["error"] = f"vehicle did not enter OFFBOARD (main mode {state['mode']})"
+            return 2
+        log("[offboard] in OFFBOARD; arming")
+        last = 0.0
+        deadline = time.time() + 20
+        while time.time() < deadline and not state["armed"]:
+            if time.time() - last > 3.0:
+                conn.mav.command_long_send(conn.target_system, 1,
+                                           mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                                           0, 1, 0, 0, 0, 0, 0, 0)
+                last = time.time()
+            pump(0.5, lambda: state["armed"])
+        result["armed"] = state["armed"]
+        if not state["armed"]:
+            result["error"] = "vehicle did not arm"
+            return 2
+        t0 = time.time()
+        log(f"[offboard] ARMED; holding {args.hold_s:.0f} s")
+        while time.time() - t0 < args.hold_s:
+            pump(0.5)
+            if not state["armed"]:
+                result["error"] = "vehicle disarmed itself during hold"
+                break
+            if state["mode"] != OFFBOARD:
+                result["error"] = f"left OFFBOARD during hold (main mode {state['mode']})"
+                break
+        result["held_s"] = round(time.time() - t0, 1)
+        return 0 if "error" not in result else 2
+    finally:
+        log("[offboard] disarming")
+        for _ in range(6):
+            conn.mav.command_long_send(conn.target_system, 1,
+                                       mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                                       0, 0, 0, 0, 0, 0, 0, 0)
+            pump(2.0, lambda: not state["armed"])
+            if not state["armed"]:
+                break
+        result["disarmed"] = not state["armed"]
+        emit(result)
+
+
 def cmd_abort(args) -> int:
     conn = connect(args.link, args.expect_sysid)
     emit(dict(verb="abort", slot=args.slot, sysid=conn.target_system,
@@ -697,7 +811,9 @@ def cmd_abort(args) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("verb", choices=["prepare", "upload", "start", "status", "abort"])
+    ap.add_argument("verb", choices=["prepare", "upload", "start", "status", "abort",
+                                        "offboard-arm"])
+    ap.add_argument("--hold-s", type=float, default=10.0, help="offboard-arm: seconds to stay armed")
     ap.add_argument("--link", required=True,
                     help="udpin://:14540, serial:///dev/ttyACM0, udpout://host:port")
     ap.add_argument("--expect-sysid", type=int, default=None,
@@ -723,7 +839,8 @@ def main() -> int:
 
     try:
         return {"prepare": cmd_prepare, "upload": cmd_upload, "start": cmd_start,
-                "status": cmd_status, "abort": cmd_abort}[args.verb](args)
+                "status": cmd_status, "abort": cmd_abort,
+                "offboard-arm": cmd_offboard_arm}[args.verb](args)
     except Exception as exc:
         log(f"[error] {type(exc).__name__}: {exc}")
         emit(dict(verb=args.verb, slot=args.slot, ready=False, error=str(exc)))
