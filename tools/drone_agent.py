@@ -224,22 +224,38 @@ def upload_mission(conn, items: list[dict], timeout: float = MISSION_UPLOAD_TIME
     conn.mav.mission_clear_all_send(conn.target_system, 1, MT)
     conn.recv_match(type="MISSION_ACK", blocking=True, timeout=5)
 
-    conn.mav.mission_count_send(conn.target_system, 1, len(items), MT)
-    sent, deadline = set(), time.time() + timeout
-    while time.time() < deadline:
-        msg = conn.recv_match(type=["MISSION_REQUEST", "MISSION_REQUEST_INT",
-                                    "MISSION_ACK"], blocking=True, timeout=5)
-        if msg is None:
-            raise TimeoutError(f"vehicle stopped requesting items at {len(sent)}/{len(items)}")
-        if msg.get_type() == "MISSION_ACK":
-            if msg.type != mavutil.mavlink.MAV_MISSION_ACCEPTED:
-                raise RuntimeError(f"vehicle rejected the mission: MAV_MISSION result {msg.type}")
-            break
-        i = items[msg.seq]
+    def send_item(seq: int) -> None:
+        i = items[seq]
         conn.mav.mission_item_int_send(
             conn.target_system, 1, i["seq"], i["frame"], i["command"],
             i["current"], i["autocontinue"], i["p1"], i["p2"], i["p3"], i["p4"],
             i["x"], i["y"], i["z"], MT)
+
+    conn.mav.mission_count_send(conn.target_system, 1, len(items), MT)
+    sent, deadline = set(), time.time() + timeout
+    last_seq, quiet_resends = None, 0
+    while time.time() < deadline:
+        msg = conn.recv_match(type=["MISSION_REQUEST", "MISSION_REQUEST_INT",
+                                    "MISSION_ACK"], blocking=True, timeout=2.5)
+        if msg is None:
+            # a radio drops packets: nudge the vehicle by repeating our last message
+            quiet_resends += 1
+            if quiet_resends > 6:
+                raise TimeoutError(
+                    f"vehicle stopped requesting items at {len(sent)}/{len(items)}")
+            log(f"[plan] silence at {len(sent)}/{len(items)}; resend {quiet_resends}/6")
+            if last_seq is None:
+                conn.mav.mission_count_send(conn.target_system, 1, len(items), MT)
+            else:
+                send_item(last_seq)
+            continue
+        quiet_resends = 0
+        if msg.get_type() == "MISSION_ACK":
+            if msg.type != mavutil.mavlink.MAV_MISSION_ACCEPTED:
+                raise RuntimeError(f"vehicle rejected the mission: MAV_MISSION result {msg.type}")
+            break
+        send_item(msg.seq)
+        last_seq = msg.seq
         sent.add(msg.seq)
     else:
         raise TimeoutError("no MISSION_ACK before timeout")
