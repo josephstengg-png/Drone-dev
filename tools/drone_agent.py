@@ -778,6 +778,20 @@ def cmd_offboard_arm(args) -> int:
         if not result["offboard"]:
             result["error"] = f"vehicle did not enter OFFBOARD (main mode {state['mode']})"
             return 2
+        if args.gate:
+            emit(dict(event="ready", slot=args.slot, sysid=conn.target_system))
+            log("[offboard] READY -- waiting for workstation authorisation (ARM)")
+            import select
+            end, verdict = time.time() + args.gate_timeout_s, None
+            while time.time() < end and verdict is None:
+                pump(0.3)
+                if select.select([sys.stdin], [], [], 0)[0]:
+                    line = sys.stdin.readline().strip()
+                    verdict = line.upper() if line else "EOF"
+            if verdict != "ARM":
+                result["error"] = f"not authorised to arm ({verdict or 'timeout'})"
+                return 2
+            log("[offboard] authorised")
         log("[offboard] in OFFBOARD; arming")
         last = 0.0
         deadline = time.time() + 20
@@ -793,6 +807,7 @@ def cmd_offboard_arm(args) -> int:
             result["error"] = "vehicle did not arm"
             return 2
         t0 = time.time()
+        result["armed_epoch"] = round(t0, 3)
         log(f"[offboard] ARMED; holding {args.hold_s:.0f} s")
         while time.time() - t0 < args.hold_s:
             pump(0.5)
@@ -830,6 +845,9 @@ def main() -> int:
     ap.add_argument("verb", choices=["prepare", "upload", "start", "status", "abort",
                                         "offboard-arm"])
     ap.add_argument("--hold-s", type=float, default=10.0, help="offboard-arm: seconds to stay armed")
+    ap.add_argument("--gate", action="store_true",
+                    help="offboard-arm: enter OFFBOARD, print a ready event, arm only on 'ARM' from stdin")
+    ap.add_argument("--gate-timeout-s", type=float, default=90.0)
     ap.add_argument("--link", required=True,
                     help="udpin://:14540, serial:///dev/ttyACM0, udpout://host:port")
     ap.add_argument("--expect-sysid", type=int, default=None,
