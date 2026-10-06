@@ -58,9 +58,15 @@ def main() -> int:
     ap.add_argument("--stats", action="store_true", help="print module counters and exit")
     ap.add_argument("--report-s", type=float, default=10.0)
     ap.add_argument("--mirror", action="append", metavar="HOST:PORT", default=[],
-                    help="send a copy of every downlink packet here, and ignore anything "
-                         "it sends back. For QGroundControl on the workstation: "
-                         "--mirror 192.168.144.50:14550. Repeatable. OBSERVE ONLY.")
+                    help="send a copy of every downlink packet here. For QGroundControl: "
+                         "--mirror 127.0.0.1:14551. Repeatable. Observe-only unless "
+                         "--mirror-control is given.")
+    ap.add_argument("--mirror-control", action="store_true",
+                    help="ALSO forward what the mirror sends to the aircraft, making it a "
+                         "full ground station. It can then arm, disarm and change modes "
+                         "alongside the agent -- two commanders on one airframe. Without "
+                         "this, QGC's mission/geofence/rally/parameter requests all fail, "
+                         "because every one of them needs a packet to reach the vehicle.")
     ap.add_argument("--agent-ttl-s", type=float, default=30.0,
                     help="how long an agent address keeps receiving downlink after its "
                          "last packet")
@@ -86,22 +92,29 @@ def main() -> int:
             return 2
         mirrors.append((host, int(port)))
 
-    # Its own socket, and we never act on what arrives here. QGroundControl talks back the
-    # moment it sees a vehicle -- heartbeats, parameter requests, mode commands -- and
-    # forwarding any of that would put a second commander on the aircraft alongside the
-    # agent. The point of the mirror is a window, not a second pair of hands.
+    # Its own socket. By default we never act on what arrives here: QGroundControl talks
+    # back the moment it sees a vehicle, and forwarding that puts a second commander on the
+    # aircraft alongside the agent. --mirror-control opts into exactly that, deliberately,
+    # because a QGC that cannot send is a QGC whose every request fails -- mission,
+    # geofence, rally points and parameters are all request/response.
     mirror_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if mirrors else None
 
     module = (args.module_ip, args.module_listen)
     agents: dict[tuple[str, int], float] = {}
     up = down = dropped = unreachable = 0
+    mirror_up = mirror_blocked = 0
     last = time.time()
 
     print(f"[elrs] agent udp/{args.agent_port} <-> module {module[0]}:{module[1]} "
           f"(downlink on {args.module_send})", flush=True)
     if mirrors:
-        print("[elrs] mirroring downlink (observe only, nothing it sends is forwarded) to "
-              + ", ".join(f"{h}:{p}" for h, p in mirrors), flush=True)
+        where = ", ".join(f"{h}:{p}" for h, p in mirrors)
+        if args.mirror_control:
+            print(f"[elrs] mirroring downlink to {where} -- TWO-WAY: that station can "
+                  f"command this aircraft, alongside the agent", flush=True)
+        else:
+            print(f"[elrs] mirroring downlink to {where} (observe only, nothing it sends "
+                  f"is forwarded)", flush=True)
 
     while True:
         watch = [radio, agent] + ([mirror_sock] if mirror_sock else [])
@@ -112,7 +125,16 @@ def main() -> int:
             except OSError:
                 continue
             if s is mirror_sock:
-                continue          # drained and discarded on purpose -- see above
+                if not args.mirror_control:
+                    mirror_blocked += 1    # drained and discarded on purpose -- see above
+                    continue
+                try:
+                    radio.sendto(data, module)
+                except OSError:
+                    unreachable += 1
+                else:
+                    mirror_up += 1
+                continue
             if s is agent:
                 agents[addr] = time.time()
                 try:
@@ -150,7 +172,8 @@ def main() -> int:
             c = counters(args.module_ip).get("counters", {})
             print(f"[elrs] up={up} down={down} no-agent-drop={dropped} "
                   f"uplink-unreachable={unreachable} agents={len(agents)} "
-                  f"mirrors={len(mirrors)} module={c}", flush=True)
+                  f"mirrors={len(mirrors)} mirror-up={mirror_up} "
+                  f"mirror-blocked={mirror_blocked} module={c}", flush=True)
             last = now
 
 
