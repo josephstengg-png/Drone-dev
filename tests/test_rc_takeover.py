@@ -25,25 +25,34 @@ def _findings(p, rc_seen=True):
     return agent.rc_takeover_findings(p, rc_seen)
 
 
+def _notes(p):
+    return agent.rc_takeover_notes(p)
+
+
 def test_a_properly_configured_aircraft_has_nothing_to_report():
     assert _findings(_good()) == []
 
 
-def test_the_px4_default_cannot_break_offboard():
-    f = _findings(_good(COM_RC_OVERRIDE=1))        # PX4's shipped default
-    assert len(f) == 1
-    assert "CANNOT break OFFBOARD" in f[0]
+def test_stick_override_is_a_policy_choice_not_a_fault():
+    # Decided 6 Oct 2026: COM_RC_OVERRIDE stays at PX4's default 1, so a knocked stick
+    # cannot drop an aircraft out of OFFBOARD. The mode switch is the takeover path.
+    assert _findings(_good(COM_RC_OVERRIDE=1)) == []
+    n = _notes(_good(COM_RC_OVERRIDE=1))
+    assert any("will NOT break OFFBOARD" in x for x in n)
 
 
-def test_override_disabled_entirely_is_reported_twice():
-    f = _findings(_good(COM_RC_OVERRIDE=0))
-    assert any("OFFBOARD" in x for x in f)
-    assert any("AUTO" in x for x in f)
+def test_override_disabled_entirely_is_noted_twice():
+    n = _notes(_good(COM_RC_OVERRIDE=0))
+    assert any("OFFBOARD" in x for x in n)
+    assert any("AUTO" in x for x in n)
 
 
-def test_offboard_only_override_still_warns_about_auto():
-    f = _findings(_good(COM_RC_OVERRIDE=2))
-    assert len(f) == 1 and "AUTO" in f[0]
+def test_full_override_has_nothing_to_note():
+    assert _notes(_good(COM_RC_OVERRIDE=3, RC_MAP_KILL_SW=8)) == []
+
+
+def test_an_unreadable_override_is_noted_not_assumed_good():
+    assert any("could not be read" in x for x in _notes(_good(COM_RC_OVERRIDE=None)))
 
 
 def test_stick_input_disabled_is_caught():
@@ -82,13 +91,20 @@ def test_autopilot_modes_do_not_count_as_handing_over():
         assert any("hand-flown" in x for x in _findings(_good(COM_FLTMODE1=mode, COM_FLTMODE6=-1)))
 
 
-def test_a_missing_kill_switch_is_reported():
-    assert any("RC_MAP_KILL_SW=0" in x for x in _findings(_good(RC_MAP_KILL_SW=0)))
+def test_a_missing_kill_switch_is_noted_but_does_not_block():
+    assert _findings(_good(RC_MAP_KILL_SW=0)) == []
+    assert any("RC_MAP_KILL_SW=0" in x for x in _notes(_good(RC_MAP_KILL_SW=0)))
 
 
 def test_a_transmitter_that_was_never_heard_is_the_headline():
     assert any("no RC_CHANNELS heard" in x for x in _findings(_good(), rc_seen=False))
 
 
-def test_an_unreadable_override_is_reported_not_assumed_good():
-    assert any("could not be read" in x for x in _findings(_good(COM_RC_OVERRIDE=None)))
+def test_artex113_as_actually_configured_is_ready():
+    """The real 113, read 6 Oct 2026: mode switch on ch7, slot 1 Altitude, kill on ch8."""
+    real = {"COM_RC_IN_MODE": 3, "COM_RC_OVERRIDE": 1, "COM_RC_STICK_OV": 30.0,
+            "RC_MAP_FLTMODE": 7, "RC_MAP_KILL_SW": 8, "COM_RCL_EXCEPT": 0,
+            "COM_FLTMODE1": 1, "COM_FLTMODE2": -1, "COM_FLTMODE3": -1,
+            "COM_FLTMODE4": 2, "COM_FLTMODE5": -1, "COM_FLTMODE6": 2}
+    assert _findings(real) == []                     # nothing blocks the switch
+    assert any("NOT break OFFBOARD" in x for x in _notes(real))

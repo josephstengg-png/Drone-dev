@@ -6,11 +6,15 @@
 Read-only. It changes nothing on any aircraft -- it reports what PX4 is currently
 configured to do, and prints the exact values to change if the answer is no.
 
-WHY THIS CHECK EXISTS, AND THE ONE DEFAULT THAT MATTERS. PX4 ships `COM_RC_OVERRIDE = 1`,
-which is a bitmask: bit 0 enables stick override during AUTO modes, bit 1 during OFFBOARD.
-The default has bit 1 CLEAR, so on a stock airframe **moving the sticks does not take the
-aircraft out of OFFBOARD** -- and OFFBOARD is the mode every arming test here uses. The
-pilot would be moving dead sticks. `COM_RC_OVERRIDE = 3` sets both.
+TWO WAYS A PILOT TAKES OVER, AND THIS PROJECT USES ONLY ONE. A mode SWITCH requests a
+flight mode outright (RC_MAP_FLTMODE + COM_FLTMODE1..6). Separately, STICK movement can
+override, governed by `COM_RC_OVERRIDE` -- a bitmask whose bit 0 covers AUTO and bit 1
+covers OFFBOARD, shipped as 1, so bit 1 is clear.
+
+Decided 6 Oct 2026: **leave COM_RC_OVERRIDE at 1.** A knocked stick must not be able to
+drop an aircraft out of OFFBOARD mid-run; taking over should be a deliberate act. So the
+mode switch is the takeover path, and this check treats the override as a note rather than
+a fault. Set it to 3 only if you later decide you want the sticks to override too.
 
 THE THREE LAYERS, AND WHY THIS ONE IS DIFFERENT. The guard on the companion
 (tools/safety_rules.py) and the ground station's abort switch (tools/takeover.py) both run
@@ -28,8 +32,8 @@ WHAT HAS TO BE SET, AND WHERE:
     a kill switch.
 
   On the aircraft (QGroundControl, or `drone_agent.py prepare --set NAME=VALUE`):
-    COM_RC_IN_MODE    0 (RC only) or 2 (RC and joystick) -- 4 means stick input is OFF
-    COM_RC_OVERRIDE   3  -- sticks break BOTH auto and offboard. The whole point.
+    COM_RC_IN_MODE    0 (RC only), 2 (RC and joystick) or 3 (keep first) -- 4 is OFF
+    COM_RC_OVERRIDE   left at 1 here on purpose; 3 would let the sticks override too
     COM_RC_STICK_OV   how far a stick must move to count, in % (PX4 default 30)
     RC_MAP_FLTMODE    the channel carrying the mode switch
     COM_FLTMODE1..6   the mode in each of that channel's six slots. At least one must be
@@ -60,8 +64,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from swarm_deploy import host_argv  # noqa: E402
 
 WANTED = {
-    "COM_RC_IN_MODE": "0 (RC only) or 2 (RC and joystick)",
-    "COM_RC_OVERRIDE": "3 (sticks break auto AND offboard)",
+    "COM_RC_IN_MODE": "0, 2 or 3 -- anything that accepts RC",
+    "COM_RC_OVERRIDE": "left at 1 on this project, on purpose (see notes)",
     "RC_MAP_FLTMODE": "the channel your mode switch is on",
     "RC_MAP_KILL_SW": "the channel your kill switch is on",
 }
@@ -120,6 +124,8 @@ def main() -> int:
                                                    in sorted(r["mode_slots"].items())))
         for f in r.get("findings", []):
             log(f"[rc]   PROBLEM: {f}")
+        for n in r.get("notes", []):
+            log(f"[rc]   note: {n}")
         if r.get("ready"):
             log(f"[rc]   the RC switch can take this aircraft")
         else:
@@ -132,6 +138,9 @@ def main() -> int:
             log(f"[rc]   {k:17} -> {v}")
         log("[rc] COM_FLTMODE1..6 need at least one hand-flown mode: Manual(0), "
             "Altitude(1), Position(2), Acro(6), Stabilized(8), Position Slow(9).")
+        log("[rc] COM_RC_OVERRIDE is NOT in that list: this project leaves it at PX4's "
+            "default 1 on purpose, so a knocked stick cannot drop an aircraft out of "
+            "OFFBOARD. The mode switch is the takeover path.")
         log("[rc] QGroundControl > Vehicle Setup > Flight Modes is the easiest way; it "
             "shows the switch moving as you flip it. Then re-run this check.")
         return 1

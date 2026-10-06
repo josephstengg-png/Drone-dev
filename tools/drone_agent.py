@@ -1152,9 +1152,11 @@ RC_PARAMS = ("COM_RC_IN_MODE", "COM_RC_OVERRIDE", "COM_RC_STICK_OV", "RC_MAP_FLT
 
 
 def rc_takeover_findings(p: dict, rc_seen: bool) -> list[str]:
-    """What stops the RC switch from being able to take this aircraft. Empty = nothing.
+    """What STOPS the RC switch from taking this aircraft. Empty = nothing does.
 
-    Pure, so tests/test_rc_takeover.py can pin it without an aircraft.
+    Only blocking faults belong here. Policy choices live in rc_takeover_notes() -- see
+    the note there about COM_RC_OVERRIDE, which is deliberately left at PX4's default on
+    this project. Pure, so tests/test_rc_takeover.py can pin it without an aircraft.
     """
     out = []
     # 0 RC only, 2 RC and joystick, 3 whichever is seen first (so RC works if RC is first --
@@ -1166,18 +1168,6 @@ def rc_takeover_findings(p: dict, rc_seen: bool) -> list[str]:
                    f"(need 0 'RC only', 2 'RC and joystick', or 3 'keep first'; "
                    f"1 is joystick only and 4 is disabled)")
 
-    ov = p.get("COM_RC_OVERRIDE")
-    if ov is None:
-        out.append("COM_RC_OVERRIDE could not be read")
-    else:
-        ov = int(ov)
-        if not ov & 2:
-            out.append(f"COM_RC_OVERRIDE={ov}: moving the sticks CANNOT break OFFBOARD. "
-                       f"This is PX4's default (1 = auto modes only); set 3 for auto+offboard")
-        if not ov & 1:
-            out.append(f"COM_RC_OVERRIDE={ov}: moving the sticks cannot break AUTO either; "
-                       f"set 3")
-
     if not p.get("RC_MAP_FLTMODE"):
         out.append("RC_MAP_FLTMODE=0: no channel carries the flight-mode switch, so no "
                    "switch position can request a mode")
@@ -1185,12 +1175,35 @@ def rc_takeover_findings(p: dict, rc_seen: bool) -> list[str]:
     if not any(v is not None and int(v) in PILOT_FLTMODES for v in slots.values()):
         out.append("no COM_FLTMODE1..6 slot holds a hand-flown mode (Manual/Altitude/"
                    "Position/Acro/Stabilized), so no switch position hands over control")
-    if not p.get("RC_MAP_KILL_SW"):
-        out.append("RC_MAP_KILL_SW=0: no kill switch mapped (strongly recommended -- it is "
-                   "the only override that does not need the autopilot to cooperate)")
     if not rc_seen:
         out.append("no RC_CHANNELS heard: the transmitter is off, unbound, or its link to "
                    "this aircraft is down. Nothing above can work until it is heard")
+    return out
+
+
+def rc_takeover_notes(p: dict) -> list[str]:
+    """True but not blocking: what the current configuration does and does not cover.
+
+    COM_RC_OVERRIDE is the big one. Bit 1 enables stick override during OFFBOARD, and this
+    project deliberately leaves it CLEAR (6 Oct 2026) so a knocked stick cannot drop an
+    aircraft out of offboard mid-run. The consequence is that the mode switch is the only
+    way to take over, which is the intent -- a deliberate act, not an accidental one.
+    """
+    out = []
+    ov = p.get("COM_RC_OVERRIDE")
+    if ov is None:
+        out.append("COM_RC_OVERRIDE could not be read")
+    else:
+        ov = int(ov)
+        if not ov & 2:
+            out.append(f"COM_RC_OVERRIDE={ov}: stick movement will NOT break OFFBOARD "
+                       f"(deliberate here -- the mode switch is the takeover path). "
+                       f"Set 3 only if you want the sticks to override too")
+        if not ov & 1:
+            out.append(f"COM_RC_OVERRIDE={ov}: stick movement will not break AUTO either")
+    if not p.get("RC_MAP_KILL_SW"):
+        out.append("RC_MAP_KILL_SW=0: no kill switch mapped -- the only override that does "
+                   "not need the autopilot to cooperate")
     return out
 
 
@@ -1208,15 +1221,18 @@ def cmd_rc_check(args) -> int:
             rc_seen, rssi = True, getattr(m, "rssi", None)
     slots = {n: params.get(f"COM_FLTMODE{n}") for n in range(1, 7)}
     findings = rc_takeover_findings(params, rc_seen)
+    notes = rc_takeover_notes(params)
     for f in findings:
         log(f"[rc] {f}")
+    for n in notes:
+        log(f"[rc] note: {n}")
     if not findings:
         log("[rc] the RC switch can take this aircraft")
     emit(dict(verb="rc-check", slot=args.slot, sysid=conn.target_system,
               rc_seen=rc_seen, rssi=rssi, params=params,
               mode_slots={n: FLTMODE_NAMES.get(int(v), v) for n, v in slots.items()
                           if v is not None},
-              findings=findings, ready=not findings))
+              findings=findings, notes=notes, ready=not findings))
     return 0 if not findings else 1
 
 
