@@ -446,6 +446,11 @@ bridges MAVLink to the aircraft over ELRS.
 echo <pw> | sudo -S -p '' env ELRS_BSSID=02:70:07:61:E4:CB ELRS_PSK='...' \
     bash tools/jetson_net.sh
 tools/jetson_net.sh --status
+
+# make the relay survive a reboot -- without this, a rebooted Jetson looks like a dead
+# aircraft: ssh works, but the agent never sees a heartbeat on 127.0.0.1:14540
+sudo bash tools/elrs_service.sh
+tools/elrs_service.sh --status
 ```
 
 Three things about these radios that are not obvious:
@@ -569,6 +574,8 @@ python3 tools/drone_agent.py offboard-arm --link udpout://127.0.0.1:14540 --sysi
 # two aircraft armed together, all-or-nobody: each Jetson reaches OFFBOARD and reports
 # READY; ARM is sent to all only when ALL are ready, hold, disarm, confirm disarmed.
 # Reports the arm-instant spread. Use --skip-status against SITL (it latches its first client).
+# Refuses to start if any Jetson's link to its backpack is worse than 10% loss / 150 ms --
+# a lost ARM is a non-event, a lost DISARM is not.
 python3 tools/pair_arm_test.py --fleet fleet-artex-pair.yaml --hold-s 10
 
 # bench run: verify everything, never arm
@@ -717,6 +724,8 @@ That is what the matrix is for.
 | `tools/switch_link.sh` | Find and address a companion on the unmanaged switch, over IPv6 link-local. |
 | `tools/jetson_net.sh` | Puts a companion in its two-network role: ETH to the LAN, WiFi to a backpack. |
 | `tools/elrs_link.py` | Straddles the backpack's asymmetric MAVLink ports. **Runs on the companion.** |
+| `tools/elrs_service.sh` | Installs `elrs_link.py` as a systemd unit so the relay comes back after a reboot. **Runs on the companion.** |
+| `tools/pair_arm_test.py` | Arms every aircraft in a fleet at one instant, or nobody: link gate, status, READY barrier, hold, disarm. |
 | `tools/elrs_pair.py` | Pins each companion to exactly one backpack by BSSID, and proves it. |
 | `tools/mavlink_bridge.py` | Puts a serial flight controller on UDP; can rewrite its system id. |
 | `tools/qgc_capture/` | Scripted QGC screenshots (X11 clicks; fragile by nature). |

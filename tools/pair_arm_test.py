@@ -6,6 +6,8 @@
 PROPS MUST BE OFF. This spins motors on every aircraft in the fleet file.
 
 Phases (the same barrier idea as swarm_deploy.py):
+  0. link    each Jetson's radio link to its backpack must be good enough that the DISARM
+             will certainly arrive -- a lost ARM is a non-event, a lost DISARM is not
   1. status  each aircraft must answer as its expected sysid and be DISARMED
   2. ready   each Jetson streams a level/zero-thrust setpoint, puts its aircraft in OFFBOARD
              and reports READY; nothing is armed yet
@@ -17,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import threading
@@ -27,7 +30,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from swarm_deploy import host_argv  # noqa: E402
+from swarm_deploy import LOCAL_HOSTS, host_argv  # noqa: E402
 
 
 def log(msg: str) -> None:
@@ -41,6 +44,24 @@ def last_json(text: str) -> dict:
         except ValueError:
             continue
     return {}
+
+
+def link_quality(d: dict, gw: str, count: int) -> dict:
+    """Ping the ELRS backpack from the Jetson that owns it, as that Jetson sees it."""
+    if d.get("host", "local") in LOCAL_HOSTS:
+        return {"skipped": "local host -- no radio in the path"}
+    argv, cwd = host_argv(d, ["ping", "-c", str(count), "-W", "1", gw])
+    try:
+        r = subprocess.run(argv, cwd=cwd, capture_output=True, text=True,
+                           timeout=2 * count + 30)
+    except subprocess.TimeoutExpired:
+        return {"error": f"ping {gw} timed out"}
+    loss = re.search(r"([\d.]+)% packet loss", r.stdout)
+    avg = re.search(r"rtt min/avg/max/mdev = [\d.]+/([\d.]+)/", r.stdout)
+    if not loss:
+        return {"error": (r.stderr.strip().splitlines() or ["no ping output"])[-1]}
+    return {"loss_pct": float(loss.group(1)),
+            "avg_ms": float(avg.group(1)) if avg else None}
 
 
 def status_of(d: dict) -> dict:
@@ -102,10 +123,39 @@ def main() -> int:
     ap.add_argument("--fleet", required=True)
     ap.add_argument("--hold-s", type=float, default=10.0)
     ap.add_argument("--ready-timeout-s", type=float, default=75.0)
+    ap.add_argument("--skip-link-check", action="store_true",
+                    help="arm even if a radio link is poor -- you accept that a DISARM may be lost")
+    ap.add_argument("--link-gw", default="10.0.0.1", help="backpack address each Jetson pings")
+    ap.add_argument("--link-pings", type=int, default=10)
+    ap.add_argument("--max-loss-pct", type=float, default=10.0)
+    ap.add_argument("--max-rtt-ms", type=float, default=150.0)
     ap.add_argument("--skip-status", action="store_true",
                     help="skip the separate status handshake (SITL latches its first client)")
     args = ap.parse_args()
     drones = yaml.safe_load(Path(args.fleet).read_text())["drones"]
+
+    if not args.skip_link_check:
+        log(f"[link] each Jetson pings its backpack at {args.link_gw} "
+            f"(need loss <= {args.max_loss_pct}%, avg RTT <= {args.max_rtt_ms} ms)")
+        with ThreadPoolExecutor(len(drones)) as ex:
+            qs = list(ex.map(lambda d: link_quality(d, args.link_gw, args.link_pings), drones))
+        weak = False
+        for d, q in zip(drones, qs):
+            if q.get("skipped"):
+                log(f"[link] slot {d['slot']} sysid {d['sysid']}: skipped -- {q['skipped']}")
+                continue
+            loss, avg = q.get("loss_pct"), q.get("avg_ms")
+            ok = (loss is not None and loss <= args.max_loss_pct
+                  and (avg is None or avg <= args.max_rtt_ms))
+            log(f"[link] slot {d['slot']} sysid {d['sysid']} on {d['host']}: "
+                + (f"{'OK' if ok else 'TOO WEAK'} -- {loss}% loss, avg {avg} ms"
+                   if loss is not None else f"TOO WEAK -- {q}"))
+            weak |= not ok
+        if weak:
+            log("[abort] a radio link cannot be trusted to deliver the DISARM; nothing was started")
+            log("[abort] fix the link (antenna, position, range) -- or accept the risk with "
+                "--skip-link-check")
+            return 1
 
     sts = [{}] * len(drones)
     if not args.skip_status:
