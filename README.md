@@ -563,6 +563,14 @@ python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --upload-only
 # the workstation (observer only; it is not on the automation path).
 python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --arm-only --qgc
 
+# offboard arm with no GPS/mission (props OFF only): one aircraft, via its Jetson
+python3 tools/drone_agent.py offboard-arm --link udpout://127.0.0.1:14540 --sysid 115 --hold-s 10
+
+# two aircraft armed together, all-or-nobody: each Jetson reaches OFFBOARD and reports
+# READY; ARM is sent to all only when ALL are ready, hold, disarm, confirm disarmed.
+# Reports the arm-instant spread. Use --skip-status against SITL (it latches its first client).
+python3 tools/pair_arm_test.py --fleet fleet-artex-pair.yaml --hold-s 10
+
 # bench run: verify everything, never arm
 python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --dry-run
 
