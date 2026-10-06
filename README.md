@@ -435,6 +435,51 @@ scp sar_turn_params.params jetson-1:~/FlightPlanner/
 `--user --break-system-packages` is required: Ubuntu 24.04 is PEP 668 managed and has no
 `python3-pymavlink` apt candidate.
 
+## Stopping a flight
+
+Three independent ways, and they are not equal. Reach for them in this order.
+
+**1. The RC transmitter.** The authoritative override. It reaches the flight controller
+directly, over a link that does not pass through the companion, the relay, WiFi, ssh or any
+of our code -- which is exactly the chain an emergency may already have broken. Nothing
+below is a substitute for having a pilot on the sticks.
+
+**2. The guard on the companion** (`tools/safety_rules.py`, carried out by
+`drone_agent.py`). Autonomous, needs only the companion-to-aircraft link, and keeps working
+with the ground station switched off. It climbs a four-rung ladder and never descends --
+recovery is a human decision, not a timeout:
+
+| Rung | What it does | Fires on (defaults) |
+|---|---|---|
+| WARN | logs, keeps flying | error rate >= 3/min |
+| HOLD | AUTO.LOITER: stops the mission, holds position | error rate >= 8/min, battery <= 25% |
+| LAND | AUTO.LAND in place, then disarms once down | error rate >= 14/min, battery <= 15%, tilt >= 60 deg, no telemetry 12 s, estimator lost attitude, innovation test failing 3 s |
+| DISARM | cuts the motors -- **only** once the aircraft is on the ground | reached by LAND after touchdown |
+
+The error *rate* is the point: PX4 talks constantly and a healthy aircraft still emits the
+odd warning, so messages are weighted by MAVLink severity (EMERGENCY 8 ... WARNING 1) and
+summed over a sliding 60 s window. One "EKF ..." means nothing; ten in twenty seconds means
+the estimator is coming apart. Tune with `--hold-rate`, `--land-rate`,
+`--battery-land-pct`, `--tilt-land-deg`; disable for bench diagnosis with `--no-safety`.
+
+A DISARM is never carried out on an aircraft that is still flying -- it is downgraded to
+LAND, and when the agent cannot tell whether it is airborne it lands rather than guessing.
+The one command that *can* drop an aircraft is `KILL` (force-disarm), and it is refused
+unless the agent was started with `--allow-kill`.
+
+**3. The operator on the ground.** Two paths, deliberately:
+
+```bash
+# in the pair_arm_test console: type 'a' + ENTER. Fastest -- it already holds the pipes.
+# out-of-band, needs nothing but ssh -- survives the orchestrator being wedged or killed:
+python3 tools/takeover.py --fleet fleet-artex-pair.yaml --now
+```
+
+`takeover.py` writes a flag file beside each agent, which the agent polls several times a
+second; the agent also refuses to arm while a flag is set, so clear it with `--clear`
+before the next run. An agent reports every rung it climbs as a JSON `safety` event, so
+an orchestrator (and one day the GUI) can show what happened and why.
+
 ## The ELRS radio link
 
 Each companion joins one RadioMaster Pocket's **TX backpack** over WiFi; the backpack
@@ -570,6 +615,13 @@ python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --arm-only --qg
 
 # offboard arm with no GPS/mission (props OFF only): one aircraft, via its Jetson
 python3 tools/drone_agent.py offboard-arm --link udpout://127.0.0.1:14540 --sysid 115 --hold-s 10
+
+# EMERGENCY: stop every aircraft in the fleet. Works even if the orchestrator is wedged
+# or gone -- it writes a flag file each agent polls. Use the RC sticks first if you have them.
+python3 tools/takeover.py --fleet fleet-artex-pair.yaml --now           # land, then disarm
+python3 tools/takeover.py --fleet fleet-artex-pair.yaml --action hold    # just stop the mission
+python3 tools/takeover.py --fleet fleet-artex-pair.yaml --check          # is a flag set?
+python3 tools/takeover.py --fleet fleet-artex-pair.yaml --clear          # before the next run
 
 # two aircraft armed together, all-or-nobody: each Jetson reaches OFFBOARD and reports
 # READY; ARM is sent to all only when ALL are ready, hold, disarm, confirm disarmed.
@@ -725,7 +777,9 @@ That is what the matrix is for.
 | `tools/jetson_net.sh` | Puts a companion in its two-network role: ETH to the LAN, WiFi to a backpack. |
 | `tools/elrs_link.py` | Straddles the backpack's asymmetric MAVLink ports. **Runs on the companion.** |
 | `tools/elrs_service.sh` | Installs `elrs_link.py` as a systemd unit so the relay comes back after a reboot. **Runs on the companion.** |
-| `tools/pair_arm_test.py` | Arms every aircraft in a fleet at one instant, or nobody: link gate, status, READY barrier, hold, disarm. |
+| `tools/pair_arm_test.py` | Arms every aircraft in a fleet at one instant, or nobody: link gate, status, READY barrier, hold, disarm. Type `a` to abort all. |
+| `tools/safety_rules.py` | The abort ladder -- WARN/HOLD/LAND/DISARM -- as pure, tested logic. **Runs on the companion.** |
+| `tools/takeover.py` | The operator's abort switch: sets the ABORT flag on every companion over ssh, orchestrator or no orchestrator. |
 | `tools/elrs_pair.py` | Pins each companion to exactly one backpack by BSSID, and proves it. |
 | `tools/mavlink_bridge.py` | Puts a serial flight controller on UDP; can rewrite its system id. |
 | `tools/qgc_capture/` | Scripted QGC screenshots (X11 clicks; fragile by nature). |

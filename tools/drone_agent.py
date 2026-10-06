@@ -28,6 +28,7 @@ import argparse
 import hashlib
 import json
 import math
+import select
 import struct
 import sys
 import threading
@@ -35,6 +36,9 @@ import time
 from pathlib import Path
 
 from pymavlink import mavutil
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import safety_rules  # noqa: E402
 
 INT_PARAM_TYPES = {1, 2, 3, 4, 5, 6, 7, 8}
 HEARTBEAT_TIMEOUT_S = 20.0
@@ -431,13 +435,33 @@ def resident_loop(conn, args, token: str) -> int:
     round-trip is tens of milliseconds. One connection from prepare through landing.
     """
     state = dict(failsafe_armed=False, last_cmd=time.time(), armed_only=False)
+    guard = Guard(conn, args)
+    # pymavlink's connection is not safe to read from two threads. Every command handler
+    # below runs under this lock, and the monitor only reads while holding it, so there is
+    # exactly one reader at any instant.
+    conn_lock = threading.Lock()
+
+    def monitor():
+        while True:
+            time.sleep(0.2)
+            with conn_lock:
+                msg = conn.recv_match(blocking=False)
+                while msg is not None:
+                    guard.observe(msg)
+                    msg = conn.recv_match(blocking=False)
+                acted = guard.check()
+            if acted:
+                state["failsafe_armed"] = False
+                if acted.get("carried_out") in (safety_rules.LAND, safety_rules.DISARM):
+                    state["armed_only"] = False
 
     def disarm_if_left_armed():
         # We armed it for an arm-only test and the orchestrator is gone: do not leave
         # motors armed with nobody watching.
         if state["armed_only"]:
             log("[resident] leaving while armed by ARM -- disarming")
-            do_disarm(conn)
+            with conn_lock:
+                do_disarm(conn)
             state["armed_only"] = False
 
     def watchdog():
@@ -446,12 +470,17 @@ def resident_loop(conn, args, token: str) -> int:
             if (state["failsafe_armed"] and args.failsafe_s > 0
                     and time.time() - state["last_cmd"] > args.failsafe_s):
                 log(f"[failsafe] no command for {args.failsafe_s:.0f}s -- returning to launch")
-                r = do_abort(conn, "rtl")
+                with conn_lock:
+                    r = do_abort(conn, "rtl")
                 emit(dict(verb="failsafe", slot=args.slot, sysid=conn.target_system,
                           t_epoch=time.time(), **r))
                 state["failsafe_armed"] = False
 
     threading.Thread(target=watchdog, daemon=True).start()
+    if guard.enabled:
+        threading.Thread(target=monitor, daemon=True).start()
+        log(f"[resident] safety guard on: HOLD at {guard.wd.limits.hold_rate}/min, "
+            f"LAND at {guard.wd.limits.land_rate}/min, ABORT flag {guard.flag}")
     log(f"[resident] holding link, token {token}, "
         f"failsafe {'off' if args.failsafe_s <= 0 else f'{args.failsafe_s:.0f}s'}")
 
@@ -463,6 +492,17 @@ def resident_loop(conn, args, token: str) -> int:
         parts = line.split()
         verb = parts[0].upper()
 
+        # Emergency words outrank the token dance: no run id, no plan, no argument.
+        if verb in ("ABORT", "LAND", "HOLD", "KILL") and len(parts) == 1:
+            with conn_lock:
+                if verb == "KILL":
+                    guard.kill("operator said KILL on stdin")
+                else:
+                    guard.operator(verb)
+                    acted = guard.check()
+            state["failsafe_armed"] = False
+            continue
+
         if verb == "START":
             given = parts[1] if len(parts) > 1 else ""
             if given != token:
@@ -471,7 +511,8 @@ def resident_loop(conn, args, token: str) -> int:
                           error=f"token mismatch: given {given!r}, prepared {token!r}"))
                 continue
             at = float(parts[2]) if len(parts) > 2 else None
-            r = do_start(conn, at)
+            with conn_lock:
+                r = do_start(conn, at)
             emit(dict(verb="start", slot=args.slot, sysid=conn.target_system, **r))
             state["last_cmd"] = time.time()
             state["failsafe_armed"] = bool(r.get("started"))
@@ -486,26 +527,30 @@ def resident_loop(conn, args, token: str) -> int:
                           error=f"token mismatch: given {given!r}, prepared {token!r}"))
                 continue
             at = float(parts[2]) if len(parts) > 2 else None
-            r = do_arm(conn, at)
+            with conn_lock:
+                r = do_arm(conn, at)
             state["armed_only"] = bool(r.get("armed"))
             emit(dict(verb="arm", slot=args.slot, sysid=conn.target_system, **r))
             state["last_cmd"] = time.time()
 
         elif verb == "DISARM":
-            r = do_disarm(conn)
+            with conn_lock:
+                r = do_disarm(conn)
             if r.get("disarmed"):
                 state["armed_only"] = False
             emit(dict(verb="disarm", slot=args.slot, sysid=conn.target_system, **r))
 
         elif verb == "STATUS":
-            emit(dict(verb="status", slot=args.slot, sysid=conn.target_system,
-                      **do_status(conn)))
+            with conn_lock:
+                st = do_status(conn)
+            emit(dict(verb="status", slot=args.slot, sysid=conn.target_system, **st))
 
         elif verb == "ABORT":
             state["failsafe_armed"] = False
             action = parts[1] if len(parts) > 1 else "rtl"
-            emit(dict(verb="abort", slot=args.slot, sysid=conn.target_system,
-                      **do_abort(conn, action)))
+            with conn_lock:
+                ab = do_abort(conn, action)
+            emit(dict(verb="abort", slot=args.slot, sysid=conn.target_system, **ab))
 
         elif verb == "QUIT":
             disarm_if_left_armed()
@@ -689,6 +734,193 @@ def do_abort(conn, action: str) -> dict:
     return dict(action=action, accepted=ok)
 
 
+MAV_LANDED_ON_GROUND = 1
+MAV_LANDED_AIRBORNE = (2, 3, 4)       # IN_AIR, TAKEOFF, LANDING
+ESTIMATOR_ATTITUDE_FLAG = 1
+FORCE_DISARM_MAGIC = 21196            # MAVLink's "yes, I mean it" for disarming in flight
+EMERGENCY_WORDS = ("ABORT", "LAND", "HOLD", "DISARM", "KILL")
+INNOVATION_FIELDS = ("vel_ratio", "pos_horiz_ratio", "pos_vert_ratio",
+                     "mag_ratio", "hagl_ratio")
+
+
+def statustext_of(msg) -> str:
+    text = msg.text if isinstance(msg.text, str) else msg.text.decode(errors="replace")
+    return text.strip()
+
+
+def limits_from_args(args) -> safety_rules.Limits:
+    lim = safety_rules.Limits()
+    for attr, name in (("hold_rate", "hold_rate"), ("land_rate", "land_rate"),
+                       ("battery_land_pct", "battery_land_pct"),
+                       ("tilt_land_deg", "tilt_land_deg")):
+        given = getattr(args, attr, None)
+        if given is not None:
+            setattr(lim, name, given)
+    return lim
+
+
+class Guard:
+    """Watches one vehicle and carries out the abort ladder. See tools/safety_rules.py.
+
+    Three ways a flight can be stopped, in rising order of how much has to still be
+    working for them to help:
+
+      1. the RC transmitter -- the authoritative one, and nothing here can match it
+      2. this guard, on the companion: autonomous, needs only the companion-to-aircraft link
+      3. the operator on the ground: a word on stdin, or the out-of-band ABORT flag file
+
+    Non-blocking by design. carry_out() sends a command and returns; the caller's normal
+    telemetry loop keeps running, and the landing is finished across later check() calls.
+    A guard that blocked would stop feeding itself the telemetry it is judging.
+    """
+
+    def __init__(self, conn, args):
+        self.conn = conn
+        self.slot = getattr(args, "slot", None)
+        self.enabled = not getattr(args, "no_safety", False)
+        self.wd = safety_rules.Watchdog(limits_from_args(args), now=time.time())
+        self.flag = Path(getattr(args, "abort_flag", "ABORT") or "ABORT")
+        self.allow_kill = getattr(args, "allow_kill", False)
+        self.armed: bool | None = None
+        self.airborne: bool | None = None
+        self._seen_landed_state = False
+        self.stop_streaming = False          # the offboard streamer checks this
+        self.acted: str | None = None
+        self.landing_since: float | None = None
+        self._last_disarm = 0.0
+        self.killed = False
+        # A flag that predates the run is an abort nobody cleared. Refuse to fly rather
+        # than guess which it was, and say which case this is -- the operator needs to
+        # know whether the abort happened just now or last time.
+        self._flag_at_start = self.flag.exists()
+
+    # ---- telemetry in -------------------------------------------------------------
+
+    def observe(self, msg) -> None:
+        now, kind = time.time(), msg.get_type()
+        if kind == "HEARTBEAT":
+            if msg.get_srcSystem() == self.conn.target_system \
+                    and msg.type != mavutil.mavlink.MAV_TYPE_GCS:
+                self.wd.heartbeat(now)
+                self.armed = bool(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED)
+        elif kind == "STATUSTEXT":
+            self.wd.statustext(msg.severity, statustext_of(msg), now)
+        elif kind == "BATTERY_STATUS":
+            self.wd.battery(getattr(msg, "battery_remaining", None), now)
+        elif kind == "ATTITUDE":
+            self.wd.attitude(math.degrees(msg.roll), math.degrees(msg.pitch), now)
+        elif kind == "EXTENDED_SYS_STATE":
+            if msg.landed_state == MAV_LANDED_ON_GROUND:
+                self.airborne, self._seen_landed_state = False, True
+            elif msg.landed_state in MAV_LANDED_AIRBORNE:
+                self.airborne, self._seen_landed_state = True, True
+        elif kind == "GLOBAL_POSITION_INT" and not self._seen_landed_state:
+            self.airborne = (msg.relative_alt / 1000.0) > 1.0
+        elif kind == "ESTIMATOR_STATUS":
+            worst = max((getattr(msg, f, 0.0) or 0.0) for f in INNOVATION_FIELDS)
+            self.wd.estimator(bool(msg.flags & ESTIMATOR_ATTITUDE_FLAG), worst, now)
+
+    def operator(self, word: str) -> bool:
+        """A command from the ground. Returns False if it was not understood."""
+        word = word.strip().upper()
+        if word in ("ABORT", "LAND"):
+            self.wd.manual(safety_rules.LAND, f"operator said {word}")
+        elif word == "HOLD":
+            self.wd.manual(safety_rules.HOLD, "operator said HOLD")
+        elif word == "DISARM":
+            self.wd.manual(safety_rules.DISARM, "operator said DISARM")
+        elif word == "KILL":
+            if not self.allow_kill:
+                log("[safety] KILL refused: the agent was not started with --allow-kill")
+                return False
+            self.kill("operator said KILL")
+        else:
+            return False
+        return True
+
+    # ---- the verdict, and acting on it --------------------------------------------
+
+    def check(self) -> dict | None:
+        """Evaluate, act if the ladder has climbed, and nurse a landing to its end."""
+        if not self.enabled:
+            return None
+        if self.flag.exists():
+            want = ""
+            try:
+                want = self.flag.read_text().strip().lower()
+            except OSError:
+                pass
+            action = want if want in safety_rules.RUNG else safety_rules.LAND
+            how = " left over from before this run" if self._flag_at_start else ""
+            self.wd.manual(action, f"ABORT flag {self.flag}{how}"
+                                   + (f" ({want})" if want else ""))
+
+        v = self.wd.evaluate(time.time())
+        if v.climbed:
+            log(f"[safety] {v.action.upper()}: " + "; ".join(v.reasons[-2:])
+                + f" (error rate {v.error_rate:.1f}/min)")
+        self._finish_landing()
+        if safety_rules.RUNG[v.action] >= safety_rules.RUNG[safety_rules.HOLD] \
+                and v.action != self.acted:
+            return self.carry_out(v.action, v.reasons)
+        return None
+
+    def carry_out(self, action: str, reasons: list[str]) -> dict:
+        real = safety_rules.on_ground_action(action, self.airborne)
+        where = {True: "airborne", False: "on the ground", None: "position unknown"}[self.airborne]
+        log(f"[safety] acting: {action.upper()} -> {real.upper()} ({where})")
+        self.acted = action
+        if real == safety_rules.HOLD:
+            # AUTO.LOITER: main mode 4, sub mode 3. Stops the mission, holds position.
+            self.conn.mav.command_long_send(self.conn.target_system, 1,
+                                            mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
+                                            1, 4, 3, 0, 0, 0, 0)
+        elif real == safety_rules.LAND:
+            self.stop_streaming = True      # offboard setpoints would fight AUTO.LAND
+            self.conn.mav.command_long_send(self.conn.target_system, 1,
+                                            mavutil.mavlink.MAV_CMD_NAV_LAND,
+                                            0, 0, 0, 0, 0, 0, 0, 0)
+            self.landing_since = time.time()
+        elif real == safety_rules.DISARM:
+            self.stop_streaming = True
+            self.landing_since = time.time()
+            self._send_disarm()
+        ev = dict(event="safety", slot=self.slot, action=action, carried_out=real,
+                  airborne=self.airborne, reasons=reasons,
+                  error_rate=round(self.wd.error_rate(time.time()), 2),
+                  t_epoch=round(time.time(), 3))
+        emit(ev)
+        return ev
+
+    def _send_disarm(self) -> None:
+        self.conn.mav.command_long_send(self.conn.target_system, 1,
+                                        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                                        0, 0, 0, 0, 0, 0, 0, 0)
+        self._last_disarm = time.time()
+
+    def _finish_landing(self) -> None:
+        """Once it is down, cut the motors. Never while it is still flying."""
+        if self.landing_since is None or self.armed is False:
+            return
+        if self.airborne is not False:
+            return
+        if time.time() - self._last_disarm > 3.0:
+            log("[safety] on the ground -- disarming")
+            self._send_disarm()
+
+    def kill(self, reason: str) -> dict:
+        """Force-disarm, in flight if need be. This drops the aircraft. Last resort."""
+        log(f"[safety] KILL ({reason}) -- force disarm, the aircraft will fall")
+        self.stop_streaming = self.killed = True
+        self.conn.mav.command_long_send(self.conn.target_system, 1,
+                                        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                                        0, 0, FORCE_DISARM_MAGIC, 0, 0, 0, 0, 0)
+        ev = dict(event="safety", slot=self.slot, action="kill", carried_out="kill",
+                  reasons=[reason], t_epoch=round(time.time(), 3))
+        emit(ev)
+        return ev
+
+
 def cmd_start(args) -> int:
     conn = connect(args.link, args.expect_sysid)
     time.sleep(2.0)   # one-shot mode: PX4 must see a few GCS heartbeats before arming
@@ -736,11 +968,14 @@ def cmd_offboard_arm(args) -> int:
     log(f"[offboard] COM_ARM_WO_GPS={wo_gps}")
 
     state = dict(armed=False, mode=None)
+    stdin = dict(pending=[], eof=False)
+    guard = Guard(conn, args)
 
     def pump(seconds: float, until=None) -> bool:
         end = time.time() + seconds
         while time.time() < end:
-            stream_level_zero_thrust(conn)
+            if not guard.stop_streaming:
+                stream_level_zero_thrust(conn)
             msg = conn.recv_match(blocking=True, timeout=0.05)
             while msg is not None:
                 kind = msg.get_type()
@@ -755,7 +990,28 @@ def cmd_offboard_arm(args) -> int:
                 elif kind == "COMMAND_ACK" and msg.command == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM:
                     result["arm_result"] = msg.result
                     log(f"[vehicle] arm/disarm ack result {msg.result}")
+                guard.observe(msg)
                 msg = conn.recv_match(blocking=False)
+            # The operator can speak at any time, not only at the arming gate. Words the
+            # guard does not own (the gate's own ARM) are queued for whoever is waiting,
+            # never swallowed here.
+            while select.select([sys.stdin], [], [], 0)[0]:
+                line = sys.stdin.readline()
+                if not line:
+                    stdin["eof"] = True
+                    break
+                word = line.strip().upper()
+                if not word:
+                    continue
+                if word in EMERGENCY_WORDS:
+                    guard.operator(word)
+                    result.setdefault("operator", []).append(word)
+                else:
+                    stdin["pending"].append(word)
+            acted = guard.check()
+            if acted:
+                result.setdefault("safety", []).append(acted)
+                result["error"] = "safety abort: " + "; ".join(acted["reasons"][-2:])
             if until and until():
                 return True
             time.sleep(0.05)
@@ -781,15 +1037,20 @@ def cmd_offboard_arm(args) -> int:
         if args.gate:
             emit(dict(event="ready", slot=args.slot, sysid=conn.target_system))
             log("[offboard] READY -- waiting for workstation authorisation (ARM)")
-            import select
             end, verdict = time.time() + args.gate_timeout_s, None
             while time.time() < end and verdict is None:
                 pump(0.3)
-                if select.select([sys.stdin], [], [], 0)[0]:
-                    line = sys.stdin.readline().strip()
-                    verdict = line.upper() if line else "EOF"
+                if stdin["pending"]:
+                    verdict = stdin["pending"].pop(0)
+                elif stdin["eof"]:
+                    verdict = "EOF"
+                elif guard.acted or guard.killed:
+                    verdict = "ABORTED"
             if verdict != "ARM":
                 result["error"] = f"not authorised to arm ({verdict or 'timeout'})"
+                return 2
+            if guard.acted or guard.killed:
+                result["error"] = "refusing to arm: the safety guard has already aborted"
                 return 2
             log("[offboard] authorised")
         log("[offboard] in OFFBOARD; arming")
@@ -817,6 +1078,8 @@ def cmd_offboard_arm(args) -> int:
         log(f"[offboard] ARMED; holding {args.hold_s:.0f} s")
         while time.time() - t0 < args.hold_s:
             pump(0.5)
+            if guard.acted or guard.killed:
+                break
             if not state["armed"]:
                 result["error"] = "vehicle disarmed itself during hold"
                 break
@@ -872,6 +1135,19 @@ def main() -> int:
                     help="once flying, RTL if the orchestrator goes silent this long "
                          "(0 disables)")
     ap.add_argument("--action", choices=["rtl", "land"], default="rtl")
+    ap.add_argument("--no-safety", action="store_true",
+                    help="run without the abort ladder (bench diagnosis only)")
+    ap.add_argument("--abort-flag", default="ABORT",
+                    help="path polled for an out-of-band abort; its contents may name the "
+                         "rung (hold/land/disarm). tools/takeover.py writes this over ssh")
+    ap.add_argument("--allow-kill", action="store_true",
+                    help="permit KILL: a force-disarm that drops the aircraft out of the air")
+    ap.add_argument("--hold-rate", type=float, default=None,
+                    help="weighted vehicle errors per minute that stop the mission")
+    ap.add_argument("--land-rate", type=float, default=None,
+                    help="weighted vehicle errors per minute that force a landing")
+    ap.add_argument("--battery-land-pct", type=float, default=None)
+    ap.add_argument("--tilt-land-deg", type=float, default=None)
     args = ap.parse_args()
 
     if args.verb in ("prepare", "upload") and not args.plan:

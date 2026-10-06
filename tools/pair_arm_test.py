@@ -37,6 +37,25 @@ def log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
 
 
+def abort_console(sessions: list) -> None:
+    """Type 'a' + ENTER to stop everything. Runs on the pipes this process already owns.
+
+    The out-of-band path (tools/takeover.py, a flag file over ssh) does not depend on this
+    process being alive, which is the right tool if it has wedged. This one is faster.
+    """
+    while True:
+        try:
+            word = sys.stdin.readline()
+        except (ValueError, OSError):
+            return
+        if not word:
+            return
+        if word.strip().lower() in ("a", "abort", "land", "stop"):
+            log("[takeover] OPERATOR ABORT -- telling every agent to land and disarm")
+            for s in sessions:
+                s.send("ABORT")
+
+
 def last_json(text: str) -> dict:
     for line in reversed(text.strip().splitlines()):
         try:
@@ -98,6 +117,10 @@ class Gated:
                 continue
             if obj.get("event") == "ready":
                 self.ready.set()
+            elif obj.get("event") == "safety":
+                log(f"  [slot {self.d['slot']} sysid {self.d['sysid']}] SAFETY "
+                    f"{obj.get('action', '?').upper()} -> {obj.get('carried_out', '?').upper()}: "
+                    + "; ".join(obj.get("reasons", [])[-2:]))
             elif obj.get("event") == "armed":
                 self.armed_at = time.monotonic()
                 self.armed_epoch = obj.get("armed_epoch")
@@ -179,6 +202,9 @@ def main() -> int:
 
     log("[ready] each Jetson takes its aircraft into OFFBOARD (no arming yet)")
     sessions = [Gated(d, args.hold_s) for d in drones]
+    threading.Thread(target=abort_console, args=(sessions,), daemon=True).start()
+    log("[takeover] type 'a' + ENTER at any time to abort every aircraft "
+        "(out-of-band: tools/takeover.py --fleet ... --now)")
     rc = 1
     try:
         end = time.time() + args.ready_timeout_s

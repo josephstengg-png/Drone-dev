@@ -18,3 +18,6 @@ base_speed.json
 tuned_speed.json
 # Tooling caches
 .pytest_cache/
+
+# the abort flag tools/takeover.py writes -- never a repo artefact
+ABORT
