@@ -57,6 +57,13 @@ def main() -> int:
                     help="localhost port the agent connects to with udpout://")
     ap.add_argument("--stats", action="store_true", help="print module counters and exit")
     ap.add_argument("--report-s", type=float, default=10.0)
+    ap.add_argument("--mirror", action="append", metavar="HOST:PORT", default=[],
+                    help="send a copy of every downlink packet here, and ignore anything "
+                         "it sends back. For QGroundControl on the workstation: "
+                         "--mirror 192.168.144.50:14550. Repeatable. OBSERVE ONLY.")
+    ap.add_argument("--agent-ttl-s", type=float, default=30.0,
+                    help="how long an agent address keeps receiving downlink after its "
+                         "last packet")
     args = ap.parse_args()
 
     if args.stats:
@@ -71,23 +78,43 @@ def main() -> int:
     agent.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     agent.bind(("127.0.0.1", args.agent_port))
 
+    mirrors = []
+    for spec in args.mirror:
+        host, _, port = spec.rpartition(":")
+        if not host or not port.isdigit():
+            print(f"[elrs] bad --mirror {spec!r}, expected HOST:PORT", flush=True)
+            return 2
+        mirrors.append((host, int(port)))
+
+    # Its own socket, and we never act on what arrives here. QGroundControl talks back the
+    # moment it sees a vehicle -- heartbeats, parameter requests, mode commands -- and
+    # forwarding any of that would put a second commander on the aircraft alongside the
+    # agent. The point of the mirror is a window, not a second pair of hands.
+    mirror_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if mirrors else None
+
     module = (args.module_ip, args.module_listen)
-    agent_addr: tuple[str, int] | None = None
+    agents: dict[tuple[str, int], float] = {}
     up = down = dropped = unreachable = 0
     last = time.time()
 
     print(f"[elrs] agent udp/{args.agent_port} <-> module {module[0]}:{module[1]} "
           f"(downlink on {args.module_send})", flush=True)
+    if mirrors:
+        print("[elrs] mirroring downlink (observe only, nothing it sends is forwarded) to "
+              + ", ".join(f"{h}:{p}" for h, p in mirrors), flush=True)
 
     while True:
-        ready, _, _ = select.select([radio, agent], [], [], 1.0)
+        watch = [radio, agent] + ([mirror_sock] if mirror_sock else [])
+        ready, _, _ = select.select(watch, [], [], 1.0)
         for s in ready:
             try:
                 data, addr = s.recvfrom(4096)
             except OSError:
                 continue
+            if s is mirror_sock:
+                continue          # drained and discarded on purpose -- see above
             if s is agent:
-                agent_addr = addr
+                agents[addr] = time.time()
                 try:
                     radio.sendto(data, module)
                 except OSError as exc:
@@ -102,16 +129,28 @@ def main() -> int:
                     up += 1
             else:
                 down += 1
-                if agent_addr is None:
-                    dropped += 1       # vehicle spoke before the agent attached
-                else:
-                    agent.sendto(data, agent_addr)
+                # Every agent heard from recently, not just the last one. One relay used to
+                # serve exactly one address, so a second reader silently stole the replies.
+                cutoff = time.time() - args.agent_ttl_s
+                live = [a for a, seen in agents.items() if seen >= cutoff]
+                for stale in [a for a in agents if a not in live]:
+                    del agents[stale]
+                if not live:
+                    dropped += 1       # vehicle spoke before any agent attached
+                for a in live:
+                    agent.sendto(data, a)
+                for m in mirrors:
+                    try:
+                        mirror_sock.sendto(data, m)
+                    except OSError:
+                        pass           # QGC not up yet, or no route; never fatal
 
         now = time.time()
         if now - last >= args.report_s:
             c = counters(args.module_ip).get("counters", {})
             print(f"[elrs] up={up} down={down} no-agent-drop={dropped} "
-                  f"uplink-unreachable={unreachable} module={c}", flush=True)
+                  f"uplink-unreachable={unreachable} agents={len(agents)} "
+                  f"mirrors={len(mirrors)} module={c}", flush=True)
             last = now
 
 

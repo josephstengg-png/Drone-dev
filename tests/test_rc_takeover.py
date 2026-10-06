@@ -55,8 +55,11 @@ def test_joystick_only_is_not_good_enough_for_a_real_transmitter():
     assert any("COM_RC_IN_MODE=1" in x for x in _findings(_good(COM_RC_IN_MODE=1)))
 
 
-def test_rc_and_joystick_is_accepted():
-    assert _findings(_good(COM_RC_IN_MODE=2)) == []
+def test_every_rc_accepting_input_mode_is_allowed():
+    # 3 is PX4's own default ("keep first"); RC wins when RC is seen first, and the QGC
+    # mirror is observe-only so no joystick can get in ahead of it.
+    for mode in (0, 2, 3):
+        assert _findings(_good(COM_RC_IN_MODE=mode)) == [], f"mode {mode} should be accepted"
 
 
 def test_no_mode_channel_is_caught():

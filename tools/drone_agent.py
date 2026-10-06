@@ -1157,10 +1157,14 @@ def rc_takeover_findings(p: dict, rc_seen: bool) -> list[str]:
     Pure, so tests/test_rc_takeover.py can pin it without an aircraft.
     """
     out = []
+    # 0 RC only, 2 RC and joystick, 3 whichever is seen first (so RC works if RC is first --
+    # and the QGC mirror is observe-only, so no joystick can get in ahead of it).
+    # 1 is joystick only and 4 disables stick input entirely.
     in_mode = p.get("COM_RC_IN_MODE")
-    if in_mode not in (0, 2):
+    if in_mode not in (0, 2, 3):
         out.append(f"COM_RC_IN_MODE={in_mode}: this aircraft does not accept RC stick input "
-                   f"(0 'RC only' or 2 'RC and joystick' is needed; 4 is disabled)")
+                   f"(need 0 'RC only', 2 'RC and joystick', or 3 'keep first'; "
+                   f"1 is joystick only and 4 is disabled)")
 
     ov = p.get("COM_RC_OVERRIDE")
     if ov is None:
