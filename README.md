@@ -638,8 +638,10 @@ python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --upload-only
 # the workstation (observer only; it is not on the automation path).
 python3 tools/swarm_deploy.py --fleet fleet.yaml --plans-dir ... --arm-only --qgc
 
-# offboard arm with no GPS/mission (props OFF only): one aircraft, via its Jetson
-python3 tools/drone_agent.py offboard-arm --link udpout://127.0.0.1:14540 --sysid 115 --hold-s 10
+# offboard arm with no GPS/mission (props OFF only): one aircraft. The agent runs ON the
+# companion, so this is an ssh away -- the link is localhost from the Jetson's point of view.
+ssh jetson-1 'cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-arm \
+    --link udpout://127.0.0.1:14540 --expect-sysid 115 --slot 1 --hold-s 10'
 
 # EMERGENCY: stop every aircraft in the fleet. Works even if the orchestrator is wedged
 # or gone -- it writes a flag file each agent polls. Use the RC sticks first if you have them.
