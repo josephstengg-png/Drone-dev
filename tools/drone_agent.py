@@ -467,6 +467,8 @@ def resident_loop(conn, args, token: str) -> int:
     def watchdog():
         while True:
             time.sleep(1.0)
+            if guard.pilot_has_it:
+                state["failsafe_armed"] = False
             if (state["failsafe_armed"] and args.failsafe_s > 0
                     and time.time() - state["last_cmd"] > args.failsafe_s):
                 log(f"[failsafe] no command for {args.failsafe_s:.0f}s -- returning to launch")
@@ -739,6 +741,11 @@ MAV_LANDED_AIRBORNE = (2, 3, 4)       # IN_AIR, TAKEOFF, LANDING
 ESTIMATOR_ATTITUDE_FLAG = 1
 FORCE_DISARM_MAGIC = 21196            # MAVLink's "yes, I mean it" for disarming in flight
 EMERGENCY_WORDS = ("ABORT", "LAND", "HOLD", "DISARM", "KILL")
+
+# PX4 main modes a human is flying by hand: MANUAL, ALTCTL, POSCTL, ACRO, STABILIZED,
+# RATTITUDE. Not AUTO (4) and not OFFBOARD (6), which are ours.
+PILOT_MODES = (1, 2, 3, 5, 7, 8)
+AUTOMATIC_MODES = (4, 6)
 INNOVATION_FIELDS = ("vel_ratio", "pos_horiz_ratio", "pos_vert_ratio",
                      "mag_ratio", "hagl_ratio")
 
@@ -789,6 +796,8 @@ class Guard:
         self.landing_since: float | None = None
         self._last_disarm = 0.0
         self.killed = False
+        self.pilot_has_it = False       # the RC switch has been thrown: hands off
+        self._prev_mode: int | None = None
         # A flag that predates the run is an abort nobody cleared. Refuse to fly rather
         # than guess which it was, and say which case this is -- the operator needs to
         # know whether the abort happened just now or last time.
@@ -803,6 +812,7 @@ class Guard:
                     and msg.type != mavutil.mavlink.MAV_TYPE_GCS:
                 self.wd.heartbeat(now)
                 self.armed = bool(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED)
+                self._note_mode(vehicle_main_mode(msg))
         elif kind == "STATUSTEXT":
             self.wd.statustext(msg.severity, statustext_of(msg), now)
         elif kind == "BATTERY_STATUS":
@@ -819,6 +829,24 @@ class Guard:
         elif kind == "ESTIMATOR_STATUS":
             worst = max((getattr(msg, f, 0.0) or 0.0) for f in INNOVATION_FIELDS)
             self.wd.estimator(bool(msg.flags & ESTIMATOR_ATTITUDE_FLAG), worst, now)
+
+    def _note_mode(self, mode: int) -> None:
+        """Spot the pilot taking the aircraft, and get out of the way for good.
+
+        The signal is the TRANSITION out of one of our modes into a hand-flown one -- not
+        the mode itself. An aircraft sitting in POSCTL before we ask for OFFBOARD has not
+        been taken over; one that was in OFFBOARD a moment ago and is now in POSCTL has.
+        """
+        prev, self._prev_mode = self._prev_mode, mode
+        if self.pilot_has_it or prev is None:
+            return
+        if prev in AUTOMATIC_MODES and mode in PILOT_MODES:
+            self.pilot_has_it = True
+            self.stop_streaming = True      # stop arguing with the sticks
+            log(f"[safety] PILOT HAS IT: main mode {prev} -> {mode}. "
+                "Standing down -- no setpoints, no mode changes, no disarm while airborne.")
+            emit(dict(event="rc_takeover", slot=self.slot, from_mode=prev, to_mode=mode,
+                      airborne=self.airborne, t_epoch=round(time.time(), 3)))
 
     def operator(self, word: str) -> bool:
         """A command from the ground. Returns False if it was not understood."""
@@ -842,7 +870,8 @@ class Guard:
 
     def check(self) -> dict | None:
         """Evaluate, act if the ladder has climbed, and nurse a landing to its end."""
-        if not self.enabled:
+        if not self.enabled or self.pilot_has_it:
+            # A human is flying it. Two aborts fighting each other is worse than either.
             return None
         if self.flag.exists():
             want = ""
@@ -1023,7 +1052,7 @@ def cmd_offboard_arm(args) -> int:
         log("[offboard] requesting OFFBOARD")
         last = 0.0
         deadline = time.time() + 10
-        while time.time() < deadline and state["mode"] != OFFBOARD:
+        while time.time() < deadline and state["mode"] != OFFBOARD and not guard.pilot_has_it:
             if time.time() - last > 2.0:
                 conn.mav.command_long_send(conn.target_system, 1,
                                            mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
@@ -1084,11 +1113,19 @@ def cmd_offboard_arm(args) -> int:
                 result["error"] = "vehicle disarmed itself during hold"
                 break
             if state["mode"] != OFFBOARD:
-                result["error"] = f"left OFFBOARD during hold (main mode {state['mode']})"
+                result["error"] = ("pilot took over with the RC switch"
+                                   if guard.pilot_has_it else
+                                   f"left OFFBOARD during hold (main mode {state['mode']})")
                 break
         result["held_s"] = round(time.time() - t0, 1)
         return 0 if "error" not in result else 2
     finally:
+        result["rc_takeover"] = guard.pilot_has_it
+        if guard.pilot_has_it and guard.airborne is not False:
+            log("[offboard] NOT disarming: the pilot has the aircraft and it is airborne")
+            result["disarmed"] = False
+            emit(result)
+            return 2 if "error" in result else 0
         log("[offboard] disarming")
         for _ in range(6):
             conn.mav.command_long_send(conn.target_system, 1,
@@ -1099,6 +1136,84 @@ def cmd_offboard_arm(args) -> int:
                 break
         result["disarmed"] = not state["armed"]
         emit(result)
+
+
+# COM_FLTMODE<n> values, from PX4 1.16's own parameter metadata
+# (build/px4_sitl_default/parameters.json), not from memory.
+FLTMODE_NAMES = {-1: "Unassigned", 0: "Manual", 1: "Altitude", 2: "Position", 3: "Mission",
+                 4: "Hold", 5: "Return", 6: "Acro", 7: "Offboard", 8: "Stabilized",
+                 9: "Position Slow", 10: "Takeoff", 11: "Land", 12: "Follow Me",
+                 13: "Precision Land"}
+# The slots that hand the aircraft to a human. Hold/Mission/Return are still autopilot.
+PILOT_FLTMODES = (0, 1, 2, 6, 8, 9)
+RC_PARAMS = ("COM_RC_IN_MODE", "COM_RC_OVERRIDE", "COM_RC_STICK_OV", "RC_MAP_FLTMODE",
+             "RC_MAP_KILL_SW", "COM_RCL_EXCEPT", "COM_FLTMODE1", "COM_FLTMODE2",
+             "COM_FLTMODE3", "COM_FLTMODE4", "COM_FLTMODE5", "COM_FLTMODE6")
+
+
+def rc_takeover_findings(p: dict, rc_seen: bool) -> list[str]:
+    """What stops the RC switch from being able to take this aircraft. Empty = nothing.
+
+    Pure, so tests/test_rc_takeover.py can pin it without an aircraft.
+    """
+    out = []
+    in_mode = p.get("COM_RC_IN_MODE")
+    if in_mode not in (0, 2):
+        out.append(f"COM_RC_IN_MODE={in_mode}: this aircraft does not accept RC stick input "
+                   f"(0 'RC only' or 2 'RC and joystick' is needed; 4 is disabled)")
+
+    ov = p.get("COM_RC_OVERRIDE")
+    if ov is None:
+        out.append("COM_RC_OVERRIDE could not be read")
+    else:
+        ov = int(ov)
+        if not ov & 2:
+            out.append(f"COM_RC_OVERRIDE={ov}: moving the sticks CANNOT break OFFBOARD. "
+                       f"This is PX4's default (1 = auto modes only); set 3 for auto+offboard")
+        if not ov & 1:
+            out.append(f"COM_RC_OVERRIDE={ov}: moving the sticks cannot break AUTO either; "
+                       f"set 3")
+
+    if not p.get("RC_MAP_FLTMODE"):
+        out.append("RC_MAP_FLTMODE=0: no channel carries the flight-mode switch, so no "
+                   "switch position can request a mode")
+    slots = {n: p.get(f"COM_FLTMODE{n}") for n in range(1, 7)}
+    if not any(v is not None and int(v) in PILOT_FLTMODES for v in slots.values()):
+        out.append("no COM_FLTMODE1..6 slot holds a hand-flown mode (Manual/Altitude/"
+                   "Position/Acro/Stabilized), so no switch position hands over control")
+    if not p.get("RC_MAP_KILL_SW"):
+        out.append("RC_MAP_KILL_SW=0: no kill switch mapped (strongly recommended -- it is "
+                   "the only override that does not need the autopilot to cooperate)")
+    if not rc_seen:
+        out.append("no RC_CHANNELS heard: the transmitter is off, unbound, or its link to "
+                   "this aircraft is down. Nothing above can work until it is heard")
+    return out
+
+
+def cmd_rc_check(args) -> int:
+    """Read-only: can the RC switch take this aircraft away from us?"""
+    conn = connect(args.link, args.expect_sysid)
+    params = {}
+    for name in RC_PARAMS:
+        params[name] = read_param(conn, name)
+    rc_seen, deadline = False, time.time() + 6.0
+    rssi = None
+    while time.time() < deadline and not rc_seen:
+        m = conn.recv_match(type="RC_CHANNELS", blocking=True, timeout=1)
+        if m is not None:
+            rc_seen, rssi = True, getattr(m, "rssi", None)
+    slots = {n: params.get(f"COM_FLTMODE{n}") for n in range(1, 7)}
+    findings = rc_takeover_findings(params, rc_seen)
+    for f in findings:
+        log(f"[rc] {f}")
+    if not findings:
+        log("[rc] the RC switch can take this aircraft")
+    emit(dict(verb="rc-check", slot=args.slot, sysid=conn.target_system,
+              rc_seen=rc_seen, rssi=rssi, params=params,
+              mode_slots={n: FLTMODE_NAMES.get(int(v), v) for n, v in slots.items()
+                          if v is not None},
+              findings=findings, ready=not findings))
+    return 0 if not findings else 1
 
 
 def cmd_abort(args) -> int:
@@ -1112,7 +1227,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("verb", choices=["prepare", "upload", "start", "status", "abort",
-                                        "offboard-arm"])
+                                        "offboard-arm", "rc-check"])
     ap.add_argument("--hold-s", type=float, default=10.0, help="offboard-arm: seconds to stay armed")
     ap.add_argument("--gate", action="store_true",
                     help="offboard-arm: enter OFFBOARD, print a ready event, arm only on 'ARM' from stdin")
@@ -1156,7 +1271,8 @@ def main() -> int:
     try:
         return {"prepare": cmd_prepare, "upload": cmd_upload, "start": cmd_start,
                 "status": cmd_status, "abort": cmd_abort,
-                "offboard-arm": cmd_offboard_arm}[args.verb](args)
+                "offboard-arm": cmd_offboard_arm,
+                "rc-check": cmd_rc_check}[args.verb](args)
     except Exception as exc:
         log(f"[error] {type(exc).__name__}: {exc}")
         emit(dict(verb=args.verb, slot=args.slot, ready=False, error=str(exc)))

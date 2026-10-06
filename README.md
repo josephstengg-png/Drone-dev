@@ -444,6 +444,31 @@ directly, over a link that does not pass through the companion, the relay, WiFi,
 of our code -- which is exactly the chain an emergency may already have broken. Nothing
 below is a substitute for having a pilot on the sticks.
 
+A switch on the RadioMaster Pocket requests a hand-flown mode and PX4 honours it directly.
+Two things have to be true for that, and one of them is **not** true by default:
+
+```bash
+python3 tools/rc_takeover.py --fleet fleet-artex-pair.yaml     # read-only; changes nothing
+```
+
+`COM_RC_OVERRIDE` is a bitmask -- bit 0 enables stick override in AUTO, bit 1 in OFFBOARD
+-- and **PX4 ships it as 1**, so on a stock airframe moving the sticks does not break
+OFFBOARD, which is the mode every arming test here uses. Set it to 3. The mode switch
+itself needs `RC_MAP_FLTMODE` pointing at the channel and at least one of `COM_FLTMODE1..6`
+holding a hand-flown mode -- Manual(0), Altitude(1), Position(2), Acro(6), Stabilized(8),
+Position Slow(9); Mission(3), Hold(4) and Return(5) are still the autopilot flying.
+`RC_MAP_KILL_SW` maps the kill switch, the one override that does not need the flight
+stack's cooperation -- it will drop the aircraft, so it is for a crash in progress.
+The handset half (which physical switch, which channel) is EdgeTX configuration on the
+Pocket and nothing here can set it. `~/drone-dev/drone-control-scheme` is the running
+record of the whole scheme.
+
+**When the pilot takes over, the companion stands down.** The agent watches for the
+transition out of OFFBOARD or AUTO into a hand-flown mode, latches "pilot has it", and then
+sends nothing further: no setpoints, no mode changes, no automatic abort, and **no disarm
+while the aircraft is airborne**. It reports an `rc_takeover` event and keeps out of the
+way, because two aborts fighting each other is worse than either.
+
 **2. The guard on the companion** (`tools/safety_rules.py`, carried out by
 `drone_agent.py`). Autonomous, needs only the companion-to-aircraft link, and keeps working
 with the ground station switched off. It climbs a four-rung ladder and never descends --
@@ -780,6 +805,7 @@ That is what the matrix is for.
 | `tools/pair_arm_test.py` | Arms every aircraft in a fleet at one instant, or nobody: link gate, status, READY barrier, hold, disarm. Type `a` to abort all. |
 | `tools/safety_rules.py` | The abort ladder -- WARN/HOLD/LAND/DISARM -- as pure, tested logic. **Runs on the companion.** |
 | `tools/takeover.py` | The operator's abort switch: sets the ABORT flag on every companion over ssh, orchestrator or no orchestrator. |
+| `tools/rc_takeover.py` | Read-only check that the pilot's RC switch really can take each aircraft back. |
 | `tools/elrs_pair.py` | Pins each companion to exactly one backpack by BSSID, and proves it. |
 | `tools/mavlink_bridge.py` | Puts a serial flight controller on UDP; can rewrite its system id. |
 | `tools/qgc_capture/` | Scripted QGC screenshots (X11 clicks; fragile by nature). |

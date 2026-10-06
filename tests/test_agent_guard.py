@@ -241,3 +241,59 @@ def test_no_safety_disables_the_whole_ladder(tmp_path):
     _pile_on_errors(g, n=20)
     assert g.check() is None
     assert conn.mav.sent == []
+
+
+# ---- the RC switch: a human taking the aircraft ---------------------------------------
+
+def _mode_hb(main_mode, armed=True):
+    return _msg("HEARTBEAT", base_mode=128 if armed else 0, type=2,
+                custom_mode=main_mode << 16)
+
+
+def test_sitting_in_a_manual_mode_before_we_start_is_not_a_takeover(tmp_path):
+    g, conn = _guard(tmp_path)
+    g.observe(_mode_hb(3))              # POSCTL on the bench, before we ask for OFFBOARD
+    g.observe(_mode_hb(3))
+    assert g.pilot_has_it is False
+    g.observe(_mode_hb(6))              # now OFFBOARD -- ours
+    assert g.pilot_has_it is False
+
+
+def test_leaving_offboard_for_a_hand_flown_mode_is_a_takeover(tmp_path):
+    g, conn = _guard(tmp_path)
+    g.observe(_mode_hb(6))
+    g.observe(_mode_hb(2))              # ALTCTL: the switch was thrown
+    assert g.pilot_has_it is True
+    assert g.stop_streaming is True
+
+
+def test_leaving_auto_for_a_hand_flown_mode_is_a_takeover(tmp_path):
+    g, conn = _guard(tmp_path)
+    g.observe(_mode_hb(4))              # flying the mission
+    g.observe(_mode_hb(3))              # pilot grabs it in POSCTL
+    assert g.pilot_has_it is True
+
+
+def test_our_own_loiter_is_not_a_takeover(tmp_path):
+    g, conn = _guard(tmp_path)
+    g.observe(_mode_hb(6))
+    g.observe(_mode_hb(4))              # the guard's own HOLD -> AUTO.LOITER
+    assert g.pilot_has_it is False
+
+
+def test_once_the_pilot_has_it_the_guard_commands_nothing(tmp_path):
+    g, conn = _guard(tmp_path)
+    _in_air(g)
+    g.observe(_mode_hb(6))
+    g.observe(_mode_hb(2))              # taken over
+    _pile_on_errors(g, n=20)            # and then everything goes wrong
+    assert g.check() is None
+    assert conn.mav.sent == []          # hands off: no LAND, no HOLD, no disarm
+
+
+def test_a_takeover_latches_even_if_the_mode_comes_back(tmp_path):
+    g, conn = _guard(tmp_path)
+    g.observe(_mode_hb(6))
+    g.observe(_mode_hb(2))
+    g.observe(_mode_hb(6))              # offboard again -- we still do not take it back
+    assert g.pilot_has_it is True
