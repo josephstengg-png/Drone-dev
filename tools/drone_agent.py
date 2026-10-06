@@ -808,6 +808,12 @@ def cmd_offboard_arm(args) -> int:
             return 2
         t0 = time.time()
         result["armed_epoch"] = round(t0, 3)
+        # Emitted the instant arming is observed, so the workstation can stamp it against
+        # its own clock. Companion clocks are not trustworthy: a Jetson with no usable
+        # default route never syncs NTP (jetson-1 sat at 1970-01-01 on 6 Oct 2026), which
+        # makes any spread computed from armed_epoch meaningless.
+        emit(dict(event="armed", slot=args.slot, sysid=conn.target_system,
+                  armed_epoch=result["armed_epoch"]))
         log(f"[offboard] ARMED; holding {args.hold_s:.0f} s")
         while time.time() - t0 < args.hold_s:
             pump(0.5)

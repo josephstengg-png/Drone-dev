@@ -79,6 +79,8 @@ class Gated:
         self.d = d
         self.ready = threading.Event()
         self.done = threading.Event()
+        self.armed_at: float | None = None      # this workstation's clock
+        self.armed_epoch: float | None = None   # the companion's clock, often unsynced
         self.final: dict = {}
         argv, cwd = host_argv(d, ["python3", "tools/drone_agent.py", "offboard-arm", "--link", d["link"],
                                   "--expect-sysid", str(d["sysid"]), "--slot", str(d["slot"]),
@@ -96,6 +98,9 @@ class Gated:
                 continue
             if obj.get("event") == "ready":
                 self.ready.set()
+            elif obj.get("event") == "armed":
+                self.armed_at = time.monotonic()
+                self.armed_epoch = obj.get("armed_epoch")
             else:
                 self.final = obj
         self.done.set()
@@ -200,9 +205,12 @@ def main() -> int:
                 f"held={f.get('held_s')}s disarmed={f.get('disarmed')}"
                 + (f" error={f.get('error')}" if f.get("error") else "")
                 + (f" vehicle={f.get('vehicle_text')}" if f.get("error") and f.get("vehicle_text") else ""))
-        epochs = [f["armed_epoch"] for f in finals if f.get("armed_epoch")]
-        if len(epochs) == len(finals) and len(finals) > 1:
-            log(f"[result] arm instants differ by {1000 * (max(epochs) - min(epochs)):.0f} ms")
+        stamps = [s.armed_at for s in sessions if s.armed_at is not None]
+        if len(stamps) == len(sessions) and len(sessions) > 1:
+            log(f"[result] arm instants differ by {1000 * (max(stamps) - min(stamps)):.0f} ms "
+                "(stamped on this workstation, so it includes ssh/link latency -- an upper bound)")
+        elif len(sessions) > 1:
+            log("[result] arm spread unknown: not every agent reported the instant it armed")
         rc = 0 if all(f.get("armed") and f.get("disarmed") and "error" not in f for f in finals) else 1
     finally:
         for s in sessions:

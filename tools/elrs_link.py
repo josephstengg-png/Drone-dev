@@ -73,7 +73,7 @@ def main() -> int:
 
     module = (args.module_ip, args.module_listen)
     agent_addr: tuple[str, int] | None = None
-    up = down = dropped = 0
+    up = down = dropped = unreachable = 0
     last = time.time()
 
     print(f"[elrs] agent udp/{args.agent_port} <-> module {module[0]}:{module[1]} "
@@ -88,8 +88,18 @@ def main() -> int:
                 continue
             if s is agent:
                 agent_addr = addr
-                radio.sendto(data, module)
-                up += 1
+                try:
+                    radio.sendto(data, module)
+                except OSError as exc:
+                    # The backpack is not associated yet (ENETUNREACH). Staying alive and
+                    # counting the loss beats dying: the relay is often started before the
+                    # transmitter is powered, and it recovers by itself once WiFi joins.
+                    unreachable += 1
+                    if unreachable == 1:
+                        print(f"[elrs] uplink unreachable ({exc}) -- waiting for the backpack",
+                              flush=True)
+                else:
+                    up += 1
             else:
                 down += 1
                 if agent_addr is None:
@@ -100,7 +110,8 @@ def main() -> int:
         now = time.time()
         if now - last >= args.report_s:
             c = counters(args.module_ip).get("counters", {})
-            print(f"[elrs] up={up} down={down} no-agent-drop={dropped} module={c}", flush=True)
+            print(f"[elrs] up={up} down={down} no-agent-drop={dropped} "
+                  f"uplink-unreachable={unreachable} module={c}", flush=True)
             last = now
 
 
