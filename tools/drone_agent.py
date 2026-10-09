@@ -742,6 +742,15 @@ ESTIMATOR_ATTITUDE_FLAG = 1
 FORCE_DISARM_MAGIC = 21196            # MAVLink's "yes, I mean it" for disarming in flight
 EMERGENCY_WORDS = ("ABORT", "LAND", "HOLD", "DISARM", "KILL")
 
+# PX4's own words for the pilot's kill switch. These are the OPERATOR stopping the
+# aircraft, not the aircraft failing, so they must neither count as accumulated error nor
+# provoke the guard into commanding anything. Proven necessary on ARTEX113, 9 Oct 2026:
+# a kill produced two CRITICAL messages, which alone tripped the ladder to HOLD and had
+# the guard commanding AUTO.LOITER at an aircraft the pilot had just deliberately stopped.
+# Note "Kill disengaged" does not contain "kill engaged", so it does not match.
+PILOT_KILL_TEXTS = ("kill engaged", "kill switch engaged", "flight termination active",
+                    "disarmed by kill-switch")
+
 # PX4 main modes a human is flying by hand: MANUAL, ALTCTL, POSCTL, ACRO, STABILIZED,
 # RATTITUDE. Not AUTO (4) and not OFFBOARD (6), which are ours.
 PILOT_MODES = (1, 2, 3, 5, 7, 8)
@@ -797,6 +806,7 @@ class Guard:
         self._last_disarm = 0.0
         self.killed = False
         self.pilot_has_it = False       # the RC switch has been thrown: hands off
+        self.killed_by_pilot = False
         self._prev_mode: int | None = None
         # A flag that predates the run is an abort nobody cleared. Refuse to fly rather
         # than guess which it was, and say which case this is -- the operator needs to
@@ -814,7 +824,11 @@ class Guard:
                 self.armed = bool(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED)
                 self._note_mode(vehicle_main_mode(msg))
         elif kind == "STATUSTEXT":
-            self.wd.statustext(msg.severity, statustext_of(msg), now)
+            text = statustext_of(msg)
+            if any(k in text.lower() for k in PILOT_KILL_TEXTS):
+                self._note_kill(text)
+                return                  # the operator's own act: never scored as a fault
+            self.wd.statustext(msg.severity, text, now)
         elif kind == "BATTERY_STATUS":
             self.wd.battery(getattr(msg, "battery_remaining", None), now)
         elif kind == "ATTITUDE":
@@ -829,6 +843,18 @@ class Guard:
         elif kind == "ESTIMATOR_STATUS":
             worst = max((getattr(msg, f, 0.0) or 0.0) for f in INNOVATION_FIELDS)
             self.wd.estimator(bool(msg.flags & ESTIMATOR_ATTITUDE_FLAG), worst, now)
+
+    def _note_kill(self, text: str) -> None:
+        """The pilot hit the kill switch. Same answer as any takeover: hands off."""
+        if self.killed_by_pilot:
+            return
+        self.killed_by_pilot = True
+        self.pilot_has_it = True        # reuse every gate the mode takeover already has
+        self.stop_streaming = True
+        log(f"[safety] PILOT KILLED IT ({text}). Standing down -- no setpoints, no mode "
+            "changes, no commands.")
+        emit(dict(event="rc_takeover", slot=self.slot, via="kill_switch", text=text,
+                  airborne=self.airborne, t_epoch=round(time.time(), 3)))
 
     def _note_mode(self, mode: int) -> None:
         """Spot the pilot taking the aircraft, and get out of the way for good.
