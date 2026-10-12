@@ -1,0 +1,46 @@
+# The companion computers, and how to reach them.
+#
+# WHY THIS FILE EXISTS. Until 12 Oct 2026 this topology lived only in one person's
+# ~/.ssh/config on one workstation. Every tool here addresses the Jetsons by the names
+# below, so a second ground station -- or a rebuilt one -- could not talk to any aircraft
+# until someone remembered six lines and retyped them. That is the definition of state
+# welded to a machine. `tools/ssh_config.py` generates the ssh config from this file, so
+# the repo is the source of truth and the laptop is disposable.
+#
+# The pairing of companion -> backpack -> aircraft is in artex-registry.yaml; this file is
+# only about reaching the companion itself over the ground LAN.
+
+user: Orin_NX
+identity: ~/.ssh/id_ed25519
+
+# The wired ground LAN. Static, served by nothing -- the switch is unmanaged, so these
+# addresses are configured on each Jetson by the `switch-static` NetworkManager profile
+# (priority 20). The workstation is 192.168.144.50 on the same subnet.
+subnet: 192.168.144.0/24
+ground_station: 192.168.144.50
+
+companions:
+
+  jetson-1:
+    ip: 192.168.144.101
+    mac: "4c:bb:47:51:62:64"
+    aircraft: ARTEX115
+    sysid: 115
+    remote_dir: ~/FlightPlanner
+    notes: >
+      Its only default route is via l4tbr0, the USB device-mode bridge, which is
+      permanently linkdown -- so all internet-bound traffic is blackholed and NTP never
+      syncs. Clock reads 1970 on every boot.
+
+  jetson-2:
+    ip: 192.168.144.102
+    mac: "4c:bb:47:51:58:d9"
+    aircraft: ARTEX113
+    sysid: 113
+    remote_dir: ~/FlightPlanner
+
+# Kept for when the boards are on a DHCP-served network again. Addresses observed
+# 28 Sep 2026; not expected to be current.
+legacy_lan:
+  jetson-1-lan: 192.168.8.70
+  jetson-2-lan: 192.168.8.238
