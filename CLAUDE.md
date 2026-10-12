@@ -18,7 +18,11 @@ python3 tools/preflight.py --fleet fleet-artex-pair.yaml   # GO / NO-GO per airc
 
 You also need, and these are NOT in the repo:
 - an ssh key the companions accept (`~/.ssh/id_ed25519`, see `companions.yaml`)
+- a **manually configured static address** on the ground LAN -- that subnet has no DHCP,
+  so a laptop on "wired, automatic" gets a link-local address and reaches nothing
 - the ELRS backpack WiFi PSK, if a companion ever needs re-pairing (never stored here)
+
+**Moving the ground station to a different machine: `docs/ground-station.md`.**
 
 ## How the system fits together
 
@@ -48,6 +52,7 @@ a link that needs neither.
 | `tools/mav_shell.py` | PX4's nsh over MAVLink (short commands only) |
 | `docs/history.md` | **the engineering log — newest first. Read the top before working.** |
 | `docs/drone-control-scheme.md` | who can fly the aircraft and how control is taken back |
+| `docs/ground-station.md` | setting up a new machine as the ground station |
 
 ## Working agreements — these were learned the hard way
 

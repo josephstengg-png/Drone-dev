@@ -16,8 +16,12 @@ identity: ~/.ssh/id_ed25519
 # The wired ground LAN. Static, served by nothing -- the switch is unmanaged, so these
 # addresses are configured on each Jetson by the `switch-static` NetworkManager profile
 # (priority 20). The workstation is 192.168.144.50 on the same subnet.
+# NO DHCP on this subnet -- the switch is unmanaged and nothing hands out addresses.
+# Every machine here holds a manually configured static address. A new ground station
+# plugged in on "wired, automatic" gets a link-local 169.254.x.x and reaches nothing,
+# while looking healthy. See docs/ground-station.md.
 subnet: 192.168.144.0/24
-ground_station: 192.168.144.50
+ground_station: 192.168.144.50      # aftershock-01; use .51 for a second station
 
 companions:
 
