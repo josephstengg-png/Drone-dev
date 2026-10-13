@@ -21,7 +21,28 @@ identity: ~/.ssh/id_ed25519
 # plugged in on "wired, automatic" gets a link-local 169.254.x.x and reaches nothing,
 # while looking healthy. See docs/ground-station.md.
 subnet: 192.168.144.0/24
-ground_station: 192.168.144.50      # aftershock-01; use .51 for a second station
+
+# Ground stations are PEERS: any of them can drive the aircraft, and the companions do not
+# care which is plugged in. Addresses must be unique -- on 13 Oct 2026 both machines held
+# .50 at once, and from either one `192.168.144.50` then resolved to ITSELF via loopback,
+# so a transfer aimed at "the other machine" would silently have targeted the local host.
+#
+# ONLY ONE SHOULD COMMAND AN AIRCRAFT AT A TIME. Two ground stations driving one companion
+# is two commanders, the same hazard as leaving QGroundControl connected during an agent
+# run.
+ground_stations:
+  aftershock-01:
+    ip: 192.168.144.50
+    user: kumwh
+    notes: the original workstation; being handed to a colleague
+  mlops-X6AF559Y:
+    ip: 192.168.144.51
+    user: joseph
+    notes: >
+      the laptop, took over 13 Oct 2026. Holds the full work, keys and history. Its wired
+      interface is enp131s0. Note python3-venv and python3-pip are NOT installed and sudo
+      needs a password, so its venv was built with `python3 -m venv --without-pip` plus
+      get-pip.py.
 
 companions:
 
