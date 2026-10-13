@@ -62,7 +62,16 @@ send() {  # send <local path> <remote parent>
 
 ssh "$TARGET" 'mkdir -p ~/.config' 2>/dev/null
 
-send "$HOME/drone-dev"                     "~/"
+# Two large things are deliberately NOT sent, because they are machine-specific and
+# arriving broken is worse than arriving absent:
+#   venv/                     every shebang hardcodes /home/<olduser>/..., so pip and the
+#                             console scripts fail on the new machine. Rebuilt by
+#                             tools/bootstrap_ground_station.sh in seconds.
+#   PX4-Autopilot/build/      13 GB of build artefacts tied to this host's toolchain and
+#                             paths. Rebuild there; never `make distclean`, which de-inits
+#                             every submodule -- use `rm -rf build/px4_sitl_default`.
+note "---- $HOME/drone-dev  ->  $TARGET:~/  (excluding venv and PX4 build artefacts)"
+$RSYNC --exclude 'venv/' --exclude 'PX4-Autopilot/build/' "$HOME/drone-dev" "$TARGET:~/"
 
 # NEVER overwrite the target's authorized_keys: it holds the key THIS machine is logged in
 # with, so clobbering it can lock the migration out of the machine it is still writing to.

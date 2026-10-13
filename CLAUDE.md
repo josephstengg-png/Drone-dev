@@ -40,6 +40,11 @@ around that. **The transport is not negotiable:** the backpack speaks UDP only, 
 a datagram protocol, and TCP would add head-of-line blocking and stale retransmissions to
 a link that needs neither.
 
+**The firmware is a fork.** Both airframes report PX4 **v1.16.0, git branch `Artex`**, a
+vendor build dated 12 Nov 2025 — read off the aircraft with
+`tools/mav_shell.py --sysid 113 "ver all"`. Upstream PX4 documentation is a guide here, not
+an authority, particularly on EKF internals. Flight controller is a MicoAir743-AIO.
+
 | File | What it is |
 |---|---|
 | `companions.yaml` | the Jetsons: address, MAC, which aircraft each owns |
