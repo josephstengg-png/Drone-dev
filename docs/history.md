@@ -359,6 +359,64 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-13 — the laptop takes over as ground station
+
+`mlops-X6AF559Y` (user `joseph`, now `192.168.144.51`) replaced the workstation
+`aftershock-01` (`kumwh`, `192.168.144.50`), which is being handed to a colleague.
+
+**What moved:** 3.5 GB, not the 18 GB the work occupies. `venv/` was excluded because every
+shebang hardcodes `/home/kumwh/...` and it would have arrived broken; `PX4-Autopilot/build`
+(13 GB) because build artefacts are tied to the host toolchain. Both rebuild locally. The
+keys, Claude memory, this project's transcript, the parameter backups and the full PX4
+source and git history all came across. 214 tests pass on the laptop.
+
+**Six problems, each worth remembering:**
+
+1. **`pyproject.toml` declared `dependencies = []`.** `pip install -e .` on a clean machine
+   produced an environment where every flight tool died at `import pymavlink`. The
+   workstation's venv only worked through months of ad-hoc installs -- the exact
+   machine-welded state the move existed to end. Now declares pymavlink and PyYAML, with
+   matplotlib behind a `plot` extra. Verified by building a clean venv and importing the agent.
+2. **Both machines held `192.168.144.50` at once.** From either one, `ip route get
+   192.168.144.50` returned `local ... dev lo` -- so a transfer aimed at "the other machine"
+   would silently have targeted the local host. Instructions arriving from another session
+   asserted the workstation had no address at all; it had held `.50` all week and had been
+   talking to the Jetsons with it. **Verify an address claim against `ip addr` before acting
+   on it.**
+3. **rsync cannot parse an IPv6 link-local literal** -- it reads the colons as `host:port`
+   (`getaddrinfo: fe80 873`). Use an ssh host alias.
+4. **ssh treats `%` in `HostName` as a percent-expansion token**, so `%enp130s0` became
+   `%e` and failed with `unknown key %e`. It must be written `%%enp130s0`.
+5. **`~/.ssh` cannot be rsynced wholesale.** It contains `authorized_keys`, which holds the
+   key the migration is logged in with -- copying over it can lock the transfer out of the
+   machine it is still writing to. Excluded, along with `known_hosts`.
+6. **A truncated `.deb` passes `dpkg-deb --info`.** A Chrome download interrupted by an SSL
+   error validated fine at 34 MB; the real package is 89 MB. Control-section validation
+   says nothing about the archive being complete -- compare the size.
+
+**Laptop quirks now recorded in `companions.yaml`:** `sudo` needs a password, so nothing
+privileged runs unattended; `python3-venv` and `python3-pip` were absent, so the venv was
+first built with `python3 -m venv --without-pip` plus get-pip.py; the wired interface is
+`enp131s0`. Also: **Claude Code there is bundled inside Claude Desktop**, not installed as a
+CLI -- no `claude` on PATH. A wrapper at `~/.local/bin/claude` resolves the newest
+`~/.config/Claude/claude-code/<version>/<hash>/claude` at run time, because the version and
+a hash are both in that path and a symlink would break at the next Desktop update.
+
+**Context continuity:** the transcript (105 MB, 16,974 lines) was copied and its `cwd`
+metadata rewritten on 12,598 entries from `/home/kumwh` to `/home/joseph`. **Only that
+field** -- message content is a record of what happened on the old machine and rewriting it
+would falsify the log. A verified backup sits beside it. Memory came across, stale paths
+fixed, plus a new `project_machine_handover.md` indexed in MEMORY.md.
+
+**`ground_stations` in `companions.yaml` now declares both machines as peers** with unique
+addresses. They are peers, but only one should command an aircraft at a time -- two ground
+stations on one fleet is two commanders, the same hazard as leaving QGC connected during an
+agent run. The workstation can still reach the aircraft on `.50`.
+
+**State at handover:** ground LAN clean to both Jetsons, `elrs-link.service` enabled and
+running on each, no stale ABORT flags, QGC not running. Both aircraft NO-GO only because the
+airframes were unpowered -- transmitters on, backpacks healthy.
+
 ## 2026-10-12 (pm) — both aircraft armed together; a MAVLink shell; and a regression I caused
 
 **BOTH AIRCRAFT ARMED SIMULTANEOUSLY — a first.** `pair_arm_test.py` against the real
