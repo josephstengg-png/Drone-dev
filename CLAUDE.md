@@ -10,11 +10,14 @@ they describe one particular box and are history, not requirements.
 
 ```bash
 git clone <remote> FlightPlanner && cd FlightPlanner
-python3 -m venv .venv && . .venv/bin/activate && pip install -e .
-python3 tools/ssh_config.py --install     # companions become reachable by name
+bash tools/bootstrap_ground_station.sh --iface <wired-iface> --ip 192.168.144.51
 python3 tools/provision.py --all --verify # are the companions flight-ready?
 python3 tools/preflight.py --fleet fleet-artex-pair.yaml   # GO / NO-GO per aircraft
 ```
+
+The bootstrap script builds the venv, installs the dependencies, configures the static
+address on the DHCP-less drone LAN, installs the ssh config and reports what it cannot do
+for you. `--check` verifies without changing anything.
 
 You also need, and these are NOT in the repo:
 - an ssh key the companions accept (`~/.ssh/id_ed25519`, see `companions.yaml`)
