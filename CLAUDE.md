@@ -119,12 +119,36 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
 
 ## Known-unfinished, so nobody assumes otherwise
 
-- Offboard **flight** is not implemented — only offboard arming. The streamed setpoint is
-  level attitude at **zero thrust**, which is correct on a bench and would drop an
-  aircraft in the air.
+**Blocks actual flight**
+- **Geofence and RTL are far below the mission.** `GF_MAX_VER_DIST` is 5 m (115) / 7 m (113)
+  against a 30/32 m survey, `RTL_RETURN_ALT=5`, `NAV_RCL_ACT=3`. Flown as-is the plan
+  breaches the fence on the climb. Found 14 Oct by the mission-arm contract; unresolved.
+- **113 and 115 are configured differently**: `NAV_DLL_ACT` 3 vs 0 (113 has no datalink-loss
+  action upstream-semantics), `EKF2_GPS_CTRL` 7 vs 5, `GF_ACTION` 5 vs 2. Pick one baseline.
+- Offboard **flight** is not implemented -- only offboard arming. The streamed setpoint is
+  level attitude at **zero thrust**: right on a bench, would drop an aircraft in the air.
 - The guard's in-air LAND branch has never run on hardware.
-- A false "PILOT HAS IT" fires when PX4 drops out of offboard by itself; the guard reads
-  its own consequence as a human takeover.
+
+**Simultaneous arming is not simultaneous**
+- 6-run campaign 14 Oct: 4/6 clean, spread median 1.7 s, worst 2.6 s. Cause is the design:
+  `pair_arm_test` releases a barrier but each agent then arms independently with a 3 s retry.
+  `drone_agent.hold_for()` (shared epoch) exists and `swarm_deploy` uses it; the pair test
+  does not. **RF contention was tested and is NOT supported** (0% loss, equal uplink).
+- `arm_stability.py` does not detect a backpack counter reset, so a run can report negative
+  deltas.
+
+**Known wrong behaviour**
+- A false "PILOT HAS IT" fires when PX4 drops out of offboard by itself; the guard reads its
+  own consequence as a human takeover.
+- 113 occasionally refuses to enter OFFBOARD (13 Oct) or loses its setpoint stream (12 Oct);
+  transient, only ever seen under simultaneous operation.
+
+**Environment**
 - Companion clocks have no time source and boot at 1970.
-- Simultaneous arming works but with a ~3 s spread and one aircraft losing its setpoint
-  stream; suspected RF contention, not yet measured properly.
+- GPS position wanders 4-7 m on a stationary aircraft near the hangars while reporting
+  1-2 m accuracy. Do not treat h_acc as hold accuracy. Cause (multipath?) unconfirmed.
+- Indoor position needs a flow sensor or external vision. Whether a flow sensor is fitted
+  is unknown (`EKF2_OF_CTRL=1` but no flow data). See history.md 14 Oct pm.
+- No Tuas obstacle data exists in the repo; the planner only knows the OpsArea polygon and
+  cannot see buildings or containers.
+- `preflight.py` and `provision.py` have no unit tests.

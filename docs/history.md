@@ -359,6 +359,120 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-14 (pm) — simultaneous arming measured, GPS wander quantified, indoor options read
+
+**Simultaneous arming, 6 runs, `tools/arm_stability.py` (new): 4/6 clean passes.** The
+harness runs `pair_arm_test` repeatedly and differences the backpack counters across each
+run, which is the measurement that could settle the RF-contention hypothesis.
+
+    run 1  FAIL  115 "vehicle did not arm" (command lost, no retry landed in 20 s)
+                 113 armed, then safety abort on "Failsafe activated"
+    run 2  pass  spread 1748 ms      run 3  pass  spread 2589 ms
+    run 4  pass  spread 1828 ms      run 6  pass  spread 1000 ms
+    run 5  FAIL  113 safety abort, error rate 8.0/min
+
+**RF contention is NOT supported.** Link loss during every run was 0.0% on both aircraft,
+and uplink volume was nearly equal (median 276 vs 305 packets). The hypothesis carried
+since 12 Oct is retired as the leading explanation. Run 4's negative deltas were a backpack
+counter reset mid-run, not real; the harness does not yet detect resets.
+
+**It is not simultaneous, and the reason is a design gap, not the radio.** Median spread
+1748 ms, worst 2589 ms. `pair_arm_test` synchronises *permission* (the READY barrier) but
+not the *arm instant*: after "ARM" each agent independently sends its arm command and
+retries every 3 s, so one lost command costs ~3 s. `drone_agent.hold_for()` already
+implements a shared-epoch hold and `swarm_deploy` uses it for launches (78 ms spread in
+SITL). The pair test does not use it. **Not yet implemented.**
+
+**GPS: quality is good, position wanders.** Both aircraft, 60 s windows, props off:
+
+    ARTEX115  sats 8-14  h_acc 1.5-2.5 m  worst innovation 0.49
+              EKF horizontal excursion 3.2 m, EKF z range 6.6 m, raw GPS alt range 10.1 m
+    ARTEX113  sats 10-15 h_acc 0.8-1.7 m  worst innovation 0.18
+              EKF horizontal excursion 7.1 m, raw GPS horizontal excursion 7.2 m
+
+The EKF follows the raw GPS faithfully, so the wander is in the signal, not the estimator.
+115's EKF height is dragged by GPS altitude (10 m swing) while its barometer moved ~0.1 m.
+The receiver's reported accuracy (1-2 m) is optimistic against 4-7 m of real scatter, so
+h_acc must not be read as hold accuracy. **Two caveats:** I could not confirm the aircraft
+sat still (115's first window showed 22 m, its second 3.2 m, which looks like handling),
+and multipath off the Seletar hangars is a hypothesis, not a finding.
+
+**nsh shell, exact checklist commands:** `listener vehicle_local_position -r 2 -n 20` and
+`listener estimator_status_flags -n 3` returned every TOPIC block but UDP loss clipped most
+fields. Recovered: dead_reckoning False, cs_gnss_pos True, cs_opt_flow False, cs_ev_pos
+False, cs_rng_hgt True on both. xy_valid / v_xy_valid / xy_global never arrived;
+ESTIMATOR_STATUS flags 0x03ff (POS_HORIZ_REL and POS_HORIZ_ABS set) is the reliable
+equivalent. The checklist's expected values describe the no-GPS case; outdoors both
+aircraft are GNSS-aided, which is the better state.
+
+**Indoor-flight capability, read live:** downward rangefinder present and streaming (40 cm
+to 12 m; reads 0 on the ground, below its minimum). `EKF2_OF_CTRL=1` but NO optical-flow
+messages and cs_opt_flow False: whether a flow sensor is fitted is unknown and decides
+the route. `EKF2_EV_CTRL=0`, nothing arriving. Routes: (A) pilot-flown Altitude mode,
+works today; (B) optical flow + rangefinder -> Position; (C) VIO/mocap/UWB from the Jetson
+-> EKF2_EV_CTRL. Setting `EKF2_GPS_CTRL=0` alone does not give indoor position, it only
+removes the one horizontal source.
+
+**113 and 115 are not configured alike:**
+
+    EKF2_GPS_CTRL   115=7   113=5     (113 does not fuse GPS height)
+    NAV_DLL_ACT     115=3   113=0     (upstream: 0 = disabled, so 113 has NO datalink-loss action)
+    GF_MAX_VER_DIST 115=5   113=7     GF_ACTION 115=5  113=2
+
+**Everything still open from today** is in the 14 Oct recap in CLAUDE.md "Known-unfinished".
+Not pushed: the local commits since the handover are unpushed by choice.
+
+## 2026-10-14 — full pipeline from the laptop, and a geofence ceiling nobody had noticed
+
+First end-to-end run on the new ground station: plan -> render -> upload -> arm -> disarm,
+all from `mlops-X6AF559Y`. The migration is proven in use, not just in principle.
+
+**Planned at Seletar, not Tuas, deliberately.** The request was a 2-drone split over Tuas
+"avoiding buildings and containers". There is no Tuas KML, no building footprints and no
+container-yard outlines in this repo, and the planner expresses exclusions by shaping the
+OpsArea concavely -- so "avoids buildings" would have been an invented polygon dressed up
+as a safety property. Also the aircraft are at Seletar, ~30 km away, which would make a
+Tuas plan geographically meaningless for a live test. Operator chose Seletar.
+
+**Plan:** 2 drones, layers 30 m and 32 m, 25.0 m lanes, 2.60 cm/px, 13.0 m/s, 10 and 8
+waypoints. Guardrail passed. Rendered to `missions/seletar/seletar-2drone.png`.
+
+**Upload verified by read-back:** 13/13 items to 115 in 27.9 s, 11/11 to 113 in 58.6 s.
+
+**THE FINDING: both airframes have a geofence ceiling far below the mission.** The
+`prepare` contract refused the mission arm -- correctly -- with:
+
+    fence_ceiling   GF_MAX_VER_DIST=5.0 (115) / 7.0 (113), mission tops out at 30/32 m
+                    GF_ACTION=5 (115) / 2 (113)
+    rtl_altitude    RTL_RETURN_ALT=5.0 on both, mission tops out at 30/32 m
+    rc_loss_action  NAV_RCL_ACT=3 (Land in place), expected 2 (Return)
+
+Flown as-is, this plan would breach the geofence on the initial climb, and RTL would try
+to return at 5 m. Nobody had noticed because nothing had ever got as far as a mission-arm
+contract against a real 30 m plan. **Unresolved -- it blocks actual flight.** The bench
+arm below went via `offboard-arm`, which does not run the mission contract because a
+props-off arm never leaves the ground; that bypass was deliberate and is not a fix.
+
+**Bench arm, both aircraft, individually:** 115 armed, held 11.1 s, disarmed; 113 armed,
+held 11.3 s, disarmed. 20 s was requested; PX4's `COM_DISARM_PRFLT` (10 s) cut both, as
+expected and as the operator accepted in advance.
+
+**Simultaneous arming failed again, with a NEW failure mode.** 115 reached READY; 113
+refused OFFBOARD entirely (`vehicle did not enter OFFBOARD (main mode 3)`). The barrier
+held -- nobody armed, both confirmed disarmed. Minutes later 113 entered OFFBOARD and
+armed on its own without complaint, on a healthy link (-46 dBm, 0.2% drops). So:
+
+    12 Oct  both armed; 113 then LOST its setpoint stream (offboard-loss failsafe)
+    13 Oct  113 would not ENTER offboard at all; 115 was fine
+
+Two different failures, same aircraft, both only under simultaneous operation, both
+transient. Sequential arming has never failed. The RF-contention hypothesis is still
+unproven and still the leading one.
+
+**Caveat on the plan itself:** the lanes run over the Seletar hangars. The guardrail checks
+geofence containment and inter-drone separation -- **it does not know about obstacles**.
+Obstacle avoidance is only ever as good as the OpsArea polygon it is given.
+
 ## 2026-10-13 — the laptop takes over as ground station
 
 `mlops-X6AF559Y` (user `joseph`, now `192.168.144.51`) replaced the workstation
