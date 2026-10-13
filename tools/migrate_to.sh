@@ -63,7 +63,12 @@ send() {  # send <local path> <remote parent>
 ssh "$TARGET" 'mkdir -p ~/.config' 2>/dev/null
 
 send "$HOME/drone-dev"                     "~/"
-send "$HOME/.ssh"                          "~/"
+
+# NEVER overwrite the target's authorized_keys: it holds the key THIS machine is logged in
+# with, so clobbering it can lock the migration out of the machine it is still writing to.
+# known_hosts is the target's own trust record and is equally none of our business.
+note "---- $HOME/.ssh  ->  $TARGET:~/  (keeping the target's authorized_keys/known_hosts)"
+$RSYNC --exclude authorized_keys --exclude 'known_hosts*' "$HOME/.ssh" "$TARGET:~/"
 send "$HOME/.claude"                       "~/"
 send "$HOME/Desktop"                       "~/"
 send "$HOME/.gitconfig"                    "~/"
