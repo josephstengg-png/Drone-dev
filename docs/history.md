@@ -365,49 +365,6 @@ Props off, area clear, confirmed for both aircraft. Both disarmed throughout.
 
 **Per-motor test PASSED on both.** Each motor, spun alone at 10% for 2 s, raised only its
 own output (298 on its channel, 0 on the others): Motor N is MAIN N, and every motor/ESC
-chain responds. 298 = the 110 DShot idle floor + 10% of the rest. Equal values are by
-construction, so this says nothing about balance under load. **`MAV_CMD_DO_MOTOR_TEST`
-(209) is UNSUPPORTED on this firmware** (ack 3); `ACTUATOR_TEST` (310) works. My first
-attempt reported "4 PROBLEMS" because the tool treated an unsupported ack as a motor fault.
-Nothing had spun. It now reports NOT RUN, distinct from PROBLEM.
-
-**No-GPS state reproduced on both** by setting `EKF2_GPS_CTRL=0` on the disarmed aircraft
-(both held 11 satellites where they sat, so they would never have dropped the fix). Flags
-went 0x03ff -> **0x00e5** within 7-9 s, the same state seen indoors on 14 Oct. `ekf2 status`:
-attitude 1, local position 0, global position 0 on both instances of both aircraft.
-**EKF2_GPS_CTRL RESTORED and read back verified: 115 = 7, 113 = 5**, first attempt, and
-both back to 0x03ff afterwards.
-
-    checklist field        expected   115        113
-    cs_gnss_pos            False      False      False     ok
-    cs_opt_flow            False      False      False     ok
-    cs_ev_pos              False      False      False     ok
-    cs_ev_vel              False      -          False     ok (113)
-    cs_aux_gpos            False      -          False     ok (113)
-    cs_rng_hgt             True       True       True      ok
-    cs_rng_terrain         True       -          True      ok (113)
-    dead_reckoning         True       True       -         ok (115)
-    xy_valid               False      -          False     ok (113)
-    xy_global              False      -          TRUE      DIFFERS (113)
-    v_xy_valid, z_valid    -          never received on either
-
-`xy_global` True on 113 while `ekf2 status` says "global position: 0" and xy_valid is False:
-the listener field appears to mean "a global reference exists", which the EKF keeps from its
-earlier GNSS fix. Not verified. 115's merge was thinner (16 flags against 33), so fields
-missing there are "not received", not "absent".
-
-**ekf2 test ratio read 1.0 on both instances with GNSS off** (0.05-0.10 before). Probably
-saturated because nothing aids horizontal position. Not interpreted further.
-
-**Not done from the checklist:** arm -> mid throttle -> Offboard -> takeoff, because offboard
-takeoff does not exist. Balance under thrust is judged in a tethered hover.
-
-## 2026-10-15 (night) — the no-GPS checklist run, and the per-motor test
-
-Props off, area clear, confirmed for both aircraft. Both disarmed throughout.
-
-**Per-motor test PASSED on both.** Each motor, spun alone at 10% for 2 s, raised only its
-own output (298 on its channel, 0 on the others): Motor N is MAIN N, and every motor/ESC
 chain responds. 298 = the 110 DShot idle floor + 10% of the rest, so the command mapped as
 expected. Equal values are by construction, so this says nothing about balance under load.
 **`MAV_CMD_DO_MOTOR_TEST` (209) is UNSUPPORTED on this firmware** (ack 3); `ACTUATOR_TEST`
