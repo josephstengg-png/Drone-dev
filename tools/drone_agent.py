@@ -458,6 +458,10 @@ def resident_loop(conn, args, token: str) -> int:
     def disarm_if_left_armed():
         # We armed it for an arm-only test and the orchestrator is gone: do not leave
         # motors armed with nobody watching.
+        if guard.pilot_has_it:
+            log("[safety] leaving, and the PILOT HAS IT: not disarming. If the aircraft is "
+                "still armed, use the arm switch (ch6) or the kill switch (ch8).")
+            return
         if state["armed_only"]:
             log("[resident] leaving while armed by ARM -- disarming")
             with conn_lock:
@@ -1028,6 +1032,46 @@ def vehicle_main_mode(hb) -> int:
     return (hb.custom_mode >> 16) & 0xFF
 
 
+def await_pilot_disarm(pump, state, *, killed: bool, slot, window_s: float,
+                       warn_every_s: float = 5.0, clock=time.time) -> dict:
+    """After a pilot takeover: send NOTHING, say loudly that it is armed, wait for the pilot.
+
+    Decided 14 Oct 2026 (option C). The agent used to try to disarm on the ground after a
+    takeover. That fights a pilot who may be about to fly, and it was also unreliable --
+    the disarm took 2 s in one run and failed for 12+ s in the next -- so it could leave the
+    aircraft armed anyway, silently. Now the decision is the pilot's, and the agent's whole
+    job is to make sure the pilot cannot miss that the aircraft is still armed. The ways to
+    disarm are the arm switch (channel 6) and the kill switch (channel 8); neither needs us.
+
+    `pump(seconds)` reads telemetry and updates state["armed"]. Nothing here sends a command.
+    """
+    t0 = clock()
+    if not state["armed"]:
+        return dict(disarmed=True, waited_s=0.0)
+    if killed:
+        log("[safety] kill switch engaged -- PX4 disarms by itself after COM_KILL_DISARM. "
+            "The agent sends nothing.")
+    last_warn = None
+    while clock() - t0 < window_s:
+        waited = clock() - t0
+        if not state["armed"]:
+            log(f"[safety] aircraft disarmed (by the pilot or PX4) after {waited:.1f} s")
+            emit(dict(event="pilot_disarmed", slot=slot, waited_s=round(waited, 1)))
+            return dict(disarmed=True, waited_s=waited)
+        if not killed and (last_warn is None or clock() - last_warn >= warn_every_s):
+            last_warn = clock()
+            log("[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent "
+                "will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL "
+                "SWITCH (channel 8).")
+            emit(dict(event="still_armed", slot=slot, waited_s=round(waited, 1)))
+        pump(0.5)
+    waited = clock() - t0
+    log(f"[safety] *** LEAVING THE AIRCRAFT ARMED *** nobody disarmed it in {window_s:.0f} s "
+        "and the agent will not. It stays armed until the arm switch or kill switch is used.")
+    emit(dict(event="left_armed", slot=slot, waited_s=round(waited, 1)))
+    return dict(disarmed=False, waited_s=waited)
+
+
 def cmd_offboard_arm(args) -> int:
     """Bench test, no GPS needed: stream level/zero-thrust, enter OFFBOARD, arm, hold, disarm.
 
@@ -1170,9 +1214,12 @@ def cmd_offboard_arm(args) -> int:
         return 0 if "error" not in result else 2
     finally:
         result["rc_takeover"] = guard.pilot_has_it
-        if guard.pilot_has_it and guard.airborne is not False:
-            log("[offboard] NOT disarming: the pilot has the aircraft and it is airborne")
-            result["disarmed"] = False
+        if guard.pilot_has_it:
+            w = await_pilot_disarm(pump, state, killed=guard.killed_by_pilot,
+                                   slot=args.slot, window_s=args.pilot_disarm_window_s)
+            result["disarmed"] = w["disarmed"]
+            result["left_armed"] = not w["disarmed"]
+            result["pilot_disarm_wait_s"] = round(w["waited_s"], 1)
             emit(result)
             return 2 if "error" in result else 0
         log("[offboard] disarming")
@@ -1311,6 +1358,9 @@ def main() -> int:
     ap.add_argument("--gate", action="store_true",
                     help="offboard-arm: enter OFFBOARD, print a ready event, arm only on 'ARM' from stdin")
     ap.add_argument("--gate-timeout-s", type=float, default=90.0)
+    ap.add_argument("--pilot-disarm-window-s", type=float, default=60.0,
+                    help="offboard-arm: after a pilot takeover, how long to keep warning that "
+                         "the aircraft is still armed before leaving (the agent never disarms)")
     ap.add_argument("--link", required=True,
                     help="udpin://:14540, serial:///dev/ttyACM0, udpout://host:port")
     ap.add_argument("--expect-sysid", type=int, default=None,

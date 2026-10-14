@@ -84,8 +84,11 @@ channel and its six slots, because it shows the switch moving as you flip it.
 **What the companion does when you take over.** The agent watches for the transition out of
 OFFBOARD or AUTO into a hand-flown mode. On seeing it, it latches "pilot has it" and stands
 down for good: no more setpoints, no mode changes, no attempt to re-enter offboard, no
-automatic abort, and **it will not disarm while the aircraft is airborne**. It reports an
-`rc_takeover` event and gets out of the way. Two aborts fighting each other is worse than
+automatic abort, and **it will not disarm at all -- on the ground or in the air**
+(decided 14 Oct 2026, option C). It reports an `rc_takeover` event and then, if the
+aircraft is still armed, says `still_armed` every 5 s for up to 60 s (`left_armed` if
+nobody disarms it). Disarming is yours: **arm switch, channel 6**, or kill switch,
+channel 8. It gets out of the way. Two aborts fighting each other is worse than
 either one.
 
 ### 2. The guard on the companion (autonomous)

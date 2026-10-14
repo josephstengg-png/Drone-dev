@@ -116,7 +116,10 @@ display here. Use the agent for anything that must work, and USB for parameter w
 2. **The guard on the companion** (`safety_rules.py`): WARN → HOLD → LAND → DISARM, on a
    severity-weighted error rate over a sliding minute, battery, tilt, telemetry gap and
    estimator health. Climb-only — recovery is a human decision. **It never disarms an
-   aircraft that is airborne**, and it stands down entirely on a pilot takeover or kill.
+   aircraft that is airborne**, and on a pilot takeover or kill it stands down entirely:
+   it sends nothing, **including no disarm, on the ground too** (decided 14 Oct 2026). It
+   then says STILL ARMED every 5 s and waits up to 60 s for the pilot. Disarming is the
+   pilot's: arm switch (channel 6) or kill switch (channel 8).
 3. **The operator**: `a` + ENTER in the pair-test console, or `tools/takeover.py --now`
    out-of-band over ssh, which survives the orchestrator dying.
 
@@ -158,6 +161,11 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
   the EKF has height and attitude but NO horizontal velocity or position, so Position and
   Hold are unavailable and indoor hover needs a horizontal source that does not exist yet.
   `EKF2_OF_CTRL=1` is set but harmless. Do not plan around a flow sensor.
+- **After a takeover the aircraft stays armed until the pilot disarms it.** PX4's 10 s
+  auto-disarm did NOT fire while armed in Altitude (observed 14 Oct), and a commanded
+  disarm took 2 s in one run and failed for 12+ s in the next, cause unknown. So the
+  agent no longer tries; it warns. The earlier theory that the throttle stick position
+  decides it is not supported by the data.
 - **Channel 7 centre is Offboard**, and the agent's offboard stream is zero thrust. With
   the agent streaming, centre in flight is a fall; the agent refuses to resume after a
   takeover. PX4 does NOT deny Offboard when nothing streams (measured: nav mode Offboard,
