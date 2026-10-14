@@ -33,8 +33,12 @@ A switch position on the Pocket requests a flight mode, and PX4 honours it direc
 Before 14 Oct centre was Position. **Centre is now Offboard on both aircraft**, so it is no
 longer a safe resting position for the switch in flight: the agent's offboard stream is
 level attitude at ZERO thrust. If the pilot flips to centre after a takeover the agent
-refuses to resume (`rc_handback_requested`, `resumed: false`) and, because it streams
-nothing, PX4 denies the mode itself. Slot 2 differs between the aircraft (115 Position, 113
+refuses to resume (`rc_handback_requested`, `resumed: false`). **PX4 does not deny the
+mode**: measured on ARTEX113 on 14 Oct, disarmed with nothing streaming, it reported
+"navigation mode: Offboard, in failsafe: no". Armed, its offboard-loss failsafe acts after
+`COM_OF_LOSS_T` (1.0 s) with the action in `COM_OBL_RC_ACT` (0 = Position on both
+aircraft). Indoors with no horizontal fix, where Position is unavailable, what it degrades
+to has not been observed. Slot 2 differs between the aircraft (115 Position, 113
 unassigned) but is not on a three-position switch's travel, so it has no effect.
 Stick movement is a separate mechanism governed by `COM_RC_OVERRIDE`, and on this project
 it is **deliberately disabled for OFFBOARD** (see the parameter table below) — so during an

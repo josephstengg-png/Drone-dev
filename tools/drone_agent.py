@@ -869,17 +869,19 @@ class Guard:
 
         # The pilot flipped from a hand-flown mode to a position mapped to OFFBOARD
         # (channel 7 centre, since 14 Oct 2026). That is a request to hand the aircraft
-        # BACK to the agent. It is refused, deliberately and out loud: this agent streams
+        # BACK to the agent. The agent refuses, deliberately and out loud: it streams
         # level attitude at ZERO thrust and has no height hold, so resuming on an airborne
-        # aircraft would command a fall. Because stop_streaming stays set PX4 sees no
-        # setpoints and denies the mode itself -- safe by omission, and now also logged,
-        # so it is a decision rather than something that merely happens.
+        # aircraft would command a fall. NOTE PX4 does not deny the mode. Measured on
+        # ARTEX113, 14 Oct 2026, disarmed with nothing streaming: "navigation mode:
+        # Offboard, in failsafe: no". Armed, the offboard-loss failsafe (COM_OF_LOSS_T,
+        # action COM_OBL_RC_ACT, both aircraft = Position after 1 s) takes it out instead.
         if (self.pilot_has_it and not self.killed_by_pilot and prev in PILOT_MODES
                 and mode == OFFBOARD_MAIN_MODE):
             self.handback_requests += 1
-            log("[safety] switch requested OFFBOARD after a pilot takeover. NOT resuming: "
-                "offboard flight is not implemented (the stream is zero thrust). PX4 will "
-                "deny the mode with no setpoints; the aircraft stays under the pilot.")
+            log("[safety] switch requested OFFBOARD after a pilot takeover. The agent is NOT "
+                "resuming: offboard flight is not implemented (the stream is zero thrust). "
+                "PX4 will still select OFFBOARD; with no setpoints and the aircraft armed, "
+                "its offboard-loss failsafe acts after COM_OF_LOSS_T (COM_OBL_RC_ACT).")
             emit(dict(event="rc_handback_requested", slot=self.slot, from_mode=prev,
                       to_mode=mode, resumed=False, airborne=self.airborne,
                       t_epoch=round(time.time(), 3)))

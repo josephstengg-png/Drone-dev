@@ -406,6 +406,8 @@ driver is configured through `SENS_TFMINI_CFG` (102).
 **Outdoors, 14 Oct:** 115 fix 3, 8 sats, h_acc 0.99 m; 113 fix 3, 10 sats, h_acc 0.85 m.
 Both usable. Derived PDOP 3.7 / 2.7 is advisory only (GPS_RAW_INT carries no PDOP).
 
+**CORRECTION:** PX4 does NOT deny OFFBOARD when nothing streams (commander status on 113, disarmed: nav mode Offboard, in failsafe: no); armed, the offloss failsafe acts after 1 s (COM_OBL_RC_ACT=0, Position). The earlier "PX4 denies the mode" claim was wrong.
+
 **Still open:** arm check on the new mapping (needs a fresh props-off confirmation);
 113/115 baseline mismatch (`NAV_DLL_ACT` 3 vs 0, `GPS_CTRL` 7 vs 5); geofence ceiling 5-7 m
 vs 30 m mission; shared-instant arming; real indoor hover has no horizontal source.

@@ -158,8 +158,12 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
   the EKF has height and attitude but NO horizontal velocity or position, so Position and
   Hold are unavailable and indoor hover needs a horizontal source that does not exist yet.
   `EKF2_OF_CTRL=1` is set but harmless. Do not plan around a flow sensor.
-- **Channel 7 centre is Offboard**, and the agent's offboard stream is zero thrust. Flipping
-  to centre in flight is a fall, not a hand-back. The agent refuses to resume.
+- **Channel 7 centre is Offboard**, and the agent's offboard stream is zero thrust. With
+  the agent streaming, centre in flight is a fall; the agent refuses to resume after a
+  takeover. PX4 does NOT deny Offboard when nothing streams (measured: nav mode Offboard,
+  no failsafe, disarmed). Armed, the offboard-loss failsafe acts after 1 s
+  (`COM_OBL_RC_ACT=0`, Position). What it does indoors, where Position is unavailable, is
+  unobserved.
 - No Tuas obstacle data exists in the repo; the planner only knows the OpsArea polygon and
   cannot see buildings or containers.
 - `preflight.py` and `provision.py` have no unit tests.
