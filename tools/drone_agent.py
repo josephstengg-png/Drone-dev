@@ -1203,7 +1203,8 @@ def cmd_offboard_arm(args) -> int:
             if guard.acted or guard.killed:
                 break
             if not state["armed"]:
-                result["error"] = "vehicle disarmed itself during hold"
+                result["error"] = ("vehicle disarmed during hold -- by the pilot's arm switch, the kill "
+                                   "switch or PX4's own timer; see vehicle_text")
                 break
             if state["mode"] != OFFBOARD:
                 result["error"] = ("pilot took over with the RC switch"

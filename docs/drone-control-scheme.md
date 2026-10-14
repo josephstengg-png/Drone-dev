@@ -30,6 +30,13 @@ A switch position on the Pocket requests a flight mode, and PX4 honours it direc
 | centre | 0 (1500 us) | 4 | **Offboard** | the agent's stream -- **bench only** |
 | high | +100 (2000 us) | 6 | **Position** | the pilot, needs a horizontal fix |
 
+**Arm switch, channel 6 (`RC_MAP_ARM_SW=6`): 1000 us = disarm position, 2000 us = arm.**
+Proven 14 Oct on ARTEX115: flipping it up then down disarmed an aircraft the *agent* had
+armed in Offboard ("Disarmed by RC switch", ~2 s after the flip, ahead of PX4's own 10 s
+timer). It will NOT start arming while the mode is Offboard: PX4 answers "Arming denied:
+switch to manual mode first". So the arm switch can always end an armed state, and can only
+begin one from a manual mode.
+
 Before 14 Oct centre was Position. **Centre is now Offboard on both aircraft**, so it is no
 longer a safe resting position for the switch in flight: the agent's offboard stream is
 level attitude at ZERO thrust. If the pilot flips to centre after a takeover the agent

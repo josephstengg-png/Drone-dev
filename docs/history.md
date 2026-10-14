@@ -359,6 +359,27 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-14 (late night) — the pilot's arm switch disarms an agent-armed aircraft
+
+ARTEX115, props off, area clear. Agent armed in Offboard at 11.0 s; the operator flipped
+the arm switch (ch6: 1000 us = disarm position, 2000 us = arm) up then down; the vehicle
+reported **"Disarmed by RC switch"** at 13.3 s, ahead of PX4's own 10 s timer (~21 s). The
+pilot's own disarm path works against an aircraft the agent armed, which is the case
+option C relies on.
+
+**PX4 refuses to ARM from the switch in Offboard:** "Arming denied: switch to manual mode
+first" at 20.8 s and 24.0 s, when the operator kept flipping after the disarm. Disarming
+by switch works in any mode; arming by switch needs a manual mode. (This also explains
+9 Oct, when "Armed by RC switch" appeared: the mode was Position then.)
+
+**Fixed a misleading message:** the agent said "vehicle disarmed itself during hold" when
+the pilot's switch had done it. It now names the pilot's switch, the kill switch and PX4's
+timer as the possibilities.
+
+**Open-items report given to the operator the same night** -- see CLAUDE.md
+"Known-unfinished" (17 items; this test closes none of them but confirms the pilot's
+disarm route that item 3's safety story depends on).
+
 ## 2026-10-14 (night) — disarm after a takeover: theory refuted, option C chosen and proven
 
 **Question:** after a pilot takeover on the ground the agent's disarm took 4-6 s. Why?

@@ -119,7 +119,8 @@ display here. Use the agent for anything that must work, and USB for parameter w
    aircraft that is airborne**, and on a pilot takeover or kill it stands down entirely:
    it sends nothing, **including no disarm, on the ground too** (decided 14 Oct 2026). It
    then says STILL ARMED every 5 s and waits up to 60 s for the pilot. Disarming is the
-   pilot's: arm switch (channel 6) or kill switch (channel 8).
+   pilot's: arm switch (channel 6, proven 14 Oct: disarmed an agent-armed aircraft in
+   Offboard) or kill switch (channel 8). The arm switch cannot START arming in Offboard.
 3. **The operator**: `a` + ENTER in the pair-test console, or `tools/takeover.py --now`
    out-of-band over ssh, which survives the orchestrator dying.
 
