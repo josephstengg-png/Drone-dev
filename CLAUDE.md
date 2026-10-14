@@ -181,4 +181,10 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
   unobserved.
 - No Tuas obstacle data exists in the repo; the planner only knows the OpsArea polygon and
   cannot see buildings or containers.
+- **Motor balance under thrust is unverified.** The bench output check only saw the DShot
+  idle floor (110/2000) because PX4 holds motors at idle on the ground until a takeoff
+  command; spread was 2-4 counts, which says nothing about ESC/motor matching. Do it in
+  the first tethered hover, or per motor with `MAV_CMD_DO_MOTOR_TEST` (enabled, disarmed).
+- Companion-side tools read the shell at a ~35-field ceiling per reply (PX4 shell buffer);
+  use `ekf2 status` and MAVLink messages, and merge short runs for flag structs.
 - `preflight.py` and `provision.py` have no unit tests.

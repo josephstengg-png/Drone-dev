@@ -359,6 +359,36 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (later) — motor output check: what it did and did not show
+
+**ARTEX115, props off, armed ~5 s (armed 9.0 s, disarmed 13.8 s by the operator's arm switch:
+"Disarmed by RC switch", the second confirmation of that path).**
+
+    idle (Offboard, zero thrust)      motors 1-4 = 111, 109, 111, 109   spread 2
+    Altitude, throttle stick 53-55%   motors 1-4 = 113, 109, 113, 109   spread 4
+
+The output is **DShot** (`PWM_MAIN_TIM0 = -4`, `DSHOT_MIN = 0.055`, scale 0-2000), so 110
+IS the idle command. All four motors sat at the DShot floor +/- 3 counts (0.2% of range).
+**This is NOT a motor-balance result.** In Altitude mode on the ground PX4 holds the motors
+at idle until the stick is pushed above the dead zone to command a takeoff, so the throttle
+at 53% never produced thrust. The 1-3 count pairing (motors 1&3 high, 2&4 low) is the
+attitude controller's trim of a slightly tilted airframe, not ESC mismatch.
+
+**What the checklist's "four motors close together" step actually needs** is outputs under
+a thrust command. Options, none run yet:
+1. `MAV_CMD_DO_MOTOR_TEST` per motor (`COM_MOT_TEST_EN=1` on 115): spins each motor alone
+   at a small throttle, disarmed, confirms motor 1-4 each respond and map to MAIN1-4.
+   Does not test balance, since the commanded value is the same by construction.
+2. Push the stick above the dead zone with props off. Not recommended: with no props the
+   aircraft cannot climb, so the altitude controller's integrator keeps raising thrust.
+3. Judge balance in the first tethered hover, which is what the step is really for.
+
+**ARTEX113 was not run**: it would measure the same idle floor.
+
+**Measurement instrument built:** `pwmspread.py` reads SERVO_OUTPUT_RAW and
+ACTUATOR_OUTPUT_STATUS over normal MAVLink (the shell's `listener actuator_outputs`
+truncates), both streaming at ~2.5 Hz here; grouped by phase.
+
 ## 2026-10-15 — the listener checklist, run properly (armed PWM part pending)
 
 Both aircraft were OUTDOORS with GPS (estimator flags 0x03ff), so these describe the
