@@ -39,7 +39,8 @@ REGISTRY = ROOT / "artex-registry.yaml"
 # Everything the companion needs to run an aircraft. drone_agent imports safety_rules, so
 # they must travel together -- deploying one without the other breaks the agent outright.
 PAYLOAD = ["drone_agent.py", "safety_rules.py", "elrs_link.py", "elrs_service.sh",
-           "jetson_net.sh", "preflight_probe.py"]
+           "jetson_net.sh", "preflight_probe.py", "mav_shell.py", "motor_test.py",
+           "no_gps_check.py"]
 
 
 def log(msg: str) -> None:
