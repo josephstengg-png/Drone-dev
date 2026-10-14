@@ -36,7 +36,7 @@ def _sock(port=0, timeout=2.0):
     return s
 
 
-def _start_relay(mirror_control: bool):
+def _start_relay(mirror_control: bool, floor_s: float = 0.0):
     """A relay whose 'module' is a loopback socket we control."""
     module_listen = _free_port()        # the relay sends uplink here
     module_send = _free_port()          # the relay binds this for downlink
@@ -55,6 +55,8 @@ def _start_relay(mirror_control: bool):
             "--report-s", "3600"]
     if mirror_control:
         argv.append("--mirror-control")
+    if floor_s > 0:
+        argv += ["--mirror-floor-s", str(floor_s)]
     proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             text=True)
     time.sleep(1.5)                     # let it bind
@@ -79,6 +81,12 @@ def relay():
 @pytest.fixture
 def relay_rw():
     yield from _start_relay(mirror_control=True)
+
+
+@pytest.fixture
+def relay_floor():
+    """Two-way mirror with agent priority: QGC is held off while an agent is talking."""
+    yield from _start_relay(mirror_control=True, floor_s=1.5)
 
 
 def _vehicle_says(relay, payload: bytes):
@@ -179,3 +187,58 @@ def test_a_bad_mirror_spec_is_refused_not_ignored():
                        capture_output=True, text=True, timeout=30)
     assert r.returncode == 2
     assert "bad --mirror" in r.stdout + r.stderr
+
+
+# ---- agent priority: QGC no longer has to be closed before every test -----------------
+
+def _qgc_sends(relay, payload: bytes):
+    """QGC sends to the relay's mirror socket, learned from a downlink packet."""
+    _vehicle_says(relay, b"telemetry")
+    _, back_to = relay["mirror"].recvfrom(4096)
+    relay["mirror"].sendto(payload, back_to)
+
+
+def test_with_no_agent_qgc_still_gets_through_under_agent_priority(relay_floor):
+    """The floor must never make QGC useless when nothing is competing with it."""
+    _qgc_sends(relay_floor, b"QGC-PARAM-REQUEST")
+    data, _ = relay_floor["module"].recvfrom(4096)
+    assert data == b"QGC-PARAM-REQUEST"
+
+
+def test_qgc_is_held_off_while_an_agent_is_talking(relay_floor):
+    """The point of the feature: a test run has the link to itself."""
+    a = _sock()
+    a.sendto(b"agent-setpoint", ("127.0.0.1", relay_floor["agent_port"]))
+    assert relay_floor["module"].recvfrom(4096)[0] == b"agent-setpoint"
+
+    _qgc_sends(relay_floor, b"QGC-PARAM-REQUEST")
+    relay_floor["module"].settimeout(0.8)
+    with pytest.raises(socket.timeout):
+        relay_floor["module"].recvfrom(4096)         # QGC was held off
+
+
+def test_qgc_gets_the_floor_back_after_the_agent_goes_quiet(relay_floor):
+    a = _sock()
+    a.sendto(b"agent-setpoint", ("127.0.0.1", relay_floor["agent_port"]))
+    relay_floor["module"].recvfrom(4096)
+    time.sleep(2.0)                                  # longer than the 1.5 s floor
+
+    _qgc_sends(relay_floor, b"QGC-PARAM-REQUEST")
+    relay_floor["module"].settimeout(2.0)
+    assert relay_floor["module"].recvfrom(4096)[0] == b"QGC-PARAM-REQUEST"
+
+
+def test_the_agent_is_never_held_off_by_qgc(relay_floor):
+    """Priority is one-way: QGC chatter must not delay an agent command."""
+    for _ in range(5):
+        _qgc_sends(relay_floor, b"QGC-SPAM")
+    a = _sock()
+    a.sendto(b"ARM", ("127.0.0.1", relay_floor["agent_port"]))
+    relay_floor["module"].settimeout(2.0)
+    seen = []
+    try:
+        while True:
+            seen.append(relay_floor["module"].recvfrom(4096)[0])
+    except socket.timeout:
+        pass
+    assert b"ARM" in seen

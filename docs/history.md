@@ -359,6 +359,57 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-14 (eve) — channel 7 remapped, QGC no longer has to be closed, flow sensor assumption removed
+
+Work is on branch **`indoor-ekf`** (forked off main, local, unpushed).
+
+**Channel 7 was changed by the operator and read back live off both aircraft:**
+
+    -100 (slot 1) Altitude     0 (slot 4) OFFBOARD     +100 (slot 6) Position
+
+Centre used to be Position. **Centre is now Offboard on both 113 and 115**, which makes it a
+bad resting position in flight: the agent's offboard stream is level attitude at ZERO
+thrust, so flipping to centre airborne is a fall, not a hand-back. Slot 2 differs between
+the aircraft (115 Position, 113 unassigned) but is off a 3-position switch's travel.
+*Takeover code changed:* flipping from a hand-flown mode to OFFBOARD after a takeover now
+emits `rc_handback_requested` with `resumed:false` and logs that the agent will NOT resume;
+`stop_streaming` stays set, so PX4 sees no setpoints and denies the mode itself. Safe by
+omission before, now an explicit and tested decision. `rc-check` flags any slot mapped to
+Offboard as bench-only. 7 new tests; the `_good()` fixture predated the remap and was
+updated rather than weakening the note.
+
+**QGC no longer has to be closed before every test.** `elrs_link.py` gained
+`--mirror-floor-s N`: with `--mirror-control`, QGC's uplink is dropped for N seconds after
+the last agent packet, so an agent run has the link to itself and QGC gets it back
+afterwards. The agent is never held off by QGC. Service default is now two-way with a 5 s
+floor; both Jetsons updated and restarted. 4 new loopback tests (QGC passes with no agent,
+is held off during a run, returns after, never delays the agent). `preflight` reads the
+relay's floor and only warns about QGC when there is none. Demonstrated live: QGC running
+on both companions, preflight GO, no warning. A counter `mirror-floored` shows how often.
+
+**Flow sensor assumption removed.** The operator confirmed there is no optical flow sensor
+on either airframe, and the firmware agrees (all five flow drivers "command not found").
+Aboard: IMU, baro, mag, a downward TFmini on ttyS3 (driver running, 0 comm errors), and a
+GPS module that is useless indoors. Indoors the EKF has height and attitude and NO
+horizontal velocity or position, so Position and Hold are unavailable. IMU+TFmini alone
+cannot hold horizontal position: a residual bias of 0.05 m/s^2 is ~2.5 m after 10 s.
+`docs/drone-control-scheme.md` and `CLAUDE.md` rewritten to say so.
+
+**Sensor read (calibration): all four sensors calibrated on both, healthy, no accel-error
+flag.** 115's accel offset (0.16 m/s^2) is about twice 113's; it is the aircraft that
+refused to arm on accelerometer bias on 1 Oct, so worth watching. TFmini reads 1-3 cm on
+the ground, below its 40 cm minimum. `EKF2_RNG_A_HMAX` is 1.0 m here against a 5.0 m
+upstream default (verified in source): the rangefinder only aids height below 1 m.
+`SENS_EN_TFMINI` came back empty because that name does not exist on this firmware; the
+driver is configured through `SENS_TFMINI_CFG` (102).
+
+**Outdoors, 14 Oct:** 115 fix 3, 8 sats, h_acc 0.99 m; 113 fix 3, 10 sats, h_acc 0.85 m.
+Both usable. Derived PDOP 3.7 / 2.7 is advisory only (GPS_RAW_INT carries no PDOP).
+
+**Still open:** arm check on the new mapping (needs a fresh props-off confirmation);
+113/115 baseline mismatch (`NAV_DLL_ACT` 3 vs 0, `GPS_CTRL` 7 vs 5); geofence ceiling 5-7 m
+vs 30 m mission; shared-instant arming; real indoor hover has no horizontal source.
+
 ## 2026-10-14 (pm) — simultaneous arming measured, GPS wander quantified, indoor options read
 
 **Simultaneous arming, 6 runs, `tools/arm_stability.py` (new): 4/6 clean passes.** The

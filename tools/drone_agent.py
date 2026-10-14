@@ -755,6 +755,7 @@ PILOT_KILL_TEXTS = ("kill engaged", "kill switch engaged", "flight termination a
 # RATTITUDE. Not AUTO (4) and not OFFBOARD (6), which are ours.
 PILOT_MODES = (1, 2, 3, 5, 7, 8)
 AUTOMATIC_MODES = (4, 6)
+OFFBOARD_MAIN_MODE = 6
 INNOVATION_FIELDS = ("vel_ratio", "pos_horiz_ratio", "pos_vert_ratio",
                      "mag_ratio", "hagl_ratio")
 
@@ -807,6 +808,7 @@ class Guard:
         self.killed = False
         self.pilot_has_it = False       # the RC switch has been thrown: hands off
         self.killed_by_pilot = False
+        self.handback_requests = 0       # times the switch asked for OFFBOARD after a takeover
         self._prev_mode: int | None = None
         # A flag that predates the run is an abort nobody cleared. Refuse to fly rather
         # than guess which it was, and say which case this is -- the operator needs to
@@ -864,6 +866,25 @@ class Guard:
         been taken over; one that was in OFFBOARD a moment ago and is now in POSCTL has.
         """
         prev, self._prev_mode = self._prev_mode, mode
+
+        # The pilot flipped from a hand-flown mode to a position mapped to OFFBOARD
+        # (channel 7 centre, since 14 Oct 2026). That is a request to hand the aircraft
+        # BACK to the agent. It is refused, deliberately and out loud: this agent streams
+        # level attitude at ZERO thrust and has no height hold, so resuming on an airborne
+        # aircraft would command a fall. Because stop_streaming stays set PX4 sees no
+        # setpoints and denies the mode itself -- safe by omission, and now also logged,
+        # so it is a decision rather than something that merely happens.
+        if (self.pilot_has_it and not self.killed_by_pilot and prev in PILOT_MODES
+                and mode == OFFBOARD_MAIN_MODE):
+            self.handback_requests += 1
+            log("[safety] switch requested OFFBOARD after a pilot takeover. NOT resuming: "
+                "offboard flight is not implemented (the stream is zero thrust). PX4 will "
+                "deny the mode with no setpoints; the aircraft stays under the pilot.")
+            emit(dict(event="rc_handback_requested", slot=self.slot, from_mode=prev,
+                      to_mode=mode, resumed=False, airborne=self.airborne,
+                      t_epoch=round(time.time(), 3)))
+            return
+
         if self.pilot_has_it or prev is None:
             return
         if prev in AUTOMATIC_MODES and mode in PILOT_MODES:
@@ -1230,6 +1251,16 @@ def rc_takeover_notes(p: dict) -> list[str]:
     if not p.get("RC_MAP_KILL_SW"):
         out.append("RC_MAP_KILL_SW=0: no kill switch mapped -- the only override that does "
                    "not need the autopilot to cooperate")
+    # A switch position mapped to Offboard is a position the pilot can land on by accident
+    # or by design. The agent's stream is level attitude at zero thrust.
+    off = [n for n in range(1, 7)
+           if p.get(f"COM_FLTMODE{n}") is not None and int(p[f"COM_FLTMODE{n}"]) == 7]
+    if off:
+        out.append(f"COM_FLTMODE{'/'.join(str(n) for n in off)} = Offboard: that switch "
+                   f"position asks PX4 for OFFBOARD. The agent streams level attitude at "
+                   f"ZERO thrust and cannot hold height, so on an airborne aircraft it is "
+                   f"a fall, not a hand-back. Bench use only; map it to a hand-flown mode "
+                   f"for flight")
     return out
 
 

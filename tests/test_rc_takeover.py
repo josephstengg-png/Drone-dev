@@ -15,8 +15,10 @@ import drone_agent as agent  # noqa: E402
 def _good(**over):
     p = {"COM_RC_IN_MODE": 0, "COM_RC_OVERRIDE": 3, "COM_RC_STICK_OV": 30.0,
          "RC_MAP_FLTMODE": 5, "RC_MAP_KILL_SW": 7, "COM_RCL_EXCEPT": 0,
-         "COM_FLTMODE1": 2, "COM_FLTMODE2": -1, "COM_FLTMODE3": -1,
-         "COM_FLTMODE4": -1, "COM_FLTMODE5": -1, "COM_FLTMODE6": 7}
+         # Fixture predates 14 Oct 2026, when slot 6 was Offboard. It is now a clean
+         # baseline: Altitude at -100, Position at +100, nothing on Offboard.
+         "COM_FLTMODE1": 1, "COM_FLTMODE2": -1, "COM_FLTMODE3": -1,
+         "COM_FLTMODE4": -1, "COM_FLTMODE5": -1, "COM_FLTMODE6": 2}
     p.update(over)
     return p
 
@@ -108,3 +110,25 @@ def test_artex113_as_actually_configured_is_ready():
             "COM_FLTMODE4": 2, "COM_FLTMODE5": -1, "COM_FLTMODE6": 2}
     assert _findings(real) == []                     # nothing blocks the switch
     assert any("NOT break OFFBOARD" in x for x in _notes(real))
+
+
+# ---- the 14 Oct 2026 mapping: -100 Altitude, centre Offboard, +100 Position ----------
+
+def test_offboard_on_a_switch_position_is_flagged_as_unsafe_in_flight():
+    p = _good(COM_FLTMODE1=1, COM_FLTMODE4=7, COM_FLTMODE6=2)
+    assert _findings(p) == []                       # the switch can still take over
+    assert any("Offboard" in x and "ZERO thrust" in x for x in _notes(p))
+
+
+def test_the_note_names_which_slot_holds_offboard():
+    p = _good(COM_FLTMODE1=1, COM_FLTMODE4=7, COM_FLTMODE6=2, COM_FLTMODE2=-1)
+    assert any("COM_FLTMODE4" in x for x in _notes(p))
+
+
+def test_artex_pair_as_configured_on_14_oct():
+    """Read live off both aircraft: ch7 -100 Altitude, centre Offboard, +100 Position."""
+    real = {"COM_RC_IN_MODE": 3, "COM_RC_OVERRIDE": 1, "RC_MAP_FLTMODE": 7,
+            "RC_MAP_KILL_SW": 8, "COM_FLTMODE1": 1, "COM_FLTMODE2": 2, "COM_FLTMODE3": -1,
+            "COM_FLTMODE4": 7, "COM_FLTMODE5": -1, "COM_FLTMODE6": 2}
+    assert _findings(real) == []
+    assert sum("Offboard" in x for x in _notes(real)) == 1

@@ -30,10 +30,13 @@ DEFAULTS=/etc/default/elrs-link
 AGENT_PORT="${ELRS_AGENT_PORT:-14540}"
 
 # The relay's flags live in /etc/default/elrs-link, not baked into the unit, so the
-# mirror can be turned on or made two-way without reinstalling. Observe-only is the
-# default on purpose: two-way lets a ground station command the aircraft alongside
-# the agent.
-DEFAULT_ARGS="--agent-port ${AGENT_PORT} --mirror 127.0.0.1:14551 --report-s 15"
+# mirror can be reconfigured without reinstalling.
+#
+# Two-way with agent priority is the default since 14 Oct 2026. Observe-only made QGC
+# useless (every request fails), and plain two-way made QGC a second commander that had
+# to be closed before every test. --mirror-floor-s 5 holds QGC off while an agent is
+# talking and gives the link back afterwards.
+DEFAULT_ARGS="--agent-port ${AGENT_PORT} --mirror 127.0.0.1:14551 --mirror-control --mirror-floor-s 5 --report-s 15"
 
 note() { echo "[elrs-service] $*"; }
 die()  { echo "ERROR: $*" >&2; exit 1; }
@@ -87,8 +90,9 @@ done
 if [ ! -f "$DEFAULTS" ]; then
     cat > "$DEFAULTS" <<DEFEOF
 # Arguments for tools/elrs_link.py, read by elrs-link.service.
-# Add --mirror-control to let the mirrored ground station COMMAND the aircraft
-# (it can then arm, disarm and change modes alongside the agent). Off by default.
+# --mirror-control lets the mirrored ground station COMMAND the aircraft; with
+# --mirror-floor-s it is held off while an agent is talking. Remove --mirror-control
+# for a strictly observe-only mirror.
 ELRS_ARGS="${DEFAULT_ARGS}"
 DEFEOF
     note "wrote $DEFAULTS"

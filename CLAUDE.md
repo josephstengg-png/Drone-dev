@@ -97,6 +97,11 @@ contains the real path. This cost three self-inflicted failures in one day.
 **One relay per companion.** Two bind the same port and split the downlink, which looks
 exactly like a dead aircraft. `preflight.py` checks this.
 
+**QGroundControl does not need closing before a test any more** -- the relay's agent
+priority (`--mirror-floor-s 5`, the service default since 14 Oct) holds it off while an
+agent talks. If preflight warns that QGC runs with no agent priority, the relay predates
+that change.
+
 **QGroundControl cannot be a ground station over ELRS.** Measured repeatedly: its connect
 sequence and parameter download need far more round trips than the radio can carry, so it
 shows "Not Ready", no Actions menu, and failed mission transfers. It is a telemetry
@@ -104,8 +109,9 @@ display here. Use the agent for anything that must work, and USB for parameter w
 
 ## Safety architecture, in order of authority
 
-1. **The RC transmitter.** Mode switch on channel 7 (slot 1 = Altitude), kill switch on
-   channel 8 (right bumper). Reaches the flight controller with none of our software in
+1. **The RC transmitter.** Mode switch on channel 7 (-100 Altitude, centre **Offboard --
+   bench only**, +100 Position; changed 14 Oct 2026), kill switch on channel 8 (right
+   bumper). Reaches the flight controller with none of our software in
    the path. Nothing below is a substitute.
 2. **The guard on the companion** (`safety_rules.py`): WARN → HOLD → LAND → DISARM, on a
    severity-weighted error rate over a sliding minute, battery, tilt, telemetry gap and
@@ -147,8 +153,13 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
 - Companion clocks have no time source and boot at 1970.
 - GPS position wanders 4-7 m on a stationary aircraft near the hangars while reporting
   1-2 m accuracy. Do not treat h_acc as hold accuracy. Cause (multipath?) unconfirmed.
-- Indoor position needs a flow sensor or external vision. Whether a flow sensor is fitted
-  is unknown (`EKF2_OF_CTRL=1` but no flow data). See history.md 14 Oct pm.
+- **No optical flow sensor on either airframe** (operator-confirmed; no flow driver in the
+  firmware). Aboard: IMU, baro, mag, a downward TFmini and an outdoor-only GPS. Indoors
+  the EKF has height and attitude but NO horizontal velocity or position, so Position and
+  Hold are unavailable and indoor hover needs a horizontal source that does not exist yet.
+  `EKF2_OF_CTRL=1` is set but harmless. Do not plan around a flow sensor.
+- **Channel 7 centre is Offboard**, and the agent's offboard stream is zero thrust. Flipping
+  to centre in flight is a fall, not a hand-back. The agent refuses to resume.
 - No Tuas obstacle data exists in the repo; the planner only knows the OpsArea polygon and
   cannot see buildings or containers.
 - `preflight.py` and `provision.py` have no unit tests.

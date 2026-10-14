@@ -20,7 +20,22 @@ which is the chain an emergency may already have broken.
 
 ### 1. The RC switch (authoritative)
 
-A switch position on the Pocket requests a hand-flown mode, and PX4 honours it directly.
+A switch position on the Pocket requests a flight mode, and PX4 honours it directly.
+
+**Channel 7 mapping, changed by the operator 14 Oct 2026 and read live off both aircraft:**
+
+| Switch | Value | Slot | Mode | Who is flying |
+|---|---|---|---|---|
+| low | -100 (1000 us) | 1 | **Altitude** | the pilot -- this is the takeover position |
+| centre | 0 (1500 us) | 4 | **Offboard** | the agent's stream -- **bench only** |
+| high | +100 (2000 us) | 6 | **Position** | the pilot, needs a horizontal fix |
+
+Before 14 Oct centre was Position. **Centre is now Offboard on both aircraft**, so it is no
+longer a safe resting position for the switch in flight: the agent's offboard stream is
+level attitude at ZERO thrust. If the pilot flips to centre after a takeover the agent
+refuses to resume (`rc_handback_requested`, `resumed: false`) and, because it streams
+nothing, PX4 denies the mode itself. Slot 2 differs between the aircraft (115 Position, 113
+unassigned) but is not on a three-position switch's travel, so it has no effect.
 Stick movement is a separate mechanism governed by `COM_RC_OVERRIDE`, and on this project
 it is **deliberately disabled for OFFBOARD** (see the parameter table below) — so during an
 offboard run the sticks are inert and **the channel 7 switch is the only way to take over**.
@@ -38,7 +53,7 @@ Nothing in the repo can set this — it lives on the Pocket.
 
 Both handsets use the same channel assignment, so a procedure written for one applies to
 the other. Read back off ARTEX113 on 6 Oct, the aircraft agrees with the handset:
-`RC_MAP_FLTMODE=7`, `RC_MAP_KILL_SW=8`, and `COM_FLTMODE1=1` (Altitude) in slot 1.
+`RC_MAP_FLTMODE=7`, `RC_MAP_KILL_SW=8`, `COM_FLTMODE1=1` (Altitude), `COM_FLTMODE4=7` (Offboard), `COM_FLTMODE6=2` (Position).
 **ARTEX115's parameters have never been read**, so its side of this is assumed, not
 verified — run `tools/rc_takeover.py --fleet fleet-artex115.yaml` once that aircraft is
 reachable.
@@ -94,10 +109,24 @@ being wedged or killed.
 - **Which physical switch drives the mode channel is not recorded** — the kill switch is
   the right bumper; the mode switch has not been named. Worth writing down, because the
   takeover path depends on reaching for the correct one under pressure.
-- **The takeover has never been exercised in the air.** The planned bench test — arm 113 in
-  offboard, flip channel 7 to the Altitude slot, confirm the agent latches "pilot has it" —
-  has not been run.
+- **The takeover has never been exercised in the air.** On the bench, 9 Oct, flipping
+  channel 7 to Altitude latched "pilot has it" on ARTEX113. The new hand-back refusal
+  (centre = Offboard) has been unit-tested but not yet exercised on an aircraft.
 - HOLD and the in-air LAND path have never run on hardware — every test so far has been a
   props-off bench arm.
 - A backup of ARTEX113's 1,080 parameters, taken before any change, is at
   `~/Desktop/ARTEX113-params-before-2026-10-07.params`.
+
+## Indoor flight: what the airframes actually carry (confirmed 14 Oct 2026)
+
+**No optical flow sensor on either aircraft.** The operator confirmed it, and the firmware
+agrees: `pmw3901`, `paw3902`, `paa3905`, `px4flow` and `thoneflow` are all "command not
+found" over the nsh shell on both. What is aboard: IMU, barometer, magnetometer, a downward
+**TFmini** on `/dev/ttyS3` (driver running, 0 comm errors), and a GPS module that is useless
+indoors. With GPS gone the EKF reports attitude, vertical velocity, vertical position and
+height above ground, and **no horizontal velocity or position**.
+
+An IMU and a single downward beam give height, not horizontal motion. Horizontal position
+from the IMU alone is a double integral of acceleration and drifts as t^2: a residual bias
+of 0.05 m/s^2 is about 2.5 m after 10 s. So within these limits the EKF can hold **height
+and attitude**, and PX4's Position and Hold modes are not available indoors.

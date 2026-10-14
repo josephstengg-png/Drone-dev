@@ -86,6 +86,27 @@ def relays() -> list:
     return found
 
 
+def relay_floor_s() -> float:
+    """The relay's agent-priority window, from its own command line (0 = none)."""
+    for pid in relays():
+        try:
+            args = Path(f"/proc/{pid}/cmdline").read_bytes().decode(errors="replace").split("\0")
+        except OSError:
+            continue
+        for i, a in enumerate(args):
+            if a == "--mirror-floor-s" and i + 1 < len(args):
+                try:
+                    return float(args[i + 1])
+                except ValueError:
+                    return 0.0
+            if a.startswith("--mirror-floor-s="):
+                try:
+                    return float(a.split("=", 1)[1])
+                except ValueError:
+                    return 0.0
+    return 0.0
+
+
 def vehicle(link: str, sysid: int) -> dict:
     """Heartbeat, arm state, GPS quality and home, judged against the EKF's gates."""
     import drone_agent as agent
@@ -170,6 +191,7 @@ def main() -> int:
         "backpack_ping": ping(BACKPACK),
         "backpack_counters": backpack_counters(),
         "relay_pids": relays(),
+        "relay_floor_s": relay_floor_s(),
         "abort_flag": Path(args.abort_flag).read_text().strip()
                       if Path(args.abort_flag).exists() else None,
         "qgc_running": bool(sh("pgrep -x QGroundControl").strip()),

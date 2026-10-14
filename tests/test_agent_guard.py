@@ -353,3 +353,50 @@ def test_ordinary_faults_still_score_after_the_kill_exclusion(tmp_path):
     _in_air(g)
     _pile_on_errors(g)                  # unrelated EKF faults must still escalate
     assert g.check()["carried_out"] == sr.LAND
+
+
+# ---- channel 7 centre is OFFBOARD since 14 Oct 2026: a hand-back request ---------------
+
+def test_flipping_to_offboard_after_a_takeover_is_refused_and_logged(tmp_path, capsys):
+    g, conn = _guard(tmp_path)
+    g.observe(_mode_hb(6))
+    g.observe(_mode_hb(2))              # pilot -100 -> Altitude: takeover, latched
+    assert g.pilot_has_it is True
+    capsys.readouterr()
+
+    g.observe(_mode_hb(6))              # pilot centre -> Offboard: hand-back request
+    out = capsys.readouterr().out
+    assert '"event": "rc_handback_requested"' in out
+    assert '"resumed": false' in out
+    assert g.handback_requests == 1
+    assert g.pilot_has_it is True       # still latched: not resumed
+    assert g.stop_streaming is True     # and still silent, so PX4 denies the mode
+    assert conn.mav.sent == []          # nothing commanded in response
+
+
+def test_each_handback_request_is_counted(tmp_path):
+    g, _ = _guard(tmp_path)
+    g.observe(_mode_hb(6))
+    g.observe(_mode_hb(2))
+    for _ in range(3):
+        g.observe(_mode_hb(6))          # centre
+        g.observe(_mode_hb(2))          # back to altitude
+    assert g.handback_requests == 3
+
+
+def test_no_handback_event_when_the_pilot_never_took_over(tmp_path, capsys):
+    """The agent itself putting the aircraft in OFFBOARD is the normal start of a run."""
+    g, _ = _guard(tmp_path)
+    g.observe(_mode_hb(3))              # sitting in Position on the bench
+    g.observe(_mode_hb(6))              # the agent asks for OFFBOARD
+    assert g.handback_requests == 0
+    assert '"rc_handback_requested"' not in capsys.readouterr().out
+
+
+def test_a_kill_is_not_a_handback(tmp_path):
+    g, _ = _guard(tmp_path)
+    g.observe(_mode_hb(6))
+    g.observe(_msg("STATUSTEXT", severity=6, text="Kill engaged"))
+    g.observe(_mode_hb(2))
+    g.observe(_mode_hb(6))
+    assert g.handback_requests == 0

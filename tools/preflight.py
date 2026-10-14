@@ -161,9 +161,13 @@ def assess(drone: dict, ground: dict, p: dict) -> tuple[list, list]:
         bad.append(f"stale ABORT flag set ({p['abort_flag']!r}) -- the agent will refuse "
                    f"to arm; clear with tools/takeover.py --clear")
 
-    if p.get("qgc_running"):
-        warn.append("QGroundControl is running on the companion -- a second commander, "
-                    "and it cannot complete its own connect over this link")
+    if p.get("qgc_running") and not (p.get("relay_floor_s") or 0) > 0:
+        # With agent priority on the relay (--mirror-floor-s) QGC is held off while an
+        # agent talks, so it no longer has to be closed before a run. Without it, it is a
+        # second commander on a link that cannot carry two (12 Oct 2026).
+        warn.append("QGroundControl is running and the relay has NO agent priority -- a "
+                    "second commander on a link that cannot carry two; close it, or run "
+                    "the relay with --mirror-floor-s 5")
     if not p.get("clock_sane"):
         warn.append(f"companion clock is wrong ({p.get('clock_utc')}) -- timestamps and "
                     f"any cross-aircraft timing will be meaningless")
