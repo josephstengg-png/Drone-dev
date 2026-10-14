@@ -37,6 +37,7 @@ FLAG_RESPOND = 2                   # SERIAL_CONTROL_FLAG_RESPOND
 FLAG_EXCLUSIVE = 4
 FLAG_MULTI = 16
 CHUNK = 70                         # the SERIAL_CONTROL payload is a fixed 70 bytes
+POLL_S = 0.25                      # how often to ask PX4 for more buffered output
 
 
 def send(conn, text: bytes) -> None:
@@ -68,7 +69,7 @@ def drain(conn, quiet_s: float, total_s: float) -> str:
     out, last, last_poll = bytearray(), time.time(), 0.0
     end = time.time() + total_s
     while time.time() < end:
-        if time.time() - last_poll > 0.25:
+        if time.time() - last_poll > POLL_S:
             poll(conn)
             last_poll = time.time()
         m = conn.recv_match(type="SERIAL_CONTROL", blocking=True, timeout=0.3)
@@ -99,7 +100,11 @@ def main() -> int:
     ap.add_argument("--quiet-s", type=float, default=2.5,
                     help="silence that counts as end-of-output")
     ap.add_argument("--total-s", type=float, default=30.0, help="cap per command")
+    ap.add_argument("--poll-s", type=float, default=POLL_S,
+                    help="seconds between polls for more output; a lossy radio may do "
+                         "better with a gentler rate")
     args = ap.parse_args()
+    globals()["POLL_S"] = args.poll_s
 
     cmds = list(args.command)
     if args.file:

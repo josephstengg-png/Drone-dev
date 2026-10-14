@@ -359,6 +359,38 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 — the listener checklist, run properly (armed PWM part pending)
+
+Both aircraft were OUTDOORS with GPS (estimator flags 0x03ff), so these describe the
+GNSS-aided state, not the no-GPS state the checklist's expected values assume.
+
+**Why the shell truncates, corrected.** I had blamed random radio loss. The reply is cut at
+~35 fields (~700 bytes) however fast it is drained (polls at 0.05/0.1/0.25/1.0 s all gave
+the same), which fits PX4's shell buffer overflowing, not the radio. `mav_shell.py` gained
+`--poll-s`. Merging several runs recovers the *head* of a struct, so it works for
+`estimator_status_flags` and not for the tail of `vehicle_local_position`.
+**`ekf2 status` is compact and complete and should be the first thing tried.**
+
+**estimator_status_flags, merged over 6 runs per aircraft (outdoors):**
+
+    cs_gnss_pos True (both)   cs_opt_flow False   cs_ev_pos False   cs_ev_vel False
+    cs_rng_hgt True (both)    cs_gps_hgt True (115) / False (113)  <- matches GPS_CTRL 7 vs 5
+    cs_mag_hdg True (115) / False (113)   cs_mag_3d False   cs_baro_hgt True
+    cs_aux_gpos, cs_rng_terrain: never seen in any run (absent or lost; unknown)
+
+**vehicle_local_position, merged over 12 runs:** xy_valid True (both), v_xy_valid True
+(113), dead_reckoning False (115). xy_global read from `ekf2 status` ("global position: 1",
+both instances) and from ESTIMATOR_STATUS POS_HORIZ_ABS.
+
+**New: there are TWO EKF instances on both aircraft** (`ekf2 status`: instance 0 ACC
+6946834 / instance 1 ACC 3604506), both healthy, test ratios ~0.05-0.10. So the board has
+two IMUs. 113 shows cs_mag_hdg False where 115 shows True; not interpreted yet.
+
+**Motor outputs:** MAIN1-4 are Motor 1-4 on both (CA_ROTOR_COUNT 4); MAIN7/8 carry
+functions 407/408, unidentified. SERVO_OUTPUT_RAW and ACTUATOR_OUTPUT_STATUS both stream
+(~2.5 Hz over this link) and read 0 disarmed. The armed spread test is pending props-off
+confirmation.
+
 ## 2026-10-14 (late night) — the pilot's arm switch disarms an agent-armed aircraft
 
 ARTEX115, props off, area clear. Agent armed in Offboard at 11.0 s; the operator flipped
