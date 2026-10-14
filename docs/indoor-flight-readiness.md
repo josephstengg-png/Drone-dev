@@ -13,8 +13,8 @@ Status as of the engineering log entry of 15 Oct 2026. Every figure below is tak
 | Is the safety system complete? | **No.** Its layers work on the bench. Several have never been tested in the air. |
 
 The decision for the discussion is the **scope**: pilot-flown indoor hover is within reach;
-autonomous hold needs new hardware and firmware that nobody on the project currently has the
-source for.
+autonomous hold needs new hardware and a firmware build that includes its driver, and the
+source for that build is not in this repository.
 
 ## 2. What the aircraft can sense indoors
 
@@ -45,7 +45,7 @@ aircraft (the setting is 1.0; the PX4 default is 5.0). On the ground it reads be
 | Layer | In plain terms | Evidence |
 |---|---|---|
 | **1. Pilot's handset** | Mode switch, arm switch and kill switch act on the flight controller directly, with none of our software in the way | see table below |
-| **2. Watchdog on the companion** | Watches the aircraft's own warnings; pause, then land. Never cuts motors in the air. Steps aside when the pilot takes over or kills | Fired on hardware, **twice wrongly** (both fixed). **Never in the air.** |
+| **2. Watchdog on the companion** | Watches the aircraft's own warnings; pause, then land. Never cuts motors in the air. Steps aside when the pilot takes over or kills | Fired on hardware once wrongly (kill-switch messages, fixed) and correctly on real offboard-loss failsafes. **Never in the air.** One known fault remains: it can mistake PX4 leaving Offboard by itself for a pilot takeover |
 | **3. Operator abort** | Keyboard abort from the laptop, works even if the control program hangs | Out-of-band route proven on 113; keyboard route in simulation only |
 | **4. Pre-flight gates** | Refuses to start on a bad link, wrong transmitter, stale abort flag; a person must state props are off every run; two aircraft arm together or not at all | In use on hardware every run |
 | **5. Flight controller's own rules** | 10 s auto-disarm, offboard-loss failsafe, geofence | Auto-disarm observed; the others unobserved indoors |
@@ -103,9 +103,9 @@ override. Stick override is intentionally off in Offboard; the switch is the tak
    indoors.
 2. **The vertical fence is measured from Home** (5 m on 115, 7 m on 113). Whether it operates
    with no position and no home indoors is **unverified**.
-3. **Heading comes from the magnetometer**, and indoor steel structures disturb it. The two
-   aircraft differ in whether they fuse it (`cs_mag_hdg` true on 115, false on 113). Not
-   evaluated indoors.
+3. **Heading comes from the magnetometer**, and indoor steel structures disturb it. In one
+   run the two aircraft reported different magnetometer-fusion flags (113 false outdoors,
+   true in the no-GPS run), which has not been explained. Not evaluated indoors.
 4. **The computer cannot fly.** Its offboard mode only arms; its setpoint is level attitude at
    zero thrust. Centre on channel 7 is therefore unsafe in flight.
 5. **The kill switch drops the aircraft.** Indoors that means onto equipment or people.
@@ -129,15 +129,16 @@ override. Stick override is intentionally off in Offboard; the switch is the tak
 
 1. **Scope.** Pilot-flown indoor hover, or autonomous hold? Autonomous needs a flow sensor or
    on-aircraft vision, plus firmware that supports it.
-2. **Who owns the firmware?** Both aircraft run a vendor fork (PX4 1.16.0, branch `Artex`,
-   built 12 Nov 2025). Nobody here has its source, which blocks adding any sensor driver.
+2. **Who holds the firmware source?** Both aircraft run a vendor fork (PX4 1.16.0, branch
+   `Artex`, built 12 Nov 2025). The source is not in this repository and it is not known who
+   has it. Without it no sensor driver can be added.
 3. **Policy for the first propeller flight.** Tether or net, minimum two people, a named pilot,
    and who signs off props-on.
 4. **One failsafe baseline for both aircraft**, chosen for indoors: land in place on every
    loss, and a fence action that does not need a position.
 5. **Close the untested items in section 6 on the bench first**, before any props-on test.
 6. **Housekeeping that affects trust in the results:** aircraft-side clocks have no time
-   source and boot at 1970; 15 commits are not yet on GitHub.
+   source and boot at 1970; 22 commits are not yet on GitHub.
 
 ## 8. Proposed path, with an exit test for each stage
 
