@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ground Station Mockup 2</title>
+<style>
+:root{--bg:#eef1f4;--panel:#fff;--ink:#16202a;--mute:#5b6b7a;--line:#d5dce3;--go:#1c7a46;--gob:#dff3e6;--no:#b3261e;--nob:#fbe3e1;
+--stale:#8a5a00;--staleb:#fdf0d2;--idle:#4a5a69;--idleb:#e3e8ed;--abort:#c4121a;--accent:#0b5cab;--view:#f7f9fb;--grid:#d9e0e7;--path:#0b5cab;--fence:#b3261e;--ac:#16202a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--panel:#161e26;--ink:#e6edf3;--mute:#93a4b4;--line:#2a3642;--go:#5fd08a;--gob:#12301f;--no:#ff8a80;--nob:#3a1513;
+--stale:#f0c05a;--staleb:#33270a;--idle:#a9b8c6;--idleb:#232d37;--abort:#e5333b;--accent:#7db7ff;--view:#0b1117;--grid:#26323d;--path:#7db7ff;--fence:#ff8a80;--ac:#e6edf3}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;padding:16px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1{font-size:18px;margin:0}.sub{color:var(--mute);font-size:13px}
+.mock{font-size:12px;color:var(--stale);background:var(--staleb);padding:3px 8px;border-radius:4px}
+.main{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:16px}
+@media(max-width:860px){.main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+.panel h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+.viewbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.chip{border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:13px;color:var(--mute);background:transparent}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+canvas{width:100%;height:420px;display:block;background:var(--view);border:1px solid var(--line);border-radius:6px;cursor:grab;touch-action:none}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-top:8px}
+.sw{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px}
+.scrub{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;margin-top:10px;font-variant-numeric:tabular-nums;font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:10px}
+.stats div{border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.stats b{display:block;font-size:11px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.ctrl{display:grid;gap:8px}
+.cb{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:9px 10px}
+.cb .n{font-weight:700}.cb .r{grid-column:1/-1;font-size:12px;color:var(--mute)}
+.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px}
+.GO{background:var(--gob);color:var(--go)}.LOCK{background:var(--idleb);color:var(--idle)}.FUT{background:var(--staleb);color:var(--stale)}
+.cb.lock{opacity:.8}
+.cb.abort{border-color:var(--abort)}.cb.abort .n{color:var(--abort)}
+.confirm{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+.confirm input{margin-top:4px;width:18px;height:18px}
+.note{font-size:12px;color:var(--mute);margin-top:10px}
+.stage{display:flex;gap:4px;margin-bottom:10px;font-size:11px}
+.stage span{flex:1;text-align:center;padding:4px 2px;border-radius:4px;background:var(--idleb);color:var(--idle)}
+.stage .on{background:var(--accent);color:#fff}
+</style></head>
+<body><div class="wrap">
+<header>
+ <div><h1>Ground Station <span class="mock">MOCKUP 2, example flight plan</span></h1>
+ <div class="sub">Plan review and controls &middot; ARTEX115 &middot; indoor bench volume 12 &times; 8 &times; 3 m</div></div>
+</header>
+
+<section class="main">
+ <div class="panel">
+  <h2>3D flight-plan view</h2>
+  <div class="viewbar">
+   <span class="chip on" id="vp">Perspective</span><span class="chip" id="vt">Top</span><span class="chip" id="vs">Side</span>
+   <span class="chip" style="margin-left:auto">drag to orbit &middot; wheel to zoom</span>
+  </div>
+  <canvas id="cv" width="900" height="420"></canvas>
+  <div class="legend">
+   <span><i class="sw" style="background:var(--path)"></i>planned path</span>
+   <span><i class="sw" style="background:var(--fence)"></i>fence / allowed volume</span>
+   <span><i class="sw" style="background:var(--ink)"></i>aircraft preview</span>
+   <span>numbers = waypoint order</span>
+  </div>
+  <div class="scrub"><span>Preview</span><input type="range" id="sl" min="0" max="1000" value="320" aria-label="Preview position along path"><span id="tl">t = 0 s</span></div>
+  <div class="stats">
+   <div><b>Path length</b><span id="sLen">-</span></div>
+   <div><b>Max height</b><span id="sH">-</span></div>
+   <div><b>Est. time</b><span id="sT">-</span></div>
+   <div><b>Min clearance</b><span id="sC">-</span></div>
+   <div><b>Inside fence</b><span id="sF">-</span></div>
+  </div>
+  <div class="note">Mockup: the path is an example. The real view would draw the loaded plan against satellite or a floor-plan image, and flag any leg that leaves the allowed volume before you can start.</div>
+ </div>
+
+ <div style="display:grid;gap:16px;align-content:start">
+  <div class="panel">
+   <h2>Flight stage</h2>
+   <div class="stage"><span class="on">A bench</span><span>B tethered</span><span>C extend</span><span>D auto</span></div>
+   <div class="note" style="margin-top:0">Controls unlock by stage. Only stage A is proven today.</div>
+  </div>
+
+  <div class="panel">
+   <h2>Controls &middot; ARTEX115</h2>
+   <label class="confirm"><input type="checkbox" id="ok"><span><b>Props are off and the area is clear</b> for this run only.</span></label>
+   <div class="ctrl">
+    <div class="cb" id="b-arm"><span class="n">ARM</span><span class="pill LOCK" id="p-arm">LOCKED</span><span class="r" id="r-arm">Tick the confirmation. Needs preflight GO and the pilot's switch off Offboard.</span></div>
+    <div class="cb lock"><span class="n">TAKEOFF</span><span class="pill FUT">FUTURE, STAGE B</span><span class="r">Not available: the computer's offboard stream is level attitude at zero thrust, so it cannot fly. The pilot flies in Altitude mode.</span></div>
+    <div class="cb lock"><span class="n">LAND</span><span class="pill FUT">FUTURE, STAGE B</span><span class="r">Same limit. Today the guard's LAND is a failsafe, not a button.</span></div>
+    <div class="cb" id="b-dis"><span class="n">DISARM</span><span class="pill LOCK" id="p-dis">ON GROUND ONLY</span><span class="r">Sends a disarm. After a pilot takeover it is withheld: the pilot's arm switch (ch6) or kill does it.</span></div>
+    <div class="cb abort"><span class="n">ABORT MISSION</span><span class="pill GO">ALWAYS ON</span><span class="r">Out-of-band stop to every aircraft (takeover.py), works if this window hangs. Never cuts motors in the air.</span></div>
+   </div>
+   <div class="note">Kill stays on the pilot's handset (right bumper). It is deliberately not a button here: it drops the aircraft.</div>
+  </div>
+ </div>
+</section>
+</div>
+<script>
+(function(){
+var cv=document.getElementById('cv'),cx=cv.getContext('2d');
+var W=12,D=8,H=3;                         // metres: x east, y north, z up
+var P=[[0,0,0],[0,0,1.5],[3,0,1.5],[3,3,1.5],[-3,3,1.5],[-3,-2,1.5],[0,-2,1.5],[0,0,1.5],[0,0,0]];
+var cum=[0];for(var i=1;i<P.length;i++){var a=P[i-1],b=P[i];cum.push(cum[i-1]+Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2]));}
+var L=cum[cum.length-1],SPD=0.8;          // example speed m/s
+document.getElementById('sLen').textContent=L.toFixed(1)+' m';
+document.getElementById('sH').textContent='1.5 m';
+document.getElementById('sT').textContent=Math.round(L/SPD)+' s';
+document.getElementById('sC').textContent='1.5 m to fence top';
+document.getElementById('sF').textContent='all legs';
+var yaw=-0.6,pitch=0.55,zoom=1,mode='p';
+function at(s){var d=s*L;for(var i=1;i<cum.length;i++){if(d<=cum[i]){var t=(d-cum[i-1])/(cum[i]-cum[i-1]||1),a=P[i-1],b=P[i];return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}}return P[P.length-1];}
+function col(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function drawScene(w,h){
+ var g=col('--grid'),ink=col('--ink'),path=col('--path'),fence=col('--fence'),mute=col('--mute');
+ var sc=Math.min(w/(W*1.5),h/(D*1.7))*zoom;
+ function pr(p){var x=p[0],y=p[1],z=p[2];
+  if(mode==='t'){return[w/2+x*sc,h/2-y*sc];}
+  if(mode==='s'){return[w/2+x*sc,h*0.75-z*sc*1.4];}
+  var cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+  var x1=x*cy-y*sy,y1=x*sy+y*cy;
+  return[w/2+x1*sc,h*0.62-(y1*sp+z*cp)*sc];}
+ function ln(a,b,c,lw,d){var p=pr(a),q=pr(b);cx.beginPath();cx.moveTo(p[0],p[1]);cx.lineTo(q[0],q[1]);cx.strokeStyle=c;cx.lineWidth=lw;cx.setLineDash(d||[]);cx.stroke();cx.setLineDash([]);}
+ var x0=-W/2,x1=W/2,y0=-D/2,y1=D/2,i;
+ for(i=0;i<=W;i++)ln([x0+i,y0,0],[x0+i,y1,0],g,1);
+ for(i=0;i<=D;i++)ln([x0,y0+i,0],[x1,y0+i,0],g,1);
+ var c=[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
+ for(i=0;i<4;i++){var a=c[i],b=c[(i+1)%4];ln([a[0],a[1],0],[b[0],b[1],0],fence,2);ln([a[0],a[1],H],[b[0],b[1],H],fence,1.5,[5,4]);ln([a[0],a[1],0],[a[0],a[1],H],fence,1,[3,4]);}
+ for(i=1;i<P.length;i++){var A=P[i-1],B=P[i];ln([A[0],A[1],0],[B[0],B[1],0],g,2);ln(A,B,path,3);}
+ cx.font='12px system-ui,sans-serif';cx.textAlign='center';
+ for(i=0;i<P.length;i++){var q=pr(P[i]);cx.fillStyle=path;cx.beginPath();cx.arc(q[0],q[1],7,0,6.283);cx.fill();cx.fillStyle='#fff';cx.fillText(String(i+1),q[0],q[1]+4);}
+ var s=document.getElementById('sl').value/1000,ap=at(s),g0=[ap[0],ap[1],0];
+ ln(g0,ap,ink,1,[3,3]);var q2=pr(ap);cx.fillStyle=ink;cx.beginPath();cx.arc(q2[0],q2[1],6,0,6.283);cx.fill();
+ var h0=pr([0,0,0]);cx.fillStyle=mute;cx.fillText('HOME',h0[0],h0[1]+18);
+ document.getElementById('tl').textContent='t = '+Math.round(s*L/SPD)+' s, z = '+ap[2].toFixed(1)+' m';
+}
+function redraw(){var r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+ if(cv.width!==Math.round(w*r)){cv.width=Math.round(w*r);cv.height=Math.round(h*r);}
+ cx.setTransform(r,0,0,r,0,0);cx.clearRect(0,0,w,h);drawScene(w,h);}
+var drag=null;
+cv.addEventListener('pointerdown',function(e){drag=[e.clientX,e.clientY];cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing';});
+cv.addEventListener('pointerup',function(){drag=null;cv.style.cursor='grab';});
+cv.addEventListener('pointermove',function(e){if(!drag||mode!=='p')return;yaw+=(e.clientX-drag[0])*0.01;pitch=Math.max(0.1,Math.min(1.4,pitch+(e.clientY-drag[1])*0.01));drag=[e.clientX,e.clientY];redraw();});
+cv.addEventListener('wheel',function(e){e.preventDefault();zoom=Math.max(0.5,Math.min(2.5,zoom*(e.deltaY<0?1.1:0.9)));redraw();},{passive:false});
+function setMode(m,id){mode=m;['vp','vt','vs'].forEach(function(k){document.getElementById(k).classList.toggle('on',k===id);});redraw();}
+document.getElementById('vp').onclick=function(){setMode('p','vp');};
+document.getElementById('vt').onclick=function(){setMode('t','vt');};
+document.getElementById('vs').onclick=function(){setMode('s','vs');};
+document.getElementById('sl').addEventListener('input',redraw);
+window.addEventListener('resize',redraw);
+if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);
+var ok=document.getElementById('ok');
+ok.addEventListener('change',function(){
+ var on=ok.checked,p=document.getElementById('p-arm');
+ p.textContent=on?'READY':'LOCKED';p.className='pill '+(on?'GO':'LOCK');
+ document.getElementById('r-arm').textContent=on?'Arms this aircraft for the bench hold, then expires at the end of the run.':'Tick the confirmation. Needs preflight GO and the pilot’s switch off Offboard.';
+});
+redraw();
+})();
+</script></body></html>
