@@ -161,11 +161,17 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
   the EKF has height and attitude but NO horizontal velocity or position, so Position and
   Hold are unavailable and indoor hover needs a horizontal source that does not exist yet.
   `EKF2_OF_CTRL=1` is set but harmless. Do not plan around a flow sensor.
-- **After a takeover the aircraft stays armed until the pilot disarms it.** PX4's 10 s
-  auto-disarm did NOT fire while armed in Altitude (observed 14 Oct), and a commanded
-  disarm took 2 s in one run and failed for 12+ s in the next, cause unknown. So the
-  agent no longer tries; it warns. The earlier theory that the throttle stick position
-  decides it is not supported by the data.
+- **After a takeover the agent sends no disarm; it warns STILL ARMED and waits.** Why: a
+  commanded disarm took 2 s in one run and failed for 12+ s in the next, so it was
+  unreliable and fought a pilot who might be about to fly. With the agent silent, PX4's own
+  10 s auto-disarm fired normally in Altitude (14 Oct, throttle fully down: armed 27.5 s,
+  "Disarmed by auto preflight disarming" 10.1 s later). **An earlier version of this note
+  said the auto-disarm did NOT fire in Altitude; that was observed while the agent was
+  sending a disarm every 2 s, and may have been caused by it.** One run each, untested.
+  The throttle-stick theory is not supported either way.
+- **Runs sometimes start with a 15-20 s "No connection to the ground control station"
+  gap** (seen in both of the last two B runs, absent in run A), delaying arming from ~7 s to
+  ~27 s. Possibly the short-lived pre-check connections I make before a run; untested.
 - **Channel 7 centre is Offboard**, and the agent's offboard stream is zero thrust. With
   the agent streaming, centre in flight is a fall; the agent refuses to resume after a
   takeover. PX4 does NOT deny Offboard when nothing streams (measured: nav mode Offboard,

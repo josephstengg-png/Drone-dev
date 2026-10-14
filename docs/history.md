@@ -359,6 +359,36 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-14 (night) — disarm after a takeover: theory refuted, option C chosen and proven
+
+**Question:** after a pilot takeover on the ground the agent's disarm took 4-6 s. Why?
+
+**Theory (throttle stick position decides it): NOT supported.** Run A, ARTEX115, throttle
+mid (53%): disarm accepted 2 s after takeover with the switch still at -100. Run B,
+throttle fully down: six agent disarm attempts over 12 s all failed, `disarmed:false`,
+and the aircraft was still armed 16 s after the takeover.
+
+**Operator chose option C** (stand down completely; never disarm; warn STILL ARMED; leave
+it to the pilot via arm switch ch6 or kill ch8). `await_pilot_disarm()` is a pure function
+over a pump and a clock; 7 tests; resident mode no longer disarms a taken-over aircraft on
+exit. Commit 4bcf3dc.
+
+**Proven on hardware, ARTEX115, throttle -1%:** armed 27.5 s, takeover 27.9 s, the agent
+sent NO disarm and issued 2 STILL ARMED warnings, and PX4's own timer disarmed it at 37.6 s
+("Disarmed by auto preflight disarming", 10.1 s after arming). Agent result:
+`disarmed:true left_armed:false pilot_disarm_wait_s:9.4`. The operator's arm switch was not
+used; PX4 got there first.
+
+**A claim of mine was wrong, now corrected in CLAUDE.md:** I wrote that PX4's 10 s
+auto-disarm does not fire in Altitude. It does, when the agent is silent. The earlier
+observation was made while the agent sent a disarm every 2 s, and it may be that those
+commands suppressed the timer. One run each; untested.
+
+**New unexplained observation:** both B runs began with a 15-20 s "No connection to the
+ground control station" gap that delayed arming from ~7 s to ~27 s; run A had none. The
+B runs were preceded by extra short-lived connections (stick check, status). Hypothesis
+only.
+
 ## 2026-10-14 (eve) — channel 7 remapped, QGC no longer has to be closed, flow sensor assumption removed
 
 Work is on branch **`indoor-ekf`** (forked off main, local, unpushed).
