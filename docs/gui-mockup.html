@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ground Station Mockup</title>
+<style>
+:root{--bg:#eef1f4;--panel:#fff;--ink:#16202a;--mute:#5b6b7a;--line:#d5dce3;
+--go:#1c7a46;--gob:#dff3e6;--no:#b3261e;--nob:#fbe3e1;--stale:#8a5a00;--staleb:#fdf0d2;
+--idle:#4a5a69;--idleb:#e3e8ed;--run:#0b5cab;--runb:#dbeafe;--abort:#c4121a;--accent:#0b5cab}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--panel:#161e26;--ink:#e6edf3;--mute:#93a4b4;--line:#2a3642;
+--go:#5fd08a;--gob:#12301f;--no:#ff8a80;--nob:#3a1513;--stale:#f0c05a;--staleb:#33270a;--idle:#a9b8c6;--idleb:#232d37;--run:#7db7ff;--runb:#12294a;--abort:#e5333b;--accent:#7db7ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;padding:16px}
+.wrap{max-width:1100px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1{font-size:18px;margin:0}
+.sub{color:var(--mute);font-size:13px}
+.abort{background:var(--abort);color:#fff;border:0;border-radius:6px;padding:12px 22px;font-weight:700;font-size:15px;letter-spacing:.04em}
+.mock{font-size:12px;color:var(--stale);background:var(--staleb);padding:3px 8px;border-radius:4px}
+.fleet{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+.card h2,.panel h2{font-size:14px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-variant-numeric:tabular-nums}
+.kv dt{color:var(--mute)}.kv dd{margin:0}
+.pill{display:inline-block;min-width:70px;text-align:center;font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.04em}
+.GO{background:var(--gob);color:var(--go)}.NOGO{background:var(--nob);color:var(--no)}
+.STALE{background:var(--staleb);color:var(--stale)}.NOTRUN{background:var(--idleb);color:var(--idle)}
+.RUNNING{background:var(--runb);color:var(--run)}
+.main{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}
+@media(max-width:820px){.main{grid-template-columns:1fr}}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tab{padding:5px 12px;border:1px solid var(--line);border-radius:6px;color:var(--mute)}
+.tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.gates{width:100%;border-collapse:collapse}
+.gates td{padding:9px 6px;border-top:1px solid var(--line);vertical-align:top}
+.gates .g{font-weight:600}.gates .e{color:var(--mute);font-size:13px}
+.gates .src{font-size:11px;color:var(--mute);font-family:ui-monospace,Menlo,monospace}
+.btn{border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:6px;padding:4px 10px;font-size:13px}
+.sw{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.sw div{border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center}
+.sw b{display:block;font-size:12px;color:var(--mute);font-weight:600}
+.sw span{font-size:16px;font-variant-numeric:tabular-nums}
+.banner{background:var(--staleb);color:var(--stale);border:1px solid var(--stale);border-radius:6px;padding:8px 10px;font-weight:700;margin-bottom:12px}
+.log{font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--mute);margin:0;padding:0;list-style:none}
+.log li{padding:2px 0;border-top:1px dashed var(--line)}
+.confirm{display:flex;gap:10px;align-items:flex-start}
+.confirm input{margin-top:4px;width:18px;height:18px}
+.go-btn{margin-top:10px;background:var(--idleb);color:var(--idle);border:0;border-radius:6px;padding:9px 14px;font-weight:700;width:100%}
+.note{font-size:12px;color:var(--mute);margin-top:6px}
+</style></head>
+<body><div class="wrap">
+<header>
+ <div><h1>Ground Station <span class="mock">MOCKUP, example data</span></h1>
+ <div class="sub">mlops-X6AF559Y &middot; 192.168.144.51 &middot; indoor bench, props off</div></div>
+ <button class="abort" type="button">ABORT ALL</button>
+</header>
+
+<section class="fleet">
+ <div class="card"><h2>ARTEX115 &middot; sysid 115</h2>
+  <dl class="kv">
+   <dt>Link</dt><dd><span class="pill GO">GO</span> 0.4% loss, 690 ms</dd>
+   <dt>State</dt><dd>disarmed &middot; Altitude</dd>
+   <dt>Estimator</dt><dd>GNSS-aided (0x03ff)</dd>
+   <dt>Worst gate</dt><dd><span class="pill STALE">STALE</span> Companion tools</dd>
+  </dl></div>
+ <div class="card"><h2>ARTEX113 &middot; sysid 113</h2>
+  <dl class="kv">
+   <dt>Link</dt><dd><span class="pill GO">GO</span> 1.1% loss, 720 ms</dd>
+   <dt>State</dt><dd>disarmed &middot; Altitude</dd>
+   <dt>Estimator</dt><dd>GNSS-aided (0x03ff)</dd>
+   <dt>Worst gate</dt><dd><span class="pill NOGO">NO-GO</span> Parameters differ from 115</dd>
+  </dl></div>
+</section>
+
+<section class="main">
+ <div class="panel">
+  <div class="tabs"><span class="tab on">ARTEX115 gates</span><span class="tab">ARTEX113 gates</span><span class="tab">Evidence log</span></div>
+  <table class="gates">
+   <tr><td><span class="pill GO">GO</span></td><td><div class="g">Ground LAN</div><div class="e">192.168.144.51 on wired interface</div><div class="src">bootstrap_ground_station.sh --check</div></td><td><button class="btn" type="button">Re-run</button></td></tr>
+   <tr><td><span class="pill STALE">STALE</span></td><td><div class="g">Companion</div><div class="e">Tools were copied by hand after the last commit; payload not verified</div><div class="src">provision.py --verify</div></td><td><button class="btn" type="button">Verify</button></td></tr>
+   <tr><td><span class="pill GO">GO</span></td><td><div class="g">Radio chain</div><div class="e">Right backpack by BSSID, one relay, agent priority 5 s</div><div class="src">elrs_pair.py, preflight_probe.py</div></td><td><button class="btn" type="button">Re-run</button></td></tr>
+   <tr><td><span class="pill NOTRUN">NOT RUN</span></td><td><div class="g">Preflight</div><div class="e">GO / NO-GO for the whole chain, this session</div><div class="src">preflight.py</div></td><td><button class="btn" type="button">Run</button></td></tr>
+   <tr><td><span class="pill GO">GO</span></td><td><div class="g">Takeover map</div><div class="e">Ch7: low Altitude, centre Offboard (bench only), high Position</div><div class="src">rc_takeover.py</div></td><td><button class="btn" type="button">Re-run</button></td></tr>
+   <tr><td><span class="pill GO">GO</span></td><td><div class="g">Arm cycle</div><div class="e">Arm switch disarmed an agent-armed aircraft; agent sent no disarm</div><div class="src">drone_agent.py</div></td><td><button class="btn" type="button">Open wizard</button></td></tr>
+   <tr><td><span class="pill GO">GO</span></td><td><div class="g">No-GPS state</div><div class="e">Flags 0x00e5 reproduced; EKF2_GPS_CTRL restored to 7 and verified</div><div class="src">no_gps_check.py</div></td><td><button class="btn" type="button">Open wizard</button></td></tr>
+   <tr><td><span class="pill GO">GO</span></td><td><div class="g">Motors</div><div class="e">Each motor responded on its own channel</div><div class="src">motor_test.py</div></td><td><button class="btn" type="button">Open wizard</button></td></tr>
+   <tr><td><span class="pill NOGO">NO-GO</span></td><td><div class="g">Parameters</div><div class="e">NAV_DLL_ACT 0 vs 3, GF_ACTION 2 vs 5, EKF2_GPS_CTRL 5 vs 7</div><div class="src">mav_shell.py</div></td><td><button class="btn" type="button">Show diff</button></td></tr>
+  </table>
+ </div>
+
+ <div style="display:grid;gap:16px;align-content:start">
+  <div class="panel"><h2>Live &middot; ARTEX115</h2>
+   <div class="banner">STILL ARMED, waiting for pilot (42 s left)</div>
+   <div class="sw">
+    <div><b>CH6 ARM</b><span>2000</span></div>
+    <div><b>CH7 MODE</b><span>&minus;100</span></div>
+    <div><b>CH8 KILL</b><span>off</span></div>
+   </div>
+   <dl class="kv"><dt>Mode</dt><dd>Altitude</dd><dt>Armed</dt><dd>yes</dd><dt>Guard</dt><dd>stood down, pilot has it</dd></dl>
+   <ul class="log" style="margin-top:10px">
+    <li>+0.0 s &nbsp;ch7 to &minus;100, takeover</li>
+    <li>+0.2 s &nbsp;agent: rc_handback_requested</li>
+    <li>+5.0 s &nbsp;agent: still_armed</li>
+    <li>+10.0 s agent: still_armed</li>
+   </ul>
+  </div>
+
+  <div class="panel"><h2>Start a run</h2>
+   <label class="confirm"><input type="checkbox" id="c1"><span><b>Props are off and the area is clear</b> for ARTEX115, this run only.</span></label>
+   <button class="go-btn" type="button" disabled>Arm cycle, 15 s hold</button>
+   <div class="note">The tick clears itself when the run ends.</div>
+  </div>
+ </div>
+</section>
+</div></body></html>
