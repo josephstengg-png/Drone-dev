@@ -359,6 +359,43 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (night, later still) — the 1 m fence trips on the bench within 3 s of arming; kill switch events seen
+
+**ARTEX115, props off, two offboard-arm runs on the bench.** Both aborted within seconds.
+
+**Run 1 (operator touched neither ch7 nor the kill bumper):** about 3.6 s after arming, main
+mode went 6 -> 3 and back to 6, then "Failsafe activated" and a disarm 8.1 s after the
+takeover. The agent logged a false "PILOT HAS IT". Its output was truncated by the capture
+(my `cut`), so the vehicle text was lost; fixed in run 2.
+
+**Run 2 (full capture):** `Armed by external command`, then **`Geofence: exceeding maximum
+altitude above Home`** about 3 s later, then `Failsafe activated`, the guard's HOLD from an
+error rate of 8 per minute (the geofence text counts as errors), then `Kill engaged`,
+`Kill disengaged`, `Kill engaged`, `Preflight Fail: Flight termination active`, then a
+disarm by command.
+
+**Cause of the breach.** The vertical fence set today (`GF_MAX_VER_DIST` 1.0 m, `GF_ACTION`
+5 Land) is measured above the home ALTITUDE. 115 read home at 50.96 m and its global altitude
+at 51.95 m earlier today: it was already about 1 m above home sitting still, and GPS height
+indoors wanders by metres (see CLAUDE.md, 4-7 m horizontally near the hangars). So a 1 m
+vertical fence is smaller than the noise on the quantity it compares. It breaches on the
+ground and would command Land the moment the aircraft armed.
+
+**This also explains run 1:** the mode change 6 -> 3 and the failsafe at +3.6 s are the same
+fence breach, not the offboard-loss failsafe.
+
+**Combined with the earlier finding** (with GNSS fusion off the fence is not evaluated at
+all), the 1 m vertical fence is useless indoors both ways: absent without GPS, and tripping
+on noise with it. **It is not a safety layer for the demo.** Options: set
+`GF_MAX_VER_DIST` to 0 (off) and rely on the tether, or revert to 5 m / 7 m. Not decided.
+
+**Kill switch:** PX4 reported `Kill engaged` and the agent recognised it ("PILOT KILLED IT",
+`via: kill_switch`), then stood down. Whether the operator pressed the bumper was not
+confirmed at the time of writing, and `Kill engaged` appeared twice with one `disengaged`
+between. The agent also sent a disarm after the kill in this run (`[offboard] disarming` then
+`Disarmed by external command`), which contradicts Option C ("no disarm after a kill"); it
+came from the guard's safety abort path and needs a look.
+
 ## 2026-10-15 (night, later) — bench step 2 measured: with GNSS fusion off the geofence does not run
 
 **ARTEX115, props off, disarmed throughout, original recorded then restored with read-back.**
