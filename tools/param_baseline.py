@@ -10,14 +10,14 @@ Runs ON the companion, like the other aircraft tools.
 WHY THIS EXISTS. 113 and 115 were configured differently (link-loss action off, a fence
 action that needs a position, and a battery emergency threshold ABOVE its low threshold), and
 nobody could say which one was right. This sets both to one baseline chosen on 15 Oct 2026:
-land in place on every loss, a 1 m vertical fence for the indoor demo, and sane battery
+land in place on every loss, a 3 m vertical fence for the indoor demo, and sane battery
 thresholds.
 
 THE BACKUP IS THE POINT. The original values are read and written to a file BEFORE anything
 is changed, so a crash leaves a record. Every write is read back and compared. Anything that
 does not verify exits non-zero and prints the restore command.
 
-NOTE FOR OUTDOOR WORK. GF_MAX_VER_DIST of 1 m fails the outdoor mission contract
+NOTE FOR OUTDOOR WORK. GF_MAX_VER_DIST of 3 m fails the outdoor mission contract
 (`fence_ceiling` in drone_agent.preflight_contract), by design. Restore from the backup, or
 apply a different baseline, before an outdoor mission.
 """
@@ -35,7 +35,10 @@ import drone_agent as agent  # noqa: E402
 # One baseline for both aircraft. The reasons are in docs/history.md, 15 Oct 2026.
 INDOOR_BASELINE = {
     "GF_ACTION": 5,            # Land. Hold (2) needs a position, which indoors does not exist
-    "GF_MAX_VER_DIST": 1.0,    # metres above home; the TFmini only helps below 1 m anyway
+    "GF_MAX_VER_DIST": 3.0,    # metres above home. 1 m was tried on 15 Oct and breached on the
+                               # bench: GPS height indoors wanders by about a metre, so the
+                               # fence has to sit above that noise. Desired HOVER height is
+                               # 1 m, which is a setpoint, not this fence.
     "NAV_DLL_ACT": 3,          # Land on loss of the ground link (113 had 0 = disabled)
     "BAT_LOW_THR": 0.20,
     "BAT_CRIT_THR": 0.15,

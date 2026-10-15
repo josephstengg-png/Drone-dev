@@ -359,6 +359,30 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (night, last) — fence ceiling corrected to 3 m on both; desired offboard hover height is 1 m
+
+**Operator's correction:** 1 m was meant as the aircraft's **desired flight height in offboard
+mode**, not the geofence ceiling. The fence ceiling is **3 m on both aircraft**.
+
+Applied with `tools/param_baseline.py` (baseline `GF_MAX_VER_DIST` now 3.0), disarmed, props
+off, read back and verified on both: **113 and 115: `GF_MAX_VER_DIST` 1.0 -> 3.0.**
+Everything else already matched. The 1.0 values were saved again as
+`~/drone-dev/fc-backups/baseline-sysid113-20260606-011754.json` and
+`baseline-sysid115-20260606-011901.json`; the earlier originals (7 and 5) are in the
+`-005514` and `-005644` files.
+
+**Two cautions, so the 3 m is not over-trusted:**
+- Today's reading had 115 about 1 m above its home altitude while sitting still, and GPS height
+  indoors can wander by more than that. 3 m clears what was measured but not a worse day.
+- With GNSS fusion off the fence is not evaluated at all (measured earlier today). The tether
+  remains the real limit.
+
+**Design target recorded:** desired hover height in offboard mode = **1 m**. Offboard FLIGHT is
+not implemented (the stream is level attitude at zero thrust), so this is a requirement for
+the future flight-control work, not a setting that exists. Note 1 m is also the limit where the
+rangefinder stops helping the height estimate (`EKF2_RNG_A_HMAX` 1.0): hovering at 1 m sits on
+that edge, and raising it is a parameter change not made.
+
 ## 2026-10-15 (night, later still) — the 1 m fence trips on the bench within 3 s of arming; kill switch events seen
 
 **ARTEX115, props off, two offboard-arm runs on the bench.** Both aborted within seconds.

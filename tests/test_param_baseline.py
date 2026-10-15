@@ -7,9 +7,9 @@ import param_baseline as pb  # noqa: E402
 
 
 def test_plan_marks_change_keep_and_unreadable():
-    cur = {"GF_ACTION": 2, "GF_MAX_VER_DIST": 1.0, "NAV_DLL_ACT": None}
+    cur = {"GF_ACTION": 2, "GF_MAX_VER_DIST": 3.0, "NAV_DLL_ACT": None}
     plan = {p["name"]: p["action"] for p in pb.make_plan(cur, {
-        "GF_ACTION": 5, "GF_MAX_VER_DIST": 1.0, "NAV_DLL_ACT": 3})}
+        "GF_ACTION": 5, "GF_MAX_VER_DIST": 3.0, "NAV_DLL_ACT": 3})}
     assert plan == {"GF_ACTION": "change", "GF_MAX_VER_DIST": "keep",
                     "NAV_DLL_ACT": "skip-unreadable"}
 
@@ -31,4 +31,4 @@ def test_the_bad_113_values_are_rejected_by_the_order_check():
 def test_baseline_lands_in_place_on_every_loss():
     assert pb.INDOOR_BASELINE["GF_ACTION"] == 5
     assert pb.INDOOR_BASELINE["NAV_DLL_ACT"] == 3
-    assert pb.INDOOR_BASELINE["GF_MAX_VER_DIST"] == 1.0
+    assert pb.INDOOR_BASELINE["GF_MAX_VER_DIST"] == 3.0

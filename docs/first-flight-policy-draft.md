@@ -8,8 +8,9 @@ and has not been proven on ARTEX113 and ARTEX115; see `docs/indoor-flight-readin
 - **Pilot-flown, Altitude mode, one aircraft at a time.** The computer cannot fly: its
   offboard stream is level attitude at zero thrust, and indoors there is no horizontal
   position, so no autonomous mode is available.
-- **Tethered**, below 1 m (the rangefinder only helps the height estimate below 1 m, and the
-  indoor fence is set to 1 m).
+- **Tethered**, hover target 1 m (the rangefinder only helps the height estimate below
+  1 m). The vertical fence is 3 m, but it is not evaluated without GPS and can trip on GPS
+  height noise, so the tether is the real limit.
 - **No autonomous mission and no Offboard flight.** Channel 7 centre is Offboard and in flight
   it is a fall. The pilot flies with channel 7 at the low position.
 
@@ -40,7 +41,7 @@ No one else in the area while armed.
 
 - Arm with the handset, in Altitude mode, from the ground.
 - First test: throttle up to just light on the ground, check motors respond evenly, then land.
-  Only then a hover below 1 m.
+  Only then a hover at about 1 m.
 - **Stop conditions, any one:** unexplained drift beyond what the pilot corrects, any motor
   that sounds or behaves differently, any beep or warning from the aircraft, link or telemetry
   dropout. Land and disarm.

@@ -134,10 +134,11 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
   against a 30/32 m survey, `RTL_RETURN_ALT=5`, `NAV_RCL_ACT=3`. Flown as-is the plan
   breaches the fence on the climb. Found 14 Oct by the mission-arm contract; unresolved.
 - **113 and 115 now share one indoor baseline** (applied 15 Oct 2026, verified): land on
-  every loss, `GF_MAX_VER_DIST` 1 m, battery thresholds ordered. Originals are in
-  `~/drone-dev/fc-backups/baseline-*.json`; `tools/param_baseline.py --restore`. A 1 m
-  fence fails the outdoor mission contract by design. Fence behaviour with no position
-  indoors is still unverified.
+  every loss, `GF_MAX_VER_DIST` 3 m, battery thresholds ordered. Originals are in
+  `~/drone-dev/fc-backups/baseline-*.json`; `tools/param_baseline.py --restore`. A 3 m
+  fence fails the outdoor mission contract by design. The fence is NOT evaluated with GNSS
+  fusion off and breaches on GPS height noise at 1 m (15 Oct). Desired offboard hover
+  height is 1 m, which is a setpoint for future flight control, not the fence.
 - Offboard **flight** is not implemented -- only offboard arming. The streamed setpoint is
   level attitude at **zero thrust**: right on a bench, would drop an aircraft in the air.
 - The guard's in-air LAND branch has never run on hardware.
