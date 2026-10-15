@@ -359,6 +359,25 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (evening, last) — indoor safety baseline APPLIED and verified on both aircraft
+
+Applied with the operator's explicit permission, aircraft disarmed, props off. Every write
+was read back and matched; `tools/param_baseline.py` reported DONE on both.
+
+- **ARTEX113:** `GF_ACTION` 2->5, `GF_MAX_VER_DIST` 7->1.0, `NAV_DLL_ACT` 0->3,
+  `BAT_LOW_THR` 0.40->0.20, `BAT_CRIT_THR` 0.25->0.15, `BAT_EMERGEN_THR` 0.50->0.10.
+- **ARTEX115:** `GF_MAX_VER_DIST` 5->1.0 only; the rest already matched.
+- Battery thresholds are now ordered low > critical > emergency on both.
+- `EKF2_GPS_CTRL` untouched (113 = 5, 115 = 7).
+
+**Originals are saved** and restore with `tools/param_baseline.py --restore FILE`:
+`~/drone-dev/fc-backups/baseline-sysid113-20260606-005514.json` and
+`baseline-sysid115-20260606-005644.json` (the timestamps are the Jetsons' wrong clocks).
+
+**Still true:** a 1 m fence fails the outdoor mission contract by design; restore before any
+outdoor mission. The fence's behaviour with no position and no home indoors is still
+unverified, so the aircraft are NOT yet cleared by this change alone.
+
 ## 2026-10-15 (evening, later still) — indoor safety baseline: tool built and tested, NOT yet applied
 
 **Decided by the operator:** align ARTEX113 to ARTEX115 on link-loss action, fence action and
