@@ -359,6 +359,46 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (afternoon, later) — motor 3 start failure is INTERMITTENT, not a throttle threshold
+
+**Nothing flew and nothing armed.** Props off and area clear confirmed. Rotation judged by the
+operator; the tool measures outputs only. Six spin attempts per aircraft on motor 3 alone,
+10% to 15% in 1% steps, about 2 s each, counted by the operator.
+
+**Result, as relayed (the first report did not name the aircraft; read as ARTEX113 because
+that sweep ran first, which should be confirmed):**
+- **ARTEX113:** attempts 3 (12%) and 5 (14%) did NOT spin; 1, 2, 4 and 6 did.
+- **ARTEX115:** only attempt 2 (11%) did not spin; 1, 3, 4, 5 and 6 did.
+- Earlier the same day, 10% failed on BOTH aircraft in the first full per-motor test, and 115
+  spun at 15% when retried.
+
+**This retires the "starts late" reading logged in the entry just below.** The failures are
+not ordered by throttle: 113 spun at 10% and 11% but not at 12% or 14%; 115 failed at 11%
+but spun at 10%. A start threshold would fail low and pass high. These look like
+**intermittent start failures of motor 3 on both aircraft**, about 1-in-3 to 1-in-6 in a
+small sample. The sample is small and counted by eye, so the rate is rough; the pattern
+(non-monotonic) is the real finding.
+
+**Flight relevance: serious.** A quad motor that sometimes fails to start is a loss of
+control or a crash on takeoff. **Neither aircraft should be armed with props on until this is
+understood.** That also changes the readiness report's picture: motor balance under thrust
+was listed as untested; it is now a known fault on both aircraft.
+
+**Hypotheses (not findings).** Intermittent start failure with a free-turning motor and
+a quiet ESC is the signature of the ESC failing its start-up alignment or losing sync; or of
+a poor phase connection or joint on motor 3; or of a signal glitch on that channel only.
+Same position on both aircraft suggests something common to position 3, such as the
+motor or ESC batch, or the harness, but that is a guess.
+
+**The tool cannot answer this** (no ESC telemetry; `DSHOT_TEL_CFG` is 0 on both, so the
+flight controller sees nothing of the ESCs; motor and ESC models cannot be read from
+software, per `notes.md`). It needs hands:
+1. Read the motor and ESC models at position 3 on both aircraft.
+2. Swap test, battery off: swap motor 3 with another motor on one aircraft. Does the
+   failure follow the motor or stay on the channel?
+3. Inspect and reseat motor 3's three phase connections and its signal lead.
+4. Then repeat with a larger, counted sample on a control motor (motor 1) alongside motor 3.
+
 ## 2026-10-15 (afternoon) — motor 3 starts late on BOTH aircraft; 113's ESC beeping cleared on its own
 
 **Nothing flew and nothing armed.** Props off and area clear were confirmed before each run.
