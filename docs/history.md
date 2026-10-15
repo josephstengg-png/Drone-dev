@@ -359,6 +359,29 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (night, last) — kill switch on ARTEX115: recognised, agent silent, disarmed by PX4
+
+**ARTEX115, props off, offboard-arm, operator pressed the kill bumper once** (ch7 untouched,
+3 m fence now). Full capture kept.
+
+- Armed at +0 s. `Kill engaged` at **+6.6 s**. The agent logged `PILOT KILLED IT (Kill
+  engaged). Standing down -- no setpoints, no mode changes, no commands.` and
+  `rc_takeover via kill_switch`.
+- **The agent sent NO disarm and no further command.** No `[offboard] disarming` line appears.
+  This closes the fault found earlier the same night (a disarm loop that kept sending after
+  the kill landed): `disarm_unless_pilot()` in `drone_agent.py`, with four tests.
+- PX4 then reported `Disarmed by auto preflight disarming` at about +10.7 s. That is the
+  10 s pre-takeoff auto-disarm (`COM_DISARM_PRFLT` 10), which fired before the 5 s
+  kill-disarm timer (`COM_KILL_DISARM`, due about +11.6 s) could. Same cause as the 14 Oct
+  Run-B finding, here seen with the agent silent.
+- The result line carries `error: "vehicle disarmed during hold ..."`; that is the hold
+  loop's generic message, not a failure of the kill path.
+
+**Kill switch on 115: recognised and respected.** Still to confirm from the operator: whether
+the motors stopped at the moment of the press (the log cannot show that).
+
+Also: the suite is 241 tests; fence on both aircraft is 3 m.
+
 ## 2026-10-15 (night, last) — fence ceiling corrected to 3 m on both; desired offboard hover height is 1 m
 
 **Operator's correction:** 1 m was meant as the aircraft's **desired flight height in offboard
