@@ -359,6 +359,62 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (midday) — ARTEX113: persistent ESC beeping, no motor spins, found by diagnosis
+
+**Nothing flew and nothing armed.** Props off and area clear were confirmed before the one
+test that drove the motors. **ARTEX113 must not be armed or flown until this is resolved.**
+
+**Symptom (operator).** 113 beeps consistently with the regular ESC beep. It started the
+moment the batteries were plugged in. It came after a compass calibration; the reboot at the
+end of the calibration did not respond, and a force reboot did not stop the beeping.
+115 does not do this.
+
+**What was checked, read-only, and ruled out:**
+- The flight controller DID reboot after the force reboot (uptime about 6 min when read). The
+  in-app reboot command did not answer; a power cycle worked.
+- The compass calibration SAVED: `CAL_MAG0_ID` set and stored, and equal to 115's.
+- PX4's own buzzer is silent: `tune_control` shows only the one startup tune, none since.
+  So the beeping is not PX4 commanding its buzzer.
+- Disarmed, no failsafe, no failure-detector flags, battery 16.35 V / 98.8%.
+- `preflight.py` GO. Link rate over 12 s: 331 down, 0 new drops (lifetime drops are a
+  cumulative counter, not a rate).
+- "Preflight check: FAILED" and the arming-check error flags: global position estimate, local
+  position estimate and "system". The first two are normal with no GPS indoors. The
+  "system" bit is ALSO set on 115, which does not beep, so it is not the cause. Which
+  `system` check raises it was not identified (candidates in the PX4 source: geofence,
+  SD card, power, arm permission); it was left unidentified rather than guessed.
+- DShot configuration is identical on 113 and 115: `DSHOT_TEL_CFG` 0, `DSHOT_MIN` 0.055,
+  `PWM_MAIN_FUNC1` 101. ESC telemetry is OFF on both, so the flight controller cannot see
+  the ESCs at all and `esc_status` is empty.
+
+**The per-motor test, rerun on 113:** all four outputs respond (298 on its own channel, 0 on
+the others), no PROBLEM. **But the operator observed that NONE of the four motors turned,
+and the ESC tone changed (an extra tone) when a command arrived.** So the flight controller
+drives its outputs and the ESCs react to something on the signal lines but will not arm.
+
+**CORRECTION to the 15 Oct "per-motor test PASSED on both" entry below.** That test reads
+only the flight controller's output values. Nobody observed the motors turn, so the claim
+"every motor/ESC chain responds" was not verified and was too strong. What it proved is that
+the flight controller's four outputs are driven. Whether 113's motors turned on 15 Oct is
+unknown. The tool's pass line should say "outputs respond", not "motors respond".
+
+**Reading of the fault (hypotheses, NOT findings).** Four motors failing together with an
+ESC reaction points at something common to all four, not four separate wires:
+1. the ESC board, or the FC-to-ESC connector/harness (if the ESCs are one unit or share a plug);
+2. the ESCs not accepting the signal protocol (reset or reconfigured);
+3. the power side of the ESCs.
+
+**Open, in order:**
+1. Same per-motor test on 115 with the motors WATCHED, as a real baseline, and note whether
+   115's ESCs are silent at battery plug-in.
+2. Inspect the FC-to-ESC connection on 113 at both ends; note the ESC model so the tone
+   pattern can be read.
+3. Make `tools/motor_test.py` say "outputs respond" and ask the operator to confirm rotation.
+4. Identify which "system" arming check is set on both aircraft.
+5. Record the symptom against the calibration: the beeping began at battery plug-in, not
+   during calibration. A calibration is not known to touch the ESCs, so the timing may be
+   coincidence (the aircraft was probably moved and rotated for it).
+
 ## 2026-10-15 (late morning) — GUI design reached mock 5; ARTEX113 re-checked, nothing found wrong
 
 **Nothing flew and nothing armed.** Read-only checks only.
