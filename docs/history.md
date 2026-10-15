@@ -359,6 +359,68 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 — END OF DAY SUMMARY (read this first tomorrow)
+
+Work stopped by the operator after the ARTEX113 incident. Every item below has its own
+detailed entry further down; this is the index.
+
+**State at close**
+- Both aircraft DISARMED. 113 was re-powered after its battery was pulled (73% at last read).
+- Parameters on BOTH aircraft (applied and read back): `GF_ACTION` 5, `GF_MAX_VER_DIST` **3 m**,
+  `NAV_DLL_ACT` 3, `BAT_LOW/CRIT/EMERGEN_THR` 0.20/0.15/0.10. `EKF2_GPS_CTRL` 113 = 5,
+  115 = 7 (restored after the fence test, verified). Originals:
+  `~/drone-dev/fc-backups/baseline-sysid11{3,5}-*.json`.
+- No test scripts left on either Jetson. Agent fixes deployed to both Jetsons.
+- Repo `indoor-ekf`, clean, 48 commits not pushed. Test suite 242 passing.
+
+**Settled today**
+1. ESC beeping at battery insertion = booting in Offboard (ch7 centre) with no setpoints; no
+   motor commands are published after the first 0.5 s. A mode flip silences it. **Booting with
+   ch7 at -100 gives no beeping.** Boot at -100 for any flying.
+2. Safety controls on the bench: arm switch now proven on BOTH aircraft; kill switch now proven
+   on BOTH (115 tonight, motors stopped the instant the bumper was pressed). Agent stays silent
+   after a kill (two agent fixes: no disarm once the pilot has it; no disarm to an aircraft
+   that is already disarmed).
+3. Failsafe baseline reconciled; 113's battery thresholds were backwards (emergency 0.50 above
+   low 0.40) and are fixed.
+4. Vertical fence: NOT evaluated with GNSS fusion off (measured, 115); at 1 m it breached on
+   GPS height noise on the bench (resting relative altitude wandered 0.1-0.6 m). Set to 3 m.
+   **The tether, not the fence, is the height limit indoors.**
+5. Offboard-loss failsafe (115, ground): switches to Position as configured; about 5 s seen
+   from the ground between last setpoint and the failsafe text (link share unknown).
+6. PX4's own pre-arm does not need GPS (`COM_ARM_WO_GPS` 1); the GPS check is only in the
+   outdoor mission path.
+7. Desired offboard hover height recorded as 1 m (a future setpoint; offboard flight does
+   not exist).
+
+**OPEN ANOMALIES, in priority order**
+1. **INCIDENT, ARTEX113:** spurious `Takeoff detected` on the bench, agent judged it airborne,
+   its disarm failed, the agent EXITED WITH THE AIRCRAFT ARMED, motors then ran away, battery
+   pulled. Not designed. Hypothesis: PX4 ignores a normal disarm when it believes it is
+   airborne; offboard-loss switched it to Position and thrust wound up. Evidence:
+   `/fs/microsd/log/2026-10-15/07_31_52.ulg` on 113's microSD, not yet pulled.
+   **No armed tests on either aircraft until (a) that log is read and (b) the agent cannot
+   exit with an aircraft armed.** Decision needed: may the agent force-disarm on the ground
+   when PX4 believes it is airborne?
+2. Motor 3 start failures (both aircraft, early afternoon): not reproduced in 20 trials at 10%
+   or in warm and cold sweeps. Best reading: start-up ordering after the ESC beeping, not a
+   faulty motor. Unproven; swap test and inspection still open.
+3. The 15-20 s "No connection to the ground control station" gap at run start: seen again in
+   several runs today. Cause unknown.
+4. The guard counts PX4 failsafe/geofence texts as errors, so it goes to HOLD on the bench.
+5. The "system" arming-check error bit on both aircraft: source not identified (geofence,
+   SD card, power or arm permission).
+6. `SYS_HAS_MAG` / `EKF2_MAG_TYPE` read empty on 113 once; likely a read failure, not checked.
+7. `EKF2_RNG_A_HMAX` 1.0 means a 1 m hover sits at the edge of rangefinder help.
+
+**Still not done (bench):** rangefinder heights by hand; magnetometer indoors by hand.
+**Not closable without people/decisions:** first-flight policy (draft in
+`docs/first-flight-policy-draft.md` for the lab manager), motor balance under thrust
+(props-on tethered), the abort-land button (does not exist).
+
+**GUI:** mock 5 is the agreed draft (`docs/gui-mockup-5.html`, copy on the Desktop). Nothing
+built. Cold-start page must include "ESCs quiet" and "ch7 at -100".
+
 ## 2026-10-15 (night, last) — INCIDENT: ARTEX113 left armed, motors ran away, battery pulled
 
 **What the operator reported:** during an offboard-arm test on 113 (props OFF, intended as a
