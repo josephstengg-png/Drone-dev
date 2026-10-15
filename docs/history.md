@@ -359,6 +359,35 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (night, later) — bench step 2 measured: with GNSS fusion off the geofence does not run
+
+**ARTEX115, props off, disarmed throughout, original recorded then restored with read-back.**
+`EKF2_GPS_CTRL` 7 -> 0 (saved to flash by PX4, so it persisted across the reboot), flight
+controller rebooted (ack 0, back in about 40 s).
+
+**Measured about 90-150 s after the reboot, GNSS fusion off:**
+- `geofence_result`: **never published.** The navigator never reached the fence check.
+- `vehicle_global_position`: no data. `estimator_status_flags`: `cs_gnss_pos` false,
+  `cs_baro_hgt` true.
+- `home_position`: **valid** (valid_alt, valid_hpos, updated about 9 times a second), and the raw
+  GPS module still reported fix 3 with 6 satellites used. So home is set from the raw GPS
+  fix on this firmware even with EKF GNSS fusion off.
+
+**Conclusion.** With GNSS fusion off, which is as close to GPS-denied as can be reproduced
+here, the 1 m vertical fence is NOT evaluated. This confirms the reading from the source. A
+genuinely GPS-denied boot (no fix at all) would additionally have no home. Either way the fence
+is not protection indoors. **The tether is the real limit.** The by-hand lift test was not
+needed: the result was "never published", not "published and not triggered".
+
+**Restored:** `EKF2_GPS_CTRL` back to 7, verified on attempt 1, and `geofence_result` was
+publishing again within about 10 s with action 5 and no trigger. Aircraft still disarmed.
+
+**Not repeated on 113** (same source path, same firmware).
+
+**Caveat on `no_gps_check.py`:** it reproduces the ESTIMATOR's no-GPS state faithfully, but
+not the navigator's: home still exists and the raw GPS is still live. Anything that depends on
+home or on the raw GPS (the fence, return-to-home) must not be inferred from that tool.
+
 ## 2026-10-15 (night) — bench step 1 and 2: ESCs quiet at ch7 -100; the 1 m fence needs GPS/home
 
 **ESCs at boot with ch7 at -100 (Altitude): no sound** (operator, both aircraft). Supports the
