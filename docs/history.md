@@ -359,6 +359,20 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (night, last) — arm switch on ARTEX113: disarms; agent no longer re-sends
+
+**ARTEX113, props off, offboard-arm, operator flipped the arm switch (ch6).** ch7 untouched.
+Armed, then `Disarmed by RC switch` at +2.6 s. **The arm switch disarms an agent-armed 113**,
+so the arm switch is now proven on BOTH aircraft (115 on 14 Oct, 113 today).
+
+Found in the same log: the agent then entered its `[offboard] disarming` path and sent a
+disarm to an aircraft that was already disarmed. Harmless, but wrong. `disarm_unless_pilot()`
+now returns at once when the aircraft is already disarmed, with a test (suite 242).
+
+Safety-control matrix after today: takeover and no-resume on both; kill switch proven on 113
+(earlier) and 115 (tonight); arm switch proven on 115 and 113. **Still never run in the air:
+all of it.** Operator still to confirm that 115's motors stopped at the kill press.
+
 ## 2026-10-15 (night, last) — kill switch on ARTEX115: recognised, agent silent, disarmed by PX4
 
 **ARTEX115, props off, offboard-arm, operator pressed the kill bumper once** (ch7 untouched,

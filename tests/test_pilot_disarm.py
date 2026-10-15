@@ -146,3 +146,10 @@ def test_disarm_loop_reports_failure_after_all_attempts():
     out = agent.disarm_unless_pilot(lambda: sent.append(1), lambda *a, **k: None, state, guard,
                                     attempts=3)
     assert out == "failed" and len(sent) == 3
+
+
+def test_disarm_loop_sends_nothing_to_an_aircraft_that_is_already_disarmed():
+    """15 Oct 2026: the arm switch disarmed 113, and the agent still sent a disarm."""
+    sent, state, guard = [], {"armed": False}, _Guard()
+    out = agent.disarm_unless_pilot(lambda: sent.append(1), lambda *a, **k: None, state, guard)
+    assert out == "disarmed" and sent == []

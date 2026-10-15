@@ -1045,6 +1045,8 @@ def disarm_unless_pilot(send_disarm, pump, state, guard, attempts: int = 6) -> s
     wire when the kill lands; that cannot be recalled, but no further one is sent.
     """
     for _ in range(attempts):
+        if not state["armed"]:
+            return "disarmed"        # already off (the pilot's arm switch, or PX4's own timer)
         if guard.pilot_has_it:
             return "pilot"
         send_disarm()
