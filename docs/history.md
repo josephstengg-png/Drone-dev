@@ -359,6 +359,60 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (late morning) — GUI design reached mock 5; ARTEX113 re-checked, nothing found wrong
+
+**Nothing flew and nothing armed.** Read-only checks only.
+
+**Where the GUI is.** A ground-station GUI was designed over the existing tools, as five
+static HTML mockups (`docs/gui-mockup.html` to `docs/gui-mockup-5.html`, plus the brief
+`docs/gui-design.md`). Mock 5 is the agreed draft and a copy is on the Desktop
+(`~/Desktop/gs-gui-mockup-5.html`). **None of it is built.** The mockups use simulated data
+and their buttons drive a fake aircraft.
+
+What mock 5 settles, by the operator's direction:
+- Session rail: Power, Connect, Preflight, Tests, Fly. Cold start is part of the app.
+- Flight type chosen up front: bench (props OFF), tethered (props ON), free flight (props ON).
+  The confirmations and the required safety controls change with it.
+- Test results are REMEMBERED per aircraft with a parameter fingerprint and an expiry
+  (default 30 days). Valid until expiry or until a safety parameter changes. Toggle for
+  "re-test every startup".
+- One-press automatic mission (arm, take off, fly, land, disarm) in its own panel, separate
+  from the manual step buttons. Red ABORT = land on the spot then disarm. Kill stays on the
+  handset and is not a button.
+
+**What is needed to make it real** (none of this exists yet):
+1. A local server (stdlib Python, no new dependencies) serving mock 5 and a JSON API that
+   shells out to the existing tools. `preflight.py --json` already exists; the others need a
+   JSON mode (rc_takeover, no_gps_check, motor_test, pair_arm_test).
+2. A test-memory store (per aircraft, per test: result, date, parameter fingerprint) with
+   unit tests, and a decision from the lab manager on WHICH tests are required for tethered
+   and free flight (mock 5 drafts four and six).
+3. A capability registry so every button is either wired to a real tool or visibly NOT
+   IMPLEMENTED. TAKE OFF, START MISSION, HOLD, LAND and the abort have no backend today.
+4. Real offboard flight control, which is the large piece: the agent's stream is level
+   attitude at zero thrust, so the computer cannot fly. Indoors, mission mode is impossible
+   regardless (no horizontal position).
+5. A props-ON confirmation gate in the agent. Today it only asks for props OFF.
+6. Failsafe baseline reconciliation, 113 vs 115 (see the readiness report).
+7. A simulated-aircraft mode so the GUI can be developed and demonstrated off the hardware.
+
+**ARTEX113 re-check (operator reported it as "something wrong"; symptom not yet stated).**
+Found NO fault:
+- `preflight.py --fleet fleet-artex113.yaml`: GO. LAN 0% loss 0.5 ms, backpack -47 dBm,
+  one relay, no abort flag, sysid 113 disarmed.
+- Link RATE sampled twice 12 s apart: 331 packets down, 0 new drops, 21 up. The lifetime
+  `drops_down=9608` is cumulative and is NOT a current loss figure.
+- Battery from `battery_status`: 16.35 V, 98.8% remaining. (`preflight.py` printed
+  `battery=None%`; it reads a different message. A tooling gap, not an aircraft fault.)
+- `commander status`: Disarmed, navigation mode Offboard, no failsafe. Offboard is the
+  switch's centre position or the default on boot; it is not an error while disarmed.
+- GPS 0 satellites and "home position not set" are normal indoors.
+Known 113 behaviours that remain open and could be what was seen: occasional refusal to
+enter OFFBOARD and a lost setpoint stream, both only under simultaneous operation; a false
+"PILOT HAS IT"; a 15-20 s "No connection to the ground control station" gap at run start;
+NAV_DLL_ACT disabled and GF_ACTION Hold, differing from 115. **The actual symptom is
+needed to go further.**
+
 ## 2026-10-15 (night) — the no-GPS checklist run, and the per-motor test
 
 Props off, area clear, confirmed for both aircraft. Both disarmed throughout.
