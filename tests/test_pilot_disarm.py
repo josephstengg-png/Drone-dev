@@ -98,3 +98,51 @@ def test_it_takes_no_connection_so_it_cannot_send_anything():
     import inspect
     params = set(inspect.signature(agent.await_pilot_disarm).parameters)
     assert "conn" not in params and "args" not in params
+
+
+# --- the disarm loop must stop the moment the pilot has it -------------------------------
+
+class _Guard:
+    def __init__(self):
+        self.pilot_has_it = False
+
+
+def test_disarm_loop_stops_sending_once_the_pilot_has_it():
+    """The kill lands while the agent's own disarm loop is running: no further disarm."""
+    sent, state, guard = [], {"armed": True}, _Guard()
+
+    def send():
+        sent.append(1)
+
+    def pump(seconds, until=None):
+        if len(sent) == 1:                 # the kill arrives during the first wait
+            guard.pilot_has_it = True
+
+    out = agent.disarm_unless_pilot(send, pump, state, guard)
+    assert out == "pilot"
+    assert len(sent) == 1, "no disarm may be sent after the pilot has taken over"
+
+
+def test_disarm_loop_sends_nothing_if_pilot_already_has_it():
+    sent, state, guard = [], {"armed": True}, _Guard()
+    guard.pilot_has_it = True
+    out = agent.disarm_unless_pilot(lambda: sent.append(1), lambda *a, **k: None, state, guard)
+    assert out == "pilot" and sent == []
+
+
+def test_disarm_loop_still_disarms_when_nobody_takes_over():
+    sent, state, guard = [], {"armed": True}, _Guard()
+
+    def pump(seconds, until=None):
+        if len(sent) == 2:
+            state["armed"] = False         # takes two tries, like a lossy link
+
+    out = agent.disarm_unless_pilot(lambda: sent.append(1), pump, state, guard)
+    assert out == "disarmed" and len(sent) == 2
+
+
+def test_disarm_loop_reports_failure_after_all_attempts():
+    sent, state, guard = [], {"armed": True}, _Guard()
+    out = agent.disarm_unless_pilot(lambda: sent.append(1), lambda *a, **k: None, state, guard,
+                                    attempts=3)
+    assert out == "failed" and len(sent) == 3

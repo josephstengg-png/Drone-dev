@@ -1032,6 +1032,28 @@ def vehicle_main_mode(hb) -> int:
     return (hb.custom_mode >> 16) & 0xFF
 
 
+def disarm_unless_pilot(send_disarm, pump, state, guard, attempts: int = 6) -> str:
+    """Send disarm commands until the aircraft is disarmed -- or the pilot has it.
+
+    Returns "disarmed", "pilot" or "failed".
+
+    THE RACE THIS CLOSES. On 15 Oct 2026 the guard's own error-rate abort ended an
+    offboard-arm hold, the agent started this loop, and the pilot's kill arrived while it
+    was running. The old loop kept sending disarms regardless, contradicting Option C
+    (after a takeover or kill the agent sends NOTHING). The check is before every send and
+    the wait ends early the moment the pilot takes over. One disarm may already be on the
+    wire when the kill lands; that cannot be recalled, but no further one is sent.
+    """
+    for _ in range(attempts):
+        if guard.pilot_has_it:
+            return "pilot"
+        send_disarm()
+        pump(2.0, lambda: (not state["armed"]) or guard.pilot_has_it)
+        if not state["armed"]:
+            return "disarmed"
+    return "pilot" if guard.pilot_has_it else "failed"
+
+
 def await_pilot_disarm(pump, state, *, killed: bool, slot, window_s: float,
                        warn_every_s: float = 5.0, clock=time.time) -> dict:
     """After a pilot takeover: send NOTHING, say loudly that it is armed, wait for the pilot.
@@ -1214,6 +1236,13 @@ def cmd_offboard_arm(args) -> int:
         result["held_s"] = round(time.time() - t0, 1)
         return 0 if "error" not in result else 2
     finally:
+        if not guard.pilot_has_it:
+            log("[offboard] disarming")
+            disarm_unless_pilot(
+                lambda: conn.mav.command_long_send(
+                    conn.target_system, 1, mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                    0, 0, 0, 0, 0, 0, 0, 0),
+                pump, state, guard)
         result["rc_takeover"] = guard.pilot_has_it
         if guard.pilot_has_it:
             w = await_pilot_disarm(pump, state, killed=guard.killed_by_pilot,
@@ -1223,14 +1252,6 @@ def cmd_offboard_arm(args) -> int:
             result["pilot_disarm_wait_s"] = round(w["waited_s"], 1)
             emit(result)
             return 2 if "error" in result else 0
-        log("[offboard] disarming")
-        for _ in range(6):
-            conn.mav.command_long_send(conn.target_system, 1,
-                                       mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-                                       0, 0, 0, 0, 0, 0, 0, 0)
-            pump(2.0, lambda: not state["armed"])
-            if not state["armed"]:
-                break
         result["disarmed"] = not state["armed"]
         emit(result)
 
