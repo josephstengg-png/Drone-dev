@@ -359,6 +359,43 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (afternoon) — motor 3 starts late on BOTH aircraft; 113's ESC beeping cleared on its own
+
+**Nothing flew and nothing armed.** Props off and area clear were confirmed before each run.
+Rotation was judged by the operator watching the motors; the tool measures outputs only
+(`motor_test.py` now says so, and has `--only N`).
+
+**ARTEX115.** At 10% (output 298) motors 1, 2 and 4 spun normally and **motor 3 vibrated but
+did not spin**. ESC 3 was quiet and the motor turns freely by hand. Motor 3 alone at 15%
+(output 393): **it spun.** So motor 3 needs more than 10% to start; the others start at 10%.
+
+**ARTEX113.** After the operator's break and a cold start the ESC beeping at battery plug-in
+**had stopped** and the ESC was silent. Per-motor test at 10%: **motor 3 did not spin**, the
+same behaviour as 115. (Earlier the same day, with the beeping present, none of the four
+spun.) 113's motor 3 has not yet been tried at 15%.
+
+**What this says, and does not.**
+- Motor 3 failing to start at 10% on BOTH aircraft is unlikely to be two coincident faults.
+  Something common to the motor-3 position (motor/ESC model or batch, a wiring convention, a
+  per-channel setting) is the better suspect. That is a hypothesis, not a finding.
+- It is flight-relevant: idle is 110 (below the 298 where motor 3 failed to start), so
+  after arming motor 3 may sit still while the others turn. The thrust asymmetry has not been
+  observed. Judge it in a tethered, props-ON first hover, not by reasoning.
+- 113's earlier beeping went away with no parameter or code change on our side (a break and
+  a cold start). **Cause unknown; it may recur.** Do not record it as fixed.
+- Correction retained: the 15 Oct "per-motor test passed on both" entry measured outputs
+  only, and 113's earlier all-motors-dead state shows why that was not evidence of rotation.
+
+**Open:**
+1. Motor 3 alone at 15% on 113, watched.
+2. Swap test with the battery off: swap motor 3 with another motor, or its ESC lead with
+   another channel, on one aircraft. Does the fault follow the motor or stay on the channel?
+3. Note the motor and ESC models for position 3 on both aircraft.
+4. Find the lowest throttle at which motor 3 starts, per aircraft, in steps of 1-2% under the
+   tool's 15% cap (still props off).
+5. Treat 113's beeping as intermittent until it has been seen not to recur across several
+   cold starts.
+
 ## 2026-10-15 (midday) — ARTEX113: persistent ESC beeping, no motor spins, found by diagnosis
 
 **Nothing flew and nothing armed.** Props off and area clear were confirmed before the one
