@@ -359,6 +359,41 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (night, last) — offboard-loss failsafe on 115, measured on the ground
+
+**ARTEX115, props off, no switch touched.** Armed in Offboard, streamed level/zero-thrust
+setpoints, then stopped sending anything and watched. Timeline as seen from the ground
+station over the radio link (so includes link latency of about 0.7 s round trip):
+
+| t | event |
+|---|---|
+| +16.2 s | stream stopped |
+| +21.5 s | `Failsafe activated` |
+| +21.6 s | **main mode 6 (Offboard) -> 3 (Position)** |
+| +23.1 s | `Disarmed by auto preflight disarming` (the 10 s pre-takeoff timer) |
+| +23.7 s | mode reads 6 again (ch7 centre re-selects Offboard once disarmed) |
+
+**What it shows.** PX4 detects the loss and switches to Position, which is exactly what
+`COM_OBL_RC_ACT` 0 says. `COM_FAIL_ACT_T` is 0 on both aircraft (no extra delay) and
+`COM_OF_LOSS_T` is 1.0 s, yet about 5 s passed between the last setpoint and the failsafe
+text. How much of that is link latency and how much is PX4 is NOT separable from here; the
+flight controller's own log (`/fs/microsd/log/2026-10-15/*.ulg`) would settle it and was
+not pulled.
+
+**What it does not show.** (1) The first run was confounded: the 10 s auto-disarm fired 0.4 s
+after the failsafe and hid it. (2) This is on the ground, with a GPS fix, so Position was
+available. With no horizontal position (the indoor case) PX4 must fall back further; that
+was not observed. (3) In the air, between the loss and the mode change, the aircraft would be
+at whatever thrust the last command left, which for this agent is ZERO. That is why channel 7
+centre in flight is a fall. Pilot-flown Altitude mode is not affected: the agent is not in the
+loop and the stream is not needed.
+
+**Not repeated on 113:** `COM_OBL_RC_ACT` 0, `COM_OF_LOSS_T` 1.0, `COM_FAIL_ACT_T` 0 are
+identical.
+
+Also seen: resting relative altitude on the bench read 0.11 to 0.60 m over a few seconds,
+which is why a 1 m fence tripped.
+
 ## 2026-10-15 (night, last) — arm switch on ARTEX113: disarms; agent no longer re-sends
 
 **ARTEX113, props off, offboard-arm, operator flipped the arm switch (ch6).** ch7 untouched.
