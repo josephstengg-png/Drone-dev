@@ -42,9 +42,15 @@ def main() -> int:
     ap.add_argument("--max-throttle", type=float, default=15.0)
     ap.add_argument("--seconds", type=float, default=2.0, help="per motor")
     ap.add_argument("--motors", type=int, default=4)
+    ap.add_argument("--only", type=int, default=0, metavar="N",
+                    help="test just motor N (1-based), e.g. to retry one that did not spin")
     ap.add_argument("--dry", action="store_true", help="read and report only; spin nothing")
     args = ap.parse_args()
 
+    if args.only and not 1 <= args.only <= args.motors:
+        print(f"[motor-test] REFUSED: --only {args.only} is not a motor 1-{args.motors}",
+              file=sys.stderr)
+        return 2
     if args.throttle > args.max_throttle:
         print(f"[motor-test] REFUSED: {args.throttle}% exceeds --max-throttle "
               f"{args.max_throttle}% (bare motors race without a prop)", file=sys.stderr)
@@ -92,7 +98,8 @@ def main() -> int:
         return ack, peaks
 
     command = MAV_CMD_DO_MOTOR_TEST
-    for motor in range(1, args.motors + 1):
+    motor_list = [args.only] if args.only else list(range(1, args.motors + 1))
+    for motor in motor_list:
         ack, peaks = spin(motor, command)
         if ack == MAV_RESULT_UNSUPPORTED and command == MAV_CMD_DO_MOTOR_TEST:
             print("[motor-test] DO_MOTOR_TEST is UNSUPPORTED on this firmware; "
@@ -123,7 +130,11 @@ def main() -> int:
         print(f"[motor-test] {unsupported} motor(s) NOT TESTED: no command this firmware "
               f"accepts spun them. Nothing is wrong with the motors.")
         return 3
-    print(f"[motor-test] {'all four motors respond on their own channel' if not bad else f'{bad} PROBLEM(S)'}")
+    # What this measures is the flight controller's OUTPUT, not rotation. 15 Oct 2026: a
+    # run reported all four OK while the operator found no motor on 113 had turned.
+    n = len(motor_list)
+    print(f"[motor-test] {f'{n} output(s) respond on their own channel' if not bad else f'{bad} PROBLEM(S)'}")
+    print("[motor-test] THIS DID NOT MEASURE ROTATION: confirm by eye that each motor turned.")
     return 1 if bad else 0
 
 
