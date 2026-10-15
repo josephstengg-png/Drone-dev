@@ -359,6 +359,36 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (evening, later still) — indoor safety baseline: tool built and tested, NOT yet applied
+
+**Decided by the operator:** align ARTEX113 to ARTEX115 on link-loss action, fence action and
+battery thresholds, and set the vertical fence to **1 m on both aircraft** for the indoor demo.
+`EKF2_GPS_CTRL` (5 vs 7) was deliberately left alone: cosmetic indoors.
+
+**Found while reading both aircraft's parameters (read-only):**
+- 113 has `BAT_LOW_THR` 0.40, `BAT_CRIT_THR` 0.25, `BAT_EMERGEN_THR` **0.50**: the emergency
+  threshold is ABOVE the low one, so below 50% it would take the emergency battery action.
+  115 has 0.20 / 0.15 / 0.10.
+- 113: `NAV_DLL_ACT` 0 (link-loss action disabled), `GF_ACTION` 2 (Hold, needs a position),
+  `GF_MAX_VER_DIST` 7. 115: 3 (Land), 5 (Land), 5.
+- `COM_ARM_WO_GPS` is 1 on both: PX4's own pre-arm does not need GPS. The `gps_fix` check is
+  only in the outdoor mission `prepare` verb in `drone_agent.py`, not on the bench or pilot
+  paths. No code change was needed for "no GPS indoors".
+
+**Built:** `tools/param_baseline.py` (backup first, read-back verify, `--restore`, `--dry`,
+refuses if armed or a parameter cannot be read) with `tests/test_param_baseline.py`, 5 pass.
+Dry runs on both aircraft show the exact plan: 113 six changes, 115 only the fence height.
+
+**Not applied.** The write step was blocked by the permission classifier in this session
+and was not retried by another route. Nothing on either aircraft has changed. The operator can
+add a permission rule or apply it from a terminal with
+`python3 tools/param_baseline.py --sysid <113|115>` on the matching Jetson.
+
+**Consequence to remember:** a 1 m fence fails the outdoor mission contract (`fence_ceiling`)
+by design. Restore from the backup before outdoor work.
+
+Also added: `docs/first-flight-policy-draft.md`, a draft for the lab manager.
+
 ## 2026-10-15 (evening, later) — ESC beeping at boot: no motor commands published in Offboard; a mode flip silences it
 
 **Nothing flew and nothing armed.** Read-only readings; no motor was driven in this run.
