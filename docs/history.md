@@ -359,6 +359,44 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (evening) — warm and cold sweeps clean; ESCs beep at battery insertion until the mode is flipped
+
+**Nothing flew and nothing armed.** Props off and area clear confirmed for each run. Rotation
+judged by the operator; the tool measures outputs.
+
+**Warm sweep** (motors 1-4 at 10%, both aircraft, about 43 min after power-up; 113 16.10 V
+91.7%, 115 15.99 V 79.7%): every motor spun normally on both.
+**Cold sweep** (both aircraft fully powered off and on; about 2.4 min and 3.6 min after
+power-up; 113 16.07 V 90.8%, 115 15.94 V 78.5%): every motor spun normally on both,
+**including motor 3.** Together with the 0-of-20 at 10% earlier, **motor 3 has not failed to
+start in any run since the early-afternoon failures.** Those failures are not reproduced and
+still not explained.
+
+**New, reproducible startup behaviour (operator).** On the cold start **both aircraft's
+ESCs beeped continuously from battery insertion, and stopped beeping after the handset mode
+switch was flipped to Position and back to Offboard.** Motors then spun normally.
+Offboard is the centre position of ch7, and a booting aircraft with ch7 centre is in
+Offboard with no setpoint stream. 113 was in exactly that state (nav mode Offboard,
+disarmed, no failsafe) when it was beeping earlier today and none of its motors spun.
+
+**Hypothesis (NOT yet tested).** While the aircraft sits in Offboard with no setpoints, it
+may not publish motor commands, so the DShot driver is not sending a valid frame stream and
+the ESCs beep for lack of signal. Changing mode starts the flow and they go quiet. If so,
+the earlier failures fit as well: an ESC needs a run of valid frames before it accepts
+throttle, so a motor test issued right after the stream first begins could be ignored by the
+slowest ESC to arm, which would have been motor 3 on both. That would make the early failures
+a start-up ordering effect, not a faulty motor. It would also explain why 113's motors all
+failed to turn while the outputs read correctly, and why the tone changed when a command arrived.
+
+**How to test it, cheaply and read-only:** cold start with ch7 left at centre and nothing
+touched; read `dshot status` twice a few seconds apart and compare the cycle counts (a
+stalled count means no frames), read `listener actuator_motors -n 1` for its age; flip the
+mode and read both again. Needs the operator to power-cycle and listen.
+
+**Operating consequence until confirmed:** after battery insertion, expect ESC beeping
+and clear it by flipping ch7 away from Offboard and back before testing. The GUI's
+cold-start page should check for it explicitly, since it silently precedes every test.
+
 ## 2026-10-15 (afternoon, later still) — motor 3: 0 failures in 20 trials at 10%, earlier failures NOT reproduced
 
 **Nothing flew and nothing armed.** Props off and area clear confirmed. Operator-counted.
