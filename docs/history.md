@@ -359,6 +359,36 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (night) — bench step 1 and 2: ESCs quiet at ch7 -100; the 1 m fence needs GPS/home
+
+**ESCs at boot with ch7 at -100 (Altitude): no sound** (operator, both aircraft). Supports the
+reading logged earlier: the beeping at boot is an artefact of booting in Offboard (ch7
+centre) with no setpoints. Boot with ch7 at -100 for any flying.
+
+**Fence with no position or home, from the PX4 1.16.0 source in this workspace
+(`navigator_main.cpp`, `geofence.cpp`):**
+- The vertical check runs only once a global position has been published
+  (`_global_pos.timestamp > 0`; otherwise it returns before checking).
+- `isBelowMaxAltitude()` returns "inside" unless `home_alt_valid()`; the check measures altitude
+  above the home altitude. Home is set from a GPS fix.
+- So **an aircraft that has never had a GPS fix since boot has no vertical fence at all**, and
+  `GF_ACTION` never fires. Home persists once set, until the flight controller reboots.
+
+**Live state (both aircraft, at the time, props off):** each HAD a GPS fix with a valid home
+(115 eph 0.49 m; 113 fix 3, 7 satellites), geofence_result running with `geofence_action` 5 and
+no trigger. So the aircraft are not in a GPS-denied state in the lab; the no-GPS state was only
+ever reproduced with `EKF2_GPS_CTRL=0`. Whether the fence still works after a boot with GPS
+off is UNMEASURED.
+
+**Consequence.** Do not describe the 1 m fence as protection indoors until it is shown to
+fire in a GPS-denied boot. Pilot-flown, tethered, below 1 m remains the plan; the tether is the
+real limit.
+
+**Proposed test (needs approval, it writes a parameter and reboots):** set `EKF2_GPS_CTRL=0`,
+reboot the flight controller so home is cleared, then confirm `home_position` stays invalid,
+lift the aircraft by hand above 1 m, props off, and read `geofence_max_alt_triggered`.
+Restore the parameter with read-back, as `no_gps_check.py` does.
+
 ## 2026-10-15 (evening, last) — indoor safety baseline APPLIED and verified on both aircraft
 
 Applied with the operator's explicit permission, aircraft disarmed, props off. Every write
