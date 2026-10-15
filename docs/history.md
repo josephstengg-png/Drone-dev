@@ -359,6 +359,47 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (night, last) — INCIDENT: ARTEX113 left armed, motors ran away, battery pulled
+
+**What the operator reported:** during an offboard-arm test on 113 (props OFF, intended as a
+kill-switch re-run) the motors "suddenly started spinning out of control" and the operator
+unplugged the battery. **Not designed behaviour.**
+
+**What the agent's log shows (kill bumper was NOT pressed; no kill event in the log):**
+1. Armed in Offboard normally. `[logger] ...07_31_52.ulg` started.
+2. **`Takeoff detected`** a few seconds later, on the bench, props off. Cause not established.
+3. `Failsafe activated`, then `Connection to ground station lost` / `Preflight Fail: No
+   connection to the ground control station` (the known startup GCS gap), `Failsafe
+   activated` again, then `GCS connection regained`.
+4. The agent's guard counted the failsafe texts as errors, judged the aircraft **airborne**
+   (it believed PX4's `Takeoff detected`) and chose HOLD, which by design never disarms an
+   airborne aircraft. The `[offboard] disarming` path ran but the result was
+   **`disarmed: False`**: the aircraft was left ARMED when the agent exited.
+5. Then, per the operator, the motors ran away and the battery was pulled.
+
+**Hypotheses, not findings:**
+- PX4 refuses an ordinary disarm when it believes it is airborne (it needs a forced disarm),
+  so the agent's disarm commands were ignored.
+- After the agent stopped streaming, the offboard-loss failsafe switched the armed aircraft to
+  Position (`COM_OBL_RC_ACT` 0, measured on 115 earlier). Armed and in a position-controlled
+  mode on a bench with no props and no real motion, the thrust controller can wind up, which
+  would look exactly like motors running away.
+- The spurious `Takeoff detected` may come from the aircraft being handled or tilted; not known.
+
+**Why this is a failure of OUR design and not only of the test:** an agent exiting while its
+aircraft is still armed is the one outcome the Option C and arming-safety rules exist to
+prevent. The guard's "never disarm airborne" is right in the air and wrong on a bench where
+the airborne belief is false, and nothing told the operator "the aircraft is still armed" on
+this path.
+
+**Evidence to keep:** the flight controller's log
+`/fs/microsd/log/2026-10-15/07_31_52.ulg` on ARTEX113's microSD. It is the only thing that
+can say what the thrust and the land detector did. Not yet pulled.
+
+**Standing change from now:** no more armed tests on 113 until the ulg has been read and the
+agent cannot exit with the aircraft armed. Kill bumper in hand for any armed test on either
+aircraft.
+
 ## 2026-10-15 (night, last) — offboard-loss failsafe on 115, measured on the ground
 
 **ARTEX115, props off, no switch touched.** Armed in Offboard, streamed level/zero-thrust
