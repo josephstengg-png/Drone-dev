@@ -359,6 +359,49 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (evening, later) — ESC beeping at boot: no motor commands published in Offboard; a mode flip silences it
+
+**Nothing flew and nothing armed.** Read-only readings; no motor was driven in this run.
+
+**Measured on both aircraft, cold start, ch7 at centre (Offboard), nothing touched:**
+- The ESCs beeped continuously from battery insertion (operator).
+- `actuator_motors` was published once, within about 0.5 s of boot, and **never again**: the
+  same timestamp read 49 s and 107 s later (113), 78 s and 138 s later (115).
+- The DShot driver kept cycling by itself at about 20 cycles per second; `Outputs on: yes`.
+  The aircraft was disarmed (`arming_state` 1) in nav state 14 (Offboard), no failsafe.
+
+**After flipping ch7 to Position and back to Offboard (both aircraft):**
+- A short burst of motor commands (113 until about 14:41:16, 115 until about 14:41:02) and
+  a DShot cycle rate of about 150 per second for a while.
+- Then **no further motor commands and the cycle rate back to about 20 per second**, i.e.
+  from the flight controller's side the SAME idle state as before the flip.
+- **The beeping stopped immediately at the flip and stayed quiet for several minutes**
+  (operator), although the stream had fallen back to the idle state.
+
+**What this shows.** The beeping is not simply "no signal now": the ESCs tolerate the slow
+idle stream once they have been through the command burst. The most economical reading is
+that **the ESCs beep until they have seen a proper burst of commands once after power-up**,
+and a mode change is what produces that burst when the aircraft boots in Offboard with no
+setpoints. Not proven; it is the reading the data supports.
+
+**Why it matters.**
+1. It is reproducible on both aircraft, so it explains the 113 beeping that looked like a
+   fault, and the "none of the motors spun" run: the ESCs had not been through the burst.
+2. It is the best candidate for the early motor-3 start failures: the motor test itself
+   creates the burst, and the slowest ESC to settle (motor 3 on both) could ignore throttle
+   issued straight after it. Not tested.
+3. **Untried and cheap:** boot with ch7 at -100 (Altitude), the real flying configuration.
+   In Altitude the rate controller should publish motor commands continuously, so the ESCs may
+   never beep. If so, the whole effect is a bench-only artefact of booting in Offboard.
+
+**Operating rule until tested:** after battery insertion, if the ESCs are beeping, flip ch7
+away from Offboard and back before any test. **Never arm with the ESCs beeping.** The GUI's
+cold-start page should treat "ESCs quiet" as an explicit, operator-confirmed row.
+
+**Open:** (1) cold start with ch7 at -100 and note whether the ESCs beep; (2) run a per-motor
+sweep straight after a cold start with no flip, to see whether the first test hits the same
+start-up ordering effect; (3) the swap test and inspection, when someone can.
+
 ## 2026-10-15 (evening) — warm and cold sweeps clean; ESCs beep at battery insertion until the mode is flipped
 
 **Nothing flew and nothing armed.** Props off and area clear confirmed for each run. Rotation

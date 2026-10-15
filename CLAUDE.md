@@ -173,6 +173,11 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
 - **Runs sometimes start with a 15-20 s "No connection to the ground control station"
   gap** (seen in both of the last two B runs, absent in run A), delaying arming from ~7 s to
   ~27 s. Possibly the short-lived pre-check connections I make before a run; untested.
+- **ESCs beep from battery insertion when the aircraft boots in Offboard (ch7 centre)**, on
+  both aircraft. Measured 15 Oct 2026: no motor command is published after the first 0.5 s
+  of boot; flipping ch7 to Position and back produces a command burst and the beeping stops
+  for good. Cause is a reading, not proven. Never arm with the ESCs beeping; boot with ch7
+  at -100 is untried. See history.md.
 - **Channel 7 centre is Offboard**, and the agent's offboard stream is zero thrust. With
   the agent streaming, centre in flight is a fall; the agent refuses to resume after a
   takeover. PX4 does NOT deny Offboard when nothing streams (measured: nav mode Offboard,
