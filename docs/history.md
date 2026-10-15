@@ -359,6 +359,39 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-15 (afternoon, later still) — motor 3: 0 failures in 20 trials at 10%, earlier failures NOT reproduced
+
+**Nothing flew and nothing armed.** Props off and area clear confirmed. Operator-counted.
+
+**Replication run.** Motor 3 alone at 10% (output 298), 2 s each, about 15 s apart, 10 attempts
+on each aircraft: **0 failures on ARTEX113, 0 failures on ARTEX115 (0 of 20).** Output side
+identical every time (298 on channel 3, others 0).
+
+**What this does and does not settle.**
+- The motor-3 start failures seen earlier the same day (10% in the four-motor test on both
+  aircraft; 12% and 14% on 113 and 11% on 115 in the throttle sweep) were **not reproduced**
+  under the cleaner repeat. The earlier failure is NOT explained, and 0 of 20 does not
+  prove it cannot happen: a fault that occurred about 1 try in 3 to 1 in 6 earlier would
+  have appeared in 20 tries had it persisted at that rate, so the rate is clearly lower now
+  or the condition is gone, but a low-rate or conditional fault is not excluded.
+- **Do not log this as fixed.** It is "not reproduced".
+
+**Differences between the failing runs and this one (candidates, none tested):**
+1. Time since power-up and ESC/motor temperature: the failures came early after battery plug-in
+   (113 was also beeping then), the clean runs later.
+2. The failing runs varied throttle between attempts (sweep) or ran all four motors in
+   sequence; the clean run held one throttle on one motor.
+3. Counting by eye: the earlier counts were by attempt number while the sweep was running.
+   A miscount of an attempt number is possible and cannot be ruled in or out now.
+4. Battery state: not recorded for any run. It should be.
+
+**Next, cheapest first:** (a) repeat the exact conditions that failed: the four-motor
+sequence at 10% three times, and the 10-15% sweep once more, on each aircraft;
+(b) record battery voltage and time since power-up for every run; (c) the swap test and
+inspection remain the only way to localise a real fault, if and when someone can do them.
+Until a run is clean under the failing conditions, keep "motor 3 intermittent start
+failure" open and neither aircraft is cleared to fly with props on.
+
 ## 2026-10-15 (afternoon, later) — motor 3 start failure is INTERMITTENT, not a throttle threshold
 
 **Nothing flew and nothing armed.** Props off and area clear confirmed. Rotation judged by the
