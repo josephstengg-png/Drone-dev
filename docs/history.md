@@ -359,6 +359,34 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — network and calibration check after power-up: all GO, calibration present and healthy
+
+Read-only; nothing armed, no parameter written. Aircraft booted with ch7 at -100 (mode 2,
+Altitude).
+
+**Network.** Laptop enp131s0 192.168.144.51. Ping to both Jetsons 0% loss, 0.2-0.25 ms.
+`preflight.py`: **both GO** (backpacks -51 dBm, one relay each, no abort flag, 115 battery 96%,
+113 100%). Radio link RATE sampled twice 10 s apart: 115 256 down / 0 drops / 67 up;
+113 296 down / 0 drops / 124 up: **0% loss on both.** Warnings were normal state: GPS no fix
+indoors just after power-up, no home, companion clocks at 1970.
+
+**Calibration present on both aircraft:** accel x2, gyro x2, mag, baro device IDs all set and
+identical between the two (same hardware). Offsets small and plausible: accel under
+0.12 m/s^2, gyro under 0.004 rad/s, mag offsets 0.12-0.25 G. Mag rotation 12 on both. Level
+trim `SENS_BOARD_X_OFF` 0.42 deg (115) vs 1.71 deg (113), `SENS_BOARD_Y_OFF` 0.16 vs
+-0.35: 113 sits further off level on its frame; not a fault. `commander check`: **Preflight
+check OK on both.**
+
+**Closes open anomaly 6 of 15 Oct:** `SYS_HAS_MAG` 1 and `EKF2_MAG_TYPE` 0 read normally on
+113; the earlier empty read was a read failure.
+
+Noted, not a finding: `CAL_MAG1_ID` equals `CAL_MAG0_ID` (396297) on both aircraft.
+
+**No recalibration done.** Nothing measured says it is needed; accel/mag/level calibration
+needs the aircraft handled through orientations and is done over USB with QGC, not over
+the radio link. The incident rule from 15 Oct still holds: no armed tests until 113's log
+is read and the agent cannot exit with an aircraft armed.
+
 ## 2026-10-15 — END OF DAY SUMMARY (read this first tomorrow)
 
 Work stopped by the operator after the ARTEX113 incident. Every item below has its own
