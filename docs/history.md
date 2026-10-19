@@ -359,6 +359,30 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — evidence check: NO logged flight (sim or hardware) without GPS exists
+
+Asked whether any simulation or hardware data attests to stable IMU-based flight without GPS.
+Searched `history.md`, `missions/`, every `.ulg` under `~/drone-dev`, and the aircraft logs held.
+
+- **Hardware:** no props-on flight on either aircraft, ever. The five ARTEX113 logs held
+  (`fc-backups/2026-10-19/artex113-logs/`) are all on the ground, props off.
+- **Our SITL:** the eight recorded sorties ("Flight results to date", 8-14 Sep) are all
+  GPS-aided outdoor x500 missions at 28-30 m. No GPS-denied SITL run was ever recorded. The SITL
+  toolchain is not installed on this laptop.
+- **Another team's Gazebo logs** (`drive-download-.../missionCopilot/test/log/gazebo/`, 11 logs,
+  31 Aug): all `EKF2_GPS_CTRL` 7 (GPS fused), flights to 6-34 m. Not evidence for no-GPS flight.
+- **Not examined:** older logs on the aircraft cards (113 holds 39, back to Nov 2025, likely
+  vendor or outdoor runs). Readable over USB in seconds.
+
+**What IS evidenced (bench only):** with GNSS fusion off the estimator holds attitude and height
+(flags 0x00e5) and reports no horizontal position; sensors healthy; rangefinder within a few
+cm to 1.2 m; heading steady within about +/-15 deg. That is not flight stability.
+
+**How to produce the evidence:** (1) a GPS-denied SITL hover in Altitude mode (needs Gazebo
+installed or run in Docker; sim IMU is idealised, so drift would be optimistic); (2) the real
+attestation: a logged, tethered, pilot-flown Altitude hover on each aircraft; (3) read the old
+card logs for any earlier flights.
+
 ## 2026-10-19 — END OF DAY SUMMARY (read this first)
 
 Every item below has its own detailed entry further down; this is the index.
