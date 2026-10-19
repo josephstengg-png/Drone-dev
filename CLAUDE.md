@@ -133,6 +133,10 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
 - **Geofence and RTL are far below the mission.** `GF_MAX_VER_DIST` is 5 m (115) / 7 m (113)
   against a 30/32 m survey, `RTL_RETURN_ALT=5`, `NAV_RCL_ACT=3`. Flown as-is the plan
   breaches the fence on the climb. Found 14 Oct by the mission-arm contract; unresolved.
+- **Parameter PROFILES (19 Oct): `tools/param_baseline.py --profile indoor|outdoor`.**
+  INDOOR is applied on both: no GNSS fusion (`EKF2_GPS_CTRL` 0), GPS checks on (1023),
+  fence 3 m. Dated full dumps and both profiles: `~/drone-dev/fc-backups/2026-10-19/`.
+  Switch to OUTDOOR before any outdoor work.
 - **113 and 115 now share one indoor baseline** (applied 15 Oct 2026, verified): land on
   every loss, `GF_MAX_VER_DIST` 3 m, battery thresholds ordered. Originals are in
   `~/drone-dev/fc-backups/baseline-*.json`; `tools/param_baseline.py --restore`. A 3 m

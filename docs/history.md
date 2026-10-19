@@ -359,6 +359,42 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — parameters saved by date; indoor and outdoor profiles; INDOOR profile applied
+
+Operator approved "all the necessary changes", with the current parameters saved and labelled
+by date, plus an indoor and an outdoor version.
+
+**Saved, in `~/drone-dev/fc-backups/2026-10-19/` (see its README.txt):**
+- `ARTEX115-2026-10-19-before-indoor.params`, `ARTEX113-...`: **full dumps, 1083/1083
+  parameters each**, as found this morning, QGC format (load over USB). New tool
+  `tools/param_dump.py` re-requests missing indices until complete; refuses partial files.
+- `baseline-sysid11x-2026-10-19-before-indoor.json`: the 8 baseline parameters just before
+  the change (restore with `param_baseline.py --restore`).
+- `ARTEX11x-indoor-profile.params` and `ARTEX11x-outdoor-profile.params`: the two profiles,
+  types taken from the full dump.
+
+**Profiles (`tools/param_baseline.py --profile indoor|outdoor`):**
+- Common: `GF_ACTION` 5, `NAV_DLL_ACT` 3, battery 0.20/0.15/0.10, **`EKF2_GPS_CHECK` 1023**
+  (PX4 1.16 default, all GPS checks on; it was 0 on both aircraft). Correction: 1023, not the
+  245 first stated in the session.
+- Indoor: `EKF2_GPS_CTRL` 0 (no GNSS fusion), `GF_MAX_VER_DIST` 3 m.
+- Outdoor: each aircraft's own `EKF2_GPS_CTRL` (115: 7, 113: 5) and fence (115: 5 m,
+  113: 7 m). Those fences are still far below a 30 m survey.
+
+**Applied: INDOOR on both, verified by read-back.** 115: `EKF2_GPS_CHECK` 0->1023,
+`EKF2_GPS_CTRL` 7->0. 113: 0->1023, 5->0. Everything else already matched.
+
+**Effect:** estimator flags **0x00e5 on both** (attitude and height, no horizontal position),
+so the wandering x/y position from step 2 is gone; Position, Hold and missions are
+unavailable, as intended indoors. PX4's `can_arm_mode_flags` still include Altitude (and
+Manual, Stabilized, Acro).
+
+**`commander check` now reads FAILED on both, and it is NOT the profile:** both aircraft were
+in Offboard (ch7 centre) at the time, and the check judges the current mode; Offboard cannot
+arm without a setpoint stream. To confirm with ch7 at -100. Whether attitude-only offboard
+arming still works with GNSS fusion off was NOT tested (no armed tests since the 15 Oct
+incident).
+
 ## 2026-10-19 — ARTEX115 step 2, x/y position error: indoor GPS fused with the quality checks OFF
 
 Read-only. Both aircraft stationary indoors.
