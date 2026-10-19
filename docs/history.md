@@ -391,7 +391,7 @@ EdgeTX model file, and 113's flight logs (the 15 Oct incident plus today's four 
 5. Four agent fixes: the heartbeat never dies silently; the agent never just exits with an armed
    aircraft (retries and warns for 120 s, exit code 4); "disarmed" only from a fresh aircraft
    heartbeat; the guard ignores PX4's own failsafe and link texts.
-6. **Props-off arm tests: 7 armed runs (115 x4, 113 x4 less one link abort), no false
+6. **Props-off arm tests: 8 armed runs (4 per aircraft; two other attempts never armed), no false
    takeoff, every disarm confirmed**, PX4's auto-disarm working, no GCS loss, no heartbeat
    failures. 113's logs confirm `landed` = 1 throughout.
 7. "Failsafe activated" in 4 of 6 repeat runs = **offboard loss from setpoint gaps over 1 s on
