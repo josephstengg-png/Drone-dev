@@ -359,6 +359,31 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — magnetometer heading indoors, four-point check: within about +/-15 deg
+
+Props off, nothing armed, indoor profile (heading from the magnetometer only, no GNSS).
+Both aircraft on the floor away from 115's bad spot, turned together by hand to north, east,
+south and west, 8 s of `ATTITUDE` at each.
+
+| | N | E | S | W |
+|---|---|---|---|---|
+| ARTEX113 | 4.2 | 79.9 | 185.2 | 268.9 |
+| ARTEX115 | 354.9 | 91.4 | 171.8 | 276.7 |
+
+Error against an ideal 90 deg step from each aircraft's own north reading:
+- **113: E -14.3, S +1.0, W -5.3 deg** (steps 76 / 105 / 84 / 95)
+- **115: E +6.5, S -3.1, W +11.8 deg** (steps 97 / 80 / 105 / 78)
+
+Heading steady at every point (under 1 deg over 8 s). North to south reads 181 deg (113)
+and 177 deg (115). Hand placement is good to perhaps +/-5 deg, so part of this is placement;
+the rest (up to about 14 deg, alternating by quarter) is the signature of residual distortion
+from the room or the airframe.
+
+**Conclusion:** heading indoors is good to roughly +/-15 deg at this spot, and steady. For
+pilot-flown Altitude mode that is acceptable (no position hold depends on it). For any future
+autonomous indoor work it is a real limitation, and it will be worse near spots like the one
+that failed 115's check this morning.
+
 ## 2026-10-19 — rangefinder (TFmini) at a measured 0.75 m: both aircraft +1.8 cm
 
 Props off, nothing armed, indoor profile. Read via `listener distance_sensor` through the
