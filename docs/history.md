@@ -359,6 +359,39 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — steps 3 and 4: geofence and mission-transfer errors explained; 113 rebooted
+
+**113 after the indoor profile:** in Altitude, `commander check` FAILED and
+`can_arm_mode_flags` was **0** (no mode could arm). Running the pre-arm checks
+(`MAV_CMD_RUN_PREARM_CHECKS`) returned the texts `Preflight: GPS PDOP too high` (warning, from
+the GPS checks now on) and **`Geofence: exceeding maximum altitude above Home`** (critical). A
+geofence breach blocks every mode. 113 had not been rebooted since GNSS fusion was turned off,
+so the fence was still judging a GPS altitude against a GPS home, and indoor GPS height wanders
+by metres. **Rebooted 113** (disarmed, props off, ch7 at -100): `Preflight check: OK`,
+`can_arm_mode_flags` 114563 (same as 115), `geofence_result` never published. 115 reads
+`Preflight check: OK` in Altitude.
+
+**Step 3, geofence: explained.** The geofence errors were false breaches from fusing indoor GPS
+height. With the indoor profile and a reboot the fence is not evaluated, so it cannot
+false-alarm, and also gives no protection indoors (measured 15 Oct). The tether is the limit.
+
+**Step 4, mission transfer: link and our tools, not the aircraft.** Relay counters on both
+Jetsons: QGC uplink packets dropped by the agent-priority floor (`mirror-floored`) were 949
+(jetson-1) and 1233 -> 1270 on jetson-2 during the diagnosis itself. Every time one of our tools
+talks to an aircraft, the relay holds QGroundControl off for 5 s by design, which cuts QGC's
+mission download mid-transfer. On top of that, QGC's mission protocol over ELRS was already
+known to fail (CLAUDE.md). Indoors, missions are unavailable anyway (no position).
+Use USB for QGC mission and parameter work, or `drone_agent.py upload` for agent missions.
+
+Also seen: the jetson-2 relay reported up to 5 agent addresses at once while several
+short-lived diagnostic connections overlapped. That is expected with the agent TTL, and it is
+the same pattern suspected for the 15-20 s "no connection to the ground control station" gap.
+
+**ARTEX115 diagnosis complete.** Magnetic interference = the spot; x/y position error = unchecked
+indoor GPS fused (both aircraft); geofence = false breaches from GPS height; mission transfer =
+QGC over ELRS plus the relay's agent priority. Fixed by the indoor profile, a reboot, and
+placement. Nothing found wrong with 115's hardware.
+
 ## 2026-10-19 — parameters saved by date; indoor and outdoor profiles; INDOOR profile applied
 
 Operator approved "all the necessary changes", with the current parameters saved and labelled
