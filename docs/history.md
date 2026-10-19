@@ -359,6 +359,37 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — ARTEX115 step 2, x/y position error: indoor GPS fused with the quality checks OFF
+
+Read-only. Both aircraft stationary indoors.
+
+**GPS receiver on 115 (`sensor_gps`):** fix 3, 12 satellites, but **eph 3.2 m (3.4-7.1 m over
+30 s), HDOP 3.6, VDOP 3.3**, speed accuracy 0.43 m/s. Jamming and spoofing states normal (1).
+Against PX4's own requirements (`EKF2_REQ_EPH` 3.0 m, `EKF2_REQ_PDOP` 2.5) this fix FAILS
+on horizontal error and on PDOP (about 4.9 from HDOP and VDOP).
+
+**But `EKF2_GPS_CHECK` = 0 on BOTH aircraft** (saved): every GPS quality check is disabled,
+so the EKF fuses this indoor fix anyway (`EKF2_GPS_CTRL` 7 on 115, 5 on 113).
+
+**Result: the estimated position wanders while the aircraft sits still.**
+- 115, listener over about 40 s: local x 44.2 -> 59.6 m, y 37.4 -> 40.8 m.
+- MAVLink `LOCAL_POSITION_NED` over 30 s: 115 net 1.8 m (box 2.4 m, steps up to 0.68 m);
+  **113 net 12.3 m** (steps up to 1.66 m). Estimated speed stays under 0.3 m/s, so the
+  position is being pulled by the GPS, not integrated from motion.
+- `eph` reported by the EKF stays about 0.46 m: the estimate CLAIMS half a metre while
+  moving by metres. That is the cost of fusing unchecked GPS.
+
+**Conclusion:** the x/y position error is indoor GPS (multipath, weak geometry) being fused
+with the checks off. Not 115-specific: 113 drifts worse. It is unrelated to the magnetic
+spot from step 1.
+
+**Options (parameter changes, NOT made, operator to decide):**
+1. Indoors: `EKF2_GPS_CTRL` 0 (no GNSS fusion), which is the agreed indoor plan; Position
+   modes then unavailable and the pilot flies Altitude. Restore for outdoor work.
+2. Permanently: restore PX4's default `EKF2_GPS_CHECK` (245), so poor GPS is rejected
+   everywhere, outdoors included.
+Why `EKF2_GPS_CHECK` was 0 is not known (vendor build or an earlier choice).
+
 ## 2026-10-19 — ARTEX115 "strong magnetic interference": the SPOT, not the aircraft
 
 Operator: 115 "not ready", with strong magnetic interference, geofence, mission-transfer and
