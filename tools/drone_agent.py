@@ -78,7 +78,7 @@ def normalise_link(url: str) -> str:
     return u
 
 
-def start_heartbeat(conn) -> None:
+def start_heartbeat(conn, interval_s: float = 1.0) -> None:
     """Announce ourselves as a ground station, once a second, forever.
 
     PX4 refuses to arm with "No connection to the ground control station" if no GCS
@@ -97,14 +97,23 @@ def start_heartbeat(conn) -> None:
 
     conn.write = locked_write
 
+    conn.hb_failures = 0
+    conn.hb_last_ok = None
+
     def beat():
+        # 19 Oct 2026: this loop used to `return` on the first exception, so one failed send
+        # stopped the heartbeat for good, silently. The 15 Oct incident log shows PX4 lost
+        # the agent's heartbeat about 4 s before its setpoints stopped. Never give up; say so.
         while True:
             try:
                 conn.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
                                         mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
-            except Exception:
-                return
-            time.sleep(1.0)
+                conn.hb_last_ok = time.time()
+            except Exception as exc:
+                conn.hb_failures += 1
+                if conn.hb_failures == 1 or conn.hb_failures % 10 == 0:
+                    log(f"[link] heartbeat send failed ({conn.hb_failures}x): {exc} -- retrying")
+            time.sleep(interval_s)
 
     threading.Thread(target=beat, daemon=True).start()
 
@@ -1056,6 +1065,46 @@ def disarm_unless_pilot(send_disarm, pump, state, guard, attempts: int = 6) -> s
     return "pilot" if guard.pilot_has_it else "failed"
 
 
+HEARTBEAT_FRESH_S = 3.0
+
+
+def confirmed_disarmed(state, now: float) -> bool:
+    """Disarmed only if the AIRCRAFT says so, recently. A silent link is not a disarm."""
+    last = state.get("last_hb")
+    return (state.get("armed") is False and last is not None
+            and now - last <= HEARTBEAT_FRESH_S)
+
+
+def hold_until_disarmed(send_disarm, pump, state, guard, *, window_s: float = 120.0,
+                        retry_s: float = 2.0, warn_every_s: float = 5.0,
+                        slot=None, clock=time.time) -> dict:
+    """The aircraft is still armed and the agent is about to stop. Do not just leave.
+
+    15 Oct 2026: the agent printed "disarming", none of its disarms reached PX4, and it exited
+    with ARTEX113 armed; PX4 then failed over to LAND on the bench and the motors ran away.
+    This keeps the link (and the heartbeat thread) alive, keeps sending disarms, and keeps
+    telling the operator, until the aircraft CONFIRMS it is disarmed, the pilot takes over,
+    or the window ends. Returns dict(outcome, waited_s, attempts).
+    """
+    t0, last_send, last_warn, attempts = clock(), None, None, 0
+    while clock() - t0 < window_s:
+        now = clock()
+        if confirmed_disarmed(state, now):
+            return dict(outcome="disarmed", waited_s=now - t0, attempts=attempts)
+        if guard.pilot_has_it:
+            return dict(outcome="pilot", waited_s=now - t0, attempts=attempts)
+        if last_send is None or now - last_send >= retry_s:
+            send_disarm(); attempts += 1; last_send = now
+        if last_warn is None or now - last_warn >= warn_every_s:
+            last_warn = now
+            log("[safety] *** AIRCRAFT IS STILL ARMED *** the agent's disarm has not been "
+                "confirmed. Use the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8).")
+            emit(dict(event="still_armed", slot=slot, waited_s=round(now - t0, 1),
+                      disarm_attempts=attempts))
+        pump(0.5)
+    return dict(outcome="left_armed", waited_s=clock() - t0, attempts=attempts)
+
+
 def await_pilot_disarm(pump, state, *, killed: bool, slot, window_s: float,
                        warn_every_s: float = 5.0, clock=time.time) -> dict:
     """After a pilot takeover: send NOTHING, say loudly that it is armed, wait for the pilot.
@@ -1129,6 +1178,7 @@ def cmd_offboard_arm(args) -> int:
                         and msg.type != mavutil.mavlink.MAV_TYPE_GCS:
                     state["armed"] = bool(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED)
                     state["mode"] = vehicle_main_mode(msg)
+                    state["last_hb"] = time.time()
                 elif kind == "STATUSTEXT":
                     text = msg.text if isinstance(msg.text, str) else msg.text.decode(errors="replace")
                     log(f"[vehicle] {text.strip()}")
@@ -1240,11 +1290,22 @@ def cmd_offboard_arm(args) -> int:
     finally:
         if not guard.pilot_has_it:
             log("[offboard] disarming")
-            disarm_unless_pilot(
-                lambda: conn.mav.command_long_send(
-                    conn.target_system, 1, mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-                    0, 0, 0, 0, 0, 0, 0, 0),
-                pump, state, guard)
+            send_disarm = lambda: conn.mav.command_long_send(  # noqa: E731
+                conn.target_system, 1, mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                0, 0, 0, 0, 0, 0, 0, 0)
+            disarm_unless_pilot(send_disarm, pump, state, guard)
+            if not guard.pilot_has_it and not confirmed_disarmed(state, time.time()):
+                h = hold_until_disarmed(send_disarm, pump, state, guard,
+                                        window_s=args.armed_exit_window_s, slot=args.slot)
+                result["disarm_attempts_after_hold"] = h["attempts"]
+                if h["outcome"] == "left_armed":
+                    result["left_armed"] = True
+                    log(f"[safety] *** EXITING WITH THE AIRCRAFT STILL ARMED *** no disarm "
+                        f"confirmed in {h['waited_s']:.0f} s. Disarm it NOW with the arm "
+                        f"switch or the kill switch.")
+                    emit(dict(event="left_armed", slot=args.slot,
+                              waited_s=round(h["waited_s"], 1)))
+        result["heartbeat_send_failures"] = getattr(conn, "hb_failures", None)
         result["rc_takeover"] = guard.pilot_has_it
         if guard.pilot_has_it:
             w = await_pilot_disarm(pump, state, killed=guard.killed_by_pilot,
@@ -1254,8 +1315,10 @@ def cmd_offboard_arm(args) -> int:
             result["pilot_disarm_wait_s"] = round(w["waited_s"], 1)
             emit(result)
             return 2 if "error" in result else 0
-        result["disarmed"] = not state["armed"]
+        result["disarmed"] = confirmed_disarmed(state, time.time())
         emit(result)
+        if result.get("left_armed"):
+            return 4
 
 
 # COM_FLTMODE<n> values, from PX4 1.16's own parameter metadata
@@ -1382,6 +1445,9 @@ def main() -> int:
     ap.add_argument("--gate", action="store_true",
                     help="offboard-arm: enter OFFBOARD, print a ready event, arm only on 'ARM' from stdin")
     ap.add_argument("--gate-timeout-s", type=float, default=90.0)
+    ap.add_argument("--armed-exit-window-s", type=float, default=120.0,
+                    help="offboard-arm: if the disarm is not confirmed, keep the link up, keep "
+                         "retrying and keep warning for this long before exiting (code 4)")
     ap.add_argument("--pilot-disarm-window-s", type=float, default=60.0,
                     help="offboard-arm: after a pilot takeover, how long to keep warning that "
                          "the aircraft is still armed before leaving (the agent never disarms)")

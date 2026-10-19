@@ -38,6 +38,13 @@ RUNG = {NONE: 0, WARN: 1, HOLD: 2, LAND: 3, DISARM: 4}
 # routine chatter -- "Ready for takeoff", "Armed by external command" -- and score nothing.
 SEVERITY_WEIGHT = {0: 8.0, 1: 6.0, 2: 4.0, 3: 2.0, 4: 1.0}
 
+# PX4 reporting its OWN reaction or link state. They are consequences, not causes: scoring
+# them made the guard pile a HOLD on top of PX4's failsafe (15 Oct 2026, ARTEX113), and in
+# the air the guard and PX4 would then fight over the mode. The guard has its own telemetry-
+# gap rule for a real link loss.
+CONSEQUENCE_TEXTS = ("failsafe activated", "connection to ground station lost",
+                     "gcs connection regained", "no connection to the ground control station")
+
 
 @dataclass
 class Limits:
@@ -89,6 +96,8 @@ class Watchdog:
     # ---- telemetry in -------------------------------------------------------------
 
     def statustext(self, severity: int, text: str, now: float) -> None:
+        if any(c in text.lower() for c in CONSEQUENCE_TEXTS):
+            return
         weight = SEVERITY_WEIGHT.get(int(severity))
         if weight:
             self._events.append((now, weight, text.strip()))
