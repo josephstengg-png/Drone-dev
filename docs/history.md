@@ -376,6 +376,12 @@ ELRS link, too slow for a lift test.
 - Settings on both: `EKF2_RNG_CTRL` 1, `EKF2_RNG_A_HMAX` 1.0 m, `EKF2_MIN_RNG` 0.10 m,
   `SENS_TFMINI_CFG` 102.
 
+- **Above 1 m, ARTEX113 held by hand at 1.20 m (tape): 6 readings, mean 1.138 m, spread
+  0.010 m, error -0.062 m.** Steady; the 6 cm is within what a hand-held hold and the
+  TFmini's stated accuracy allow, so not read as a fault. The sensor keeps working above the
+  1 m point where the estimator stops fusing it. EKF `dist_bottom` was cut off by the shell's
+  length limit and not captured; local z read -0.24 to +0.02 m (barometric, not conclusive).
+
 **Rangefinder below 1 m: verified on both aircraft.** Still open: a reading above 1 m (where
 the estimator stops using it), and whether the EKF's height-above-ground follows it.
 
