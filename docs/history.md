@@ -359,6 +359,30 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — 113's arm test aborted by a lost radio link: jetson-2 had dropped off its backpack
+
+**ARTEX113, props off, offboard-arm.** It entered OFFBOARD, then **telemetry went silent for over
+12 s** (guard: "no telemetry for 5 s / 12 s"); only `GCS connection regained` came through
+afterwards. **It never armed.** The disarm was confirmed by a fresh heartbeat at the end.
+
+**Cause: the WiFi hop, not the aircraft.** `preflight.py` showed jetson-2 reported on
+`02:70:07:61:e0:6e`, which is **ARTEX115's** backpack, and that backpack unreachable (100% loss).
+`elrs_pair.py --verify` a minute later: jetson-2 attached to **nothing**. Its NetworkManager
+profile `elrs-backpack` IS pinned to the right BSSID (`02:70:07:61:E4:CB`), and that backpack
+was in range (signal 62), but the Wi-Fi had dropped and not come back on its own. Most likely
+trigger: 113's handset (whose ELRS module carries the backpack) was off while its SD card was
+out earlier today.
+
+**Fixed:** `sudo nmcli con up elrs-backpack` on jetson-2. `elrs_pair.py --verify`: exclusive
+pairing holds (jetson-1 -> E0:6E, jetson-2 -> E4:CB). `preflight.py`: both GO, 0% loss.
+
+**Lessons:**
+- After ANY handset or transmitter power cycle, run `preflight.py` (or `elrs_pair.py --verify`)
+  before arming. Preflight caught it immediately; the arm test did not.
+- This is a candidate cause for other "connection lost" moments too, including the 15 Oct
+  incident (disarms that never arrived), but that is NOT shown: the 15 Oct pairing state was
+  not recorded.
+
 ## 2026-10-19 — agent fixes deployed; props-off arm on the indoor profile: no false takeoff
 
 **Four agent fixes** (commit b7bf283), from the incident log, 8 new tests, suite 253 passing,
