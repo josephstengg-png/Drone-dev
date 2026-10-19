@@ -359,6 +359,18 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — props-off arm on the indoor profile: ARTEX113 clean too
+
+After re-pairing jetson-2. ARTEX113, props off, ch7 centre, kill switch in hand, 15 s hold:
+armed (ack 0), **no `Takeoff detected`**, PX4's own **`Disarmed by auto preflight disarming`**
+at about +11.6 s (only possible when its land detector says landed), disarm confirmed by a
+fresh heartbeat, heartbeat send failures 0, no GCS-lost message. Same result as 115.
+
+**Both aircraft now pass the exact test that ended in the 15 Oct incident**, on the indoor
+profile with the fixed agent. The flight controller's own log of this run is on 113's card as
+`/fs/microsd/log/2026-10-19/05_54_12.ulg` (USB was unplugged, so not yet pulled to confirm the
+land detector trace directly).
+
 ## 2026-10-19 — 113's arm test aborted by a lost radio link: jetson-2 had dropped off its backpack
 
 **ARTEX113, props off, offboard-arm.** It entered OFFBOARD, then **telemetry went silent for over
