@@ -359,6 +359,58 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — ARTEX113 incident log READ: what actually happened on 15 Oct
+
+**How the log was obtained.** The flight controller's card could not be reached physically.
+Over the radio a download measured about 100 B/s (abandoned). Over **USB from 113's flight
+controller to the laptop** (`/dev/ttyACM0`, after the operator ran
+`sudo chmod a+rw /dev/ttyACM0`; joseph is not in `dialout`) it took about 1 s. It needed
+MAVLink 2 on that port; the first attempt in MAVLink 1 got heartbeats but no log list. pyserial
+and pyulog were added to the venv. Saved:
+`~/drone-dev/fc-backups/2026-10-19/artex113-logs/ARTEX113-2026-10-15-0731-incident.ulg`
+(log id 38, 971,971 B, 07:32:12 UTC, 20.1 s long; it ends when the battery was pulled).
+
+**Timeline (seconds from arming):**
+| t | what the log shows |
+|---|---|
+| 0.02 | `Takeoff detected`. The land detector said NOT landed from its very first sample and never changed: `ground_contact` 0, `maybe_landed` 0 throughout; `horizontal_movement` toggled 0/1 |
+| 0-13 | armed, OFFBOARD, thrust 0, all four motors at idle (DShot 109) |
+| 4.19 | `Failsafe activated` (no mode change; cause not visible in the logged flags) |
+| 13.12 | `Connection to ground station lost` (no GCS heartbeat for 5 s, so since about 8 s) |
+| 13.13 | failsafe: **nav state OFFBOARD -> LAND**, position control enabled |
+| 14-20 | LAND with props off: thrust about -0.12 to -0.17 and **uneven motor commands up to 36% (DShot 782)**, settling to motors 2 and 4 at 24% and 1 and 3 at idle: the controller winding up against an aircraft that cannot move. **This is the "runaway".** |
+| 14.50 | `GCS connection regained` |
+| 20.1 | log ends (battery pulled) |
+
+**`vehicle_command` contains NO disarm request at all.** The agent printed `[offboard]
+disarming` and believed it sent six; none reached PX4. **Correction:** on 15 Oct I suggested
+PX4 had refused a disarm because it thought it was airborne. The log shows the disarms never
+arrived.
+
+**Readings (evidence, then hypothesis):**
+1. **Why it thought it had taken off.** The land detector never saw ground contact, and
+   `horizontal_movement` toggled. With GPS fused indoors and its checks off (`EKF2_GPS_CHECK` 0,
+   found today), the EKF's horizontal velocity carried GPS noise, which plausibly read as
+   movement. Today's indoor profile (no GNSS fusion) should remove that input; not yet
+   verified with an arm, since armed tests are paused.
+2. **Why the runaway.** LAND with "airborne" believed, props off: the attitude and thrust loops
+   integrate against no response. Expected PX4 behaviour in that state, not a fault in PX4.
+3. **Why the agent's commands stopped landing.** GCS heartbeats stopped reaching PX4 at about
+   8 s while setpoints kept arriving until about 12 s (OFFBOARD held until 13.13 with a 1 s loss
+   timeout). In `drone_agent.start_heartbeat()` the heartbeat thread **returns silently on
+   any exception**, so a single failed send stops heartbeats for good with no warning. That
+   matches this run and is the leading candidate for the recurring 15-20 s
+   "No connection to the ground control station" gap. The lost disarms (13+ s) are NOT yet
+   explained by it; uplink delivery after the hold loop ended is the open question.
+
+**Fixes needed before any armed test (agent):**
+- The heartbeat must not die silently: log it, keep retrying, and count failures.
+- Never exit with the aircraft armed: keep the link, keep sending heartbeats and disarms,
+  print STILL ARMED, and tell the operator to use the arm switch or the kill switch.
+- Confirm a disarm by the vehicle's state, not by having sent it.
+- The guard should not count PX4's own failsafe texts as errors.
+A forced disarm would not have helped here: no command was reaching PX4.
+
 ## 2026-10-19 — magnetometer heading indoors, four-point check: within about +/-15 deg
 
 Props off, nothing armed, indoor profile (heading from the magnetometer only, no GNSS).
