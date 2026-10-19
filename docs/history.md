@@ -359,6 +359,42 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — agent fixes deployed; props-off arm on the indoor profile: no false takeoff
+
+**Four agent fixes** (commit b7bf283), from the incident log, 8 new tests, suite 253 passing,
+deployed to both Jetsons:
+1. The heartbeat thread no longer quits on a send error; it counts, logs and keeps going
+   (`heartbeat_send_failures` is now in every offboard-arm result).
+2. offboard-arm never just exits with the aircraft armed: if the normal disarm attempts are not
+   confirmed it keeps the link up, retries every 2 s and warns STILL ARMED every 5 s for up
+   to `--armed-exit-window-s` (120 s), then exits with code 4 and a `left_armed` event.
+3. "Disarmed" is only believed from the aircraft's own heartbeat, and only if that heartbeat
+   is under 3 s old; a silent link is never taken as a disarm.
+4. The guard no longer scores PX4's own consequence texts (`Failsafe activated`, GCS
+   connection lost or regained) as errors.
+
+**First arm attempt on 115: refused by PX4** ("Resolve system health failures first"), cause
+`Geofence: exceeding maximum altitude above Home`: 115 had not been rebooted since GNSS fusion
+was turned off, the same stale-fence state as 113 this morning. **Rebooted 115**: geofence
+never published, Altitude allowed. **Rule: after switching to the indoor profile, reboot the
+flight controller.** 115 came back in Offboard because its ch7 was at centre.
+
+**Second attempt, ARTEX115, props off, ch7 centre, kill switch in hand:**
+- OFFBOARD, armed (ack 0, `Armed by external command`).
+- **No `Takeoff detected`.**
+- PX4's own **`Disarmed by auto preflight disarming`** at about +11 s. That timer only
+  runs when the land detector says LANDED, so the land detector was correct this time.
+- No "connection to the ground control station lost" message; heartbeat send failures 0.
+- Disarm confirmed by a fresh heartbeat; the agent sent no extra disarm.
+
+**Compared with the 15 Oct incident on 113** (GNSS fused with checks off): there the land
+detector said airborne from 0.02 s and the auto-disarm never ran. With the indoor profile the
+trigger of the incident is absent on 115. **Not yet repeated on 113** (it is on USB, opened
+up).
+
+Still open: why the disarms after 13 s never reached PX4 on 15 Oct (uplink after the hold
+loop); one clean run is evidence, not proof, that the heartbeat fix closes the GCS gap.
+
 ## 2026-10-19 — ARTEX113 incident log READ: what actually happened on 15 Oct
 
 **How the log was obtained.** The flight controller's card could not be reached physically.
