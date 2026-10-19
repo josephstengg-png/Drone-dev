@@ -359,6 +359,39 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — repeat props-off arm tests, 3 per aircraft: no false takeoff, every disarm confirmed
+
+Indoor profile, fixed agent, props off, ch7 centre, kill switch in hand, 15 s holds.
+113's link first had to be restored a second time: jetson-2's Wi-Fi to 113's handset was
+at **-91 dBm and dropping every 20-30 s**; after the operator moved the handset it read
+**-39 dBm**, steady, no drops in 3 min, pairing correct.
+
+| run | armed | disarm confirmed | Takeoff detected | GCS lost | hb fails | other |
+|---|---|---|---|---|---|---|
+| 115 #1 | yes | yes (9.3 s) | no | no | 0 | - |
+| 115 #2 | yes | yes (11.9 s, auto-disarm) | no | no | 0 | Failsafe activated x2 |
+| 115 #3 | yes | yes (11.9 s) | no | no | 0 | Failsafe activated x2 |
+| 113 #1 | yes | yes | no | no | 0 | Failsafe x2; mode 6 -> 2 (Altitude) -> back to 6; false "PILOT HAS IT" |
+| 113 #2 | yes | yes (agent, on the ground) | no | no | 0 | mag-interference texts drove the guard to HOLD; "Switching to Hold is currently not available" |
+| 113 #3 | yes | yes (11.2 s, auto-disarm) | no | no | 0 | Failsafe activated |
+
+**Settled:** 6/6 armed and every disarm confirmed by the aircraft; **no false takeoff in any
+run**; no GCS-connection loss; zero heartbeat send failures. The connection gap did not appear
+once in 6 runs (evidence, not proof, that the heartbeat fix closed it).
+
+**New, open:** `Failsafe activated` in 4 of 6 runs. In 113 #1 it moved the aircraft out of
+Offboard to Altitude: the offboard-loss reaction (`COM_OBL_RC_ACT` 0 = Position, which is
+unavailable indoors, so PX4 fell back to Altitude). That also produced the known false
+"PILOT HAS IT". **Leading hypothesis: the zero-thrust setpoint stream has gaps over 1 s on
+the ELRS uplink.** The relay's counters showed 3-12 agent packets per second reaching the
+backpack in 15 s windows during the runs; what PX4 actually received is not visible here.
+The flight logs of 113's runs (`2026-10-19/06_01_46`, `06_02_25`, `06_02_57`) would settle
+it via `offboard_control_mode` timing and `failsafe_flags`; not yet pulled (USB unplugged).
+
+**Also:** 113 now sits on the spot where 115 failed its magnetometer check this morning (after
+the swap), and its `Strong magnetic interference` warnings fed the guard (113 #2). Move it.
+The guard counting pre-arm warnings as errors is noise on the bench; not changed today.
+
 ## 2026-10-19 — props-off arm on the indoor profile: ARTEX113 clean too
 
 After re-pairing jetson-2. ARTEX113, props off, ch7 centre, kill switch in hand, 15 s hold:
