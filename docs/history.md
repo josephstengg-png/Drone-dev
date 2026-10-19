@@ -359,6 +359,38 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — 113's logs read: the "Failsafe activated" is offboard loss from setpoint gaps on the radio
+
+Pulled over USB (operator re-ran `sudo chmod a+rw /dev/ttyACM0`; needed twice, the first did
+not take). Saved in `~/drone-dev/fc-backups/2026-10-19/artex113-logs/` as
+`ARTEX113-2026-10-19-0554-indoor-arm.ulg`, `-0601-repeat1`, `-0602-repeat2`, `-0602b-repeat3`.
+
+| run | failsafe | longest gap between agent setpoints (`offboard_control_mode`) | mode |
+|---|---|---|---|
+| 05:54 clean | none | 0.85 s | OFFBOARD throughout |
+| repeat 1 | 6.95 s, 10.57 s | **1.40 s, starting 5.85 s** | OFFBOARD -> ALTCTL 6.95 -> OFFBOARD 7.26 -> ALTCTL 10.57 -> OFFBOARD 10.69 |
+| repeat 2 | none | 0.73 s | OFFBOARD (agent disarmed at 4.87 s after the guard's HOLD) |
+| repeat 3 | 4.21 s | **1.13 s, starting 3.11 s** | OFFBOARD -> ALTCTL 4.21 -> OFFBOARD 4.25 |
+
+**Confirmed:** each failsafe fires exactly when the gap between setpoints exceeds
+`COM_OF_LOSS_T` (1.0 s), and Offboard returns the moment setpoints arrive again. No gap over
+1 s, no failsafe. The reaction is Position (`COM_OBL_RC_ACT` 0), unavailable indoors, so PX4
+falls back to Altitude, and the guard reads that as "PILOT HAS IT" (the known false takeoff
+alarm).
+
+**Setpoint delivery over ELRS:** 5.0-7.0 per second arrive at PX4 (mean over each run) against
+about 20 per second sent by the agent, with gaps of 0.5 s or more 4-10 times per run. Most of
+the stream is lost on the radio uplink, in bursts.
+
+**Land detector: `landed` = 1 throughout in all four runs** (it was 0 throughout in the
+15 Oct incident). The false-takeoff fix is confirmed from the flight controller's own log.
+
+**Consequence:** any future offboard FLIGHT over this ELRS uplink would see these gaps as
+failsafes in the air. Offboard control at a usable rate needs a link that delivers it
+(companion wired to the flight controller, or a radio configured for more uplink). Options,
+none applied: raise `COM_OF_LOSS_T`; send fewer, steadier setpoints; review the ELRS packet
+rate and telemetry ratio. For pilot-flown Altitude mode this does not matter.
+
 ## 2026-10-19 — repeat props-off arm tests, 3 per aircraft: no false takeoff, every disarm confirmed
 
 Indoor profile, fixed agent, props off, ch7 centre, kill switch in hand, 15 s holds.
