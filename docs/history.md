@@ -359,6 +359,51 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — Gazebo Harmonic and the PX4 simulator installed on both Jetsons; offboard_control.py
+
+**Jetsons, corrected facts:** Ubuntu **24.04.4**, aarch64, Jetson Linux R39 (rev 2.1), 415 GB
+free, 15 GB RAM. No internet route (the only default route is the dead USB bridge `l4tbr0`);
+clocks at 1970. Workspace `CLAUDE.md` corrected (it said AGX Orin / JetPack 6.2 / 22.04).
+
+**How they got online:** an SSH reverse tunnel through the laptop was blocked by the permission
+classifier and not retried. The operator authorised joining the hangar Wi-Fi: both Jetsons
+already had a saved profile **"AI.R STC Hangar-5G"** (autoconnect off). Each was switched to
+it (dropping its backpack link), its clock set from the laptop (apt rejects signatures at
+1970), then switched back.
+
+**Installed on both:**
+- **Gazebo Harmonic 8.15.0** (`gz-harmonic`, OSRF repo).
+- **PX4 v1.16.0** at `~/PX4-Autopilot` (`6ea3539`, the same commit as the laptop's checkout),
+  `Tools/setup/ubuntu.sh --no-nuttx`, and **`make px4_sitl_default` builds**
+  (`build/px4_sitl_default/bin/px4`). The first build failed on both: a shallow clone lacks the
+  NuttX version tags that `px_update_git_header.py` reads. Fixed with
+  `git -C platforms/nuttx/NuttX/nuttx fetch --depth 1 origin "refs/tags/nuttx-*:refs/tags/nuttx-*"`.
+  PackageKit grabbed the apt lock as soon as each Jetson had internet; the scripts wait for it.
+
+**Back on their backpacks:** the hangar profiles are down, `elrs-backpack` (autoconnect, priority
+10) re-asserted. The handsets were off (no ExpressLRS AP in range), so pairing reads none until
+they power up. Relay services active throughout. **Run `elrs_pair.py --verify` / preflight after
+the handsets are next powered.**
+
+**To solve before the first simulator run on a Jetson:** PX4 SITL's MAVLink ports collide with
+the relay's (the relay binds 14540 for agents and 14550 from the module; SITL talks to 14540
+and 14550 by default). Options: stop the relay while simulating (the aircraft link is idle
+anyway), run SITL as a higher instance with remapped ports, or run it in a container.
+
+**`tools/offboard_control.py`** (commit a260dae): indoor height-hold-and-level controller,
+simulator only (refuses any vehicle without `SIM_GZ_EN`, a parameter the ARTEX lacks). Pure
+state machine (takeoff, hold, land, abort), integrator frozen on the ground, bounded takeoff ramp,
+aborts to PX4 LAND on lost height, tilt over 25 deg, height over 1.5 m, thrust saturation, or a
+takeoff that never leaves the floor. 10 tests against a 1-D vertical model; suite 263. The tests
+caught a real flaw: with the integrator frozen on the ground, the proportional term alone could not
+lift an aircraft heavier than the 0.5 hover guess. Takeoff now uses a bounded thrust ramp.
+
+**Not yet:** an ARTEX model. Its parameters are untouched PX4 quad-X defaults (rotor positions +/-1,
+CT 6.5, KM 0.05, hover 0.5, default rate gains, no battery capacity): **the ARTEX has never been
+tuned to its airframe**, and its motors, props, ESCs, frame size and mass were never recorded
+(`notes.md`, 30 Sep: "read them off the hardware", never done). Needed from the operator: mass,
+motor-to-motor size, prop size, motor model and KV.
+
 ## 2026-10-19 — evidence check: NO logged flight (sim or hardware) without GPS exists
 
 Asked whether any simulation or hardware data attests to stable IMU-based flight without GPS.
