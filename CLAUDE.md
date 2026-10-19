@@ -192,6 +192,14 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
   no failsafe, disarmed). Armed, the offboard-loss failsafe acts after 1 s
   (`COM_OBL_RC_ACT=0`, Position). What it does indoors, where Position is unavailable, is
   unobserved.
+- **After switching parameter profiles, reboot the flight controller**: until then the
+  geofence keeps judging a stale GPS altitude and can block arming in every mode (19 Oct).
+- **Run `preflight.py` after any handset power cycle or move.** jetson-2 twice lost 113's
+  backpack on 19 Oct (dropped off; then -91 dBm with the handset moved away).
+- **Offboard over ELRS loses most setpoints** (5-7 of about 20 per second arrive, gaps over 1 s
+  trigger offboard-loss failsafe). Fine for bench arming, not for offboard flight.
+- **Flight logs: pull over USB, not over the radio** (about 1 s vs 2.5 h). Needs
+  `/dev/ttyACM0` access (joseph is not in `dialout`) and MAVLink 2 on that port.
 - No Tuas obstacle data exists in the repo; the planner only knows the OpsArea polygon and
   cannot see buildings or containers.
 - **Motor balance under thrust is unverified.** Per-motor test passed on both (14-15 Oct):

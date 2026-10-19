@@ -359,6 +359,62 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — END OF DAY SUMMARY (read this first)
+
+Every item below has its own detailed entry further down; this is the index.
+
+**State at close:** both aircraft disarmed, on the **INDOOR profile** (no GNSS fusion, GPS
+checks 1023, fence 3 m, land on every loss, battery 0.20/0.15/0.10), both rebooted after the
+switch, preflight OK in Altitude. Pairing correct (jetson-1 -> 115 backpack, jetson-2 -> 113).
+Fixed agent deployed to both Jetsons. Suite 253 passing. Repo `indoor-ekf`, about 65 commits
+not pushed. 113 may still be on USB to the laptop.
+
+**Saved today, `~/drone-dev/fc-backups/2026-10-19/` (README inside):** full parameter dumps
+of both aircraft as found this morning (1083 each), indoor and outdoor profiles, the handset's
+EdgeTX model file, and 113's flight logs (the 15 Oct incident plus today's four arm runs).
+
+**Settled today**
+1. 115 "not ready": magnetic interference was the SPOT (calibration verified by a rotation
+   test); the x/y position error was indoor GPS fused with every GPS check OFF
+   (`EKF2_GPS_CHECK` 0 on both); geofence errors were false breaches from GPS height; mission
+   transfer failures are QGC over ELRS plus the relay's agent priority. No hardware fault.
+2. Indoor/outdoor parameter profiles (`tools/param_baseline.py --profile`), full dump tool
+   (`tools/param_dump.py`). INDOOR applied to both. **Reboot after switching profiles**, or a
+   stale geofence blocks arming.
+3. Rangefinder: +1.8 cm at 0.75 m on both, -6 cm at 1.2 m on 113 (hand-held). Heading indoors
+   steady and within about +/-15 deg.
+4. **The 15 Oct incident, from 113's own log (pulled over USB):** the land detector believed
+   it was airborne from 0.02 s (indoor GPS noise), the agent's heartbeat had died silently,
+   **no disarm ever reached PX4**, the agent exited with the aircraft armed, PX4 failed over to
+   LAND, and LAND on a bench with props off wound the motors up. Correction: on 15 Oct I wrote
+   that PX4 refused the disarm; it never received one.
+5. Four agent fixes: the heartbeat never dies silently; the agent never just exits with an armed
+   aircraft (retries and warns for 120 s, exit code 4); "disarmed" only from a fresh aircraft
+   heartbeat; the guard ignores PX4's own failsafe and link texts.
+6. **Props-off arm tests: 7 armed runs (115 x4, 113 x4 less one link abort), no false
+   takeoff, every disarm confirmed**, PX4's auto-disarm working, no GCS loss, no heartbeat
+   failures. 113's logs confirm `landed` = 1 throughout.
+7. "Failsafe activated" in 4 of 6 repeat runs = **offboard loss from setpoint gaps over 1 s on
+   the ELRS uplink** (5-7 of about 20 setpoints per second arrive). Harmless on the bench,
+   irrelevant to pilot-flown Altitude, and a blocker for any offboard FLIGHT over this link.
+8. Radio link: jetson-2 twice lost 113's backpack (dropped off, then -91 dBm when the handset
+   was moved away; -39 dBm when brought back). **Run preflight after any handset power cycle
+   or move**, and keep each handset near its Jetson.
+
+**OPEN, in priority order**
+1. Offboard over ELRS: setpoint gaps. Decide where offboard control lives (companion wired to
+   the flight controller, or a radio configured for more uplink); options to discuss:
+   `COM_OF_LOSS_T`, a steadier lower send rate, ELRS packet rate and telemetry ratio.
+2. The guard's false "PILOT HAS IT" when PX4 leaves Offboard itself, and the guard counting
+   pre-arm warnings (magnetic interference) as errors.
+3. 113 sits on the morning's bad magnetic spot: move it. Identify what is at that spot.
+4. Why the 15 Oct disarms after 13 s never arrived (radio dropout is plausible, unproven).
+5. Motor 3 early start failures (15 Oct): not reproduced since; swap test still open.
+6. People and decisions: first-flight policy (draft in `docs/first-flight-policy-draft.md`),
+   motor balance under thrust (first tethered hover), the abort-land button (does not exist).
+7. Housekeeping: `sudo usermod -aG dialout joseph` so USB works without chmod; push the
+   unpushed commits; the GUI (mock 5 agreed, not built).
+
 ## 2026-10-19 — 113's logs read: the "Failsafe activated" is offboard loss from setpoint gaps on the radio
 
 Pulled over USB (operator re-ran `sudo chmod a+rw /dev/ttyACM0`; needed twice, the first did
