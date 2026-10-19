@@ -359,6 +359,42 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — ARTEX115 "strong magnetic interference": the SPOT, not the aircraft
+
+Operator: 115 "not ready", with strong magnetic interference, geofence, mission-transfer and
+x/y position errors. Diagnosed one subsystem at a time with listener, read-only. This entry
+is step 1, the magnetometer.
+
+**What PX4 checks** (`estimatorCheck.cpp`, `mag_control.cpp`): measured field strength and
+inclination against the expected Earth field (WMM) at the location, before arming. Tolerances
+`EKF2_MAG_CHK_STR` 0.20 G, `EKF2_MAG_CHK_INC` 20 deg (`EKF2_MAG_CHECK` 1, `COM_ARM_MAG_STR` 2).
+
+**At its original spot:** calibrated strength **0.664 G** (expected about 0.41 G here) and
+inclination **+21.8 deg** (expected -12.8 deg): both outside tolerance,
+`pre_flt_fail_mag_field_disturbed` True. ARTEX113 in the same room: 0.407 G, passing.
+
+**Swapped positions:** 115 calibrated 0.511 G; 113 in 115's old spot 0.439 G (passing).
+
+**Rotation test** (operator turned 115 a full circle, 14 samples): raw strength swung
+**0.41-0.80 G** (the airframe's own hard-iron field adds differently in each direction);
+calibrated strength stayed **0.45-0.51 G**. **The compass calibration is working.**
+
+**At the new spot: `pre_flt_fail_mag_field_disturbed` False.** The warning cleared by moving
+the aircraft.
+
+**Conclusion: a local magnetic disturbance at the spot where 115 was sitting**, not a sensor
+or calibration fault. What is there was not identified. 113 passed in that spot, but only
+just (0.44 G), and a disturbance near steel or cabling can change sharply over tens of cm.
+
+**Correction made during the session:** after the swap I first read 115's raw 0.42 G as
+"Earth's field, so the calibration is wrong". The rotation test showed that 0.42 G was one
+orientation of a raw field that varies 0.41-0.80 G. The calibration is fine; the first reading
+was the misleading one.
+
+**Consequence for indoor flight:** the heading will be disturbed wherever the aircraft passes
+such a spot, and the pre-arm check only looks at the ground position. The magnetometer
+indoors is still an open risk.
+
 ## 2026-10-19 — network and calibration check after power-up: all GO, calibration present and healthy
 
 Read-only; nothing armed, no parameter written. Aircraft booted with ch7 at -100 (mode 2,
