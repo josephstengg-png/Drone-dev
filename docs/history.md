@@ -359,6 +359,26 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-19 — rangefinder (TFmini) at a measured 0.75 m: both aircraft +1.8 cm
+
+Props off, nothing armed, indoor profile. Read via `listener distance_sensor` through the
+shell: over MAVLink the `DISTANCE_SENSOR` message arrives only about once every 8 s on the
+ELRS link, too slow for a lift test.
+
+- On the bench the sensor reads 0.00-0.06 m (below its 0.40 m minimum): normal.
+- Lifted by hand it follows the motion (0.66-1.52 m), so both sensors measure.
+- **At the table edge, 0.75 m to the floor by tape measure, 8 readings each:**
+  - **ARTEX115: mean 0.768 m, spread 0.007 m, error +0.018 m.**
+  - **ARTEX113: mean 0.768 m, spread 0.007 m, error +0.018 m.**
+  The identical +1.8 cm is most likely the sensor sitting slightly above the tabletop, not
+  an error. Both are within the TFmini's normal accuracy.
+- `signal_quality` reads -1 in the air: this driver does not report a quality figure; not a fault.
+- Settings on both: `EKF2_RNG_CTRL` 1, `EKF2_RNG_A_HMAX` 1.0 m, `EKF2_MIN_RNG` 0.10 m,
+  `SENS_TFMINI_CFG` 102.
+
+**Rangefinder below 1 m: verified on both aircraft.** Still open: a reading above 1 m (where
+the estimator stops using it), and whether the EKF's height-above-ground follows it.
+
 ## 2026-10-19 — steps 3 and 4: geofence and mission-transfer errors explained; 113 rebooted
 
 **113 after the indoor profile:** in Altitude, `commander check` FAILED and
