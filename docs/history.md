@@ -359,6 +359,37 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-20 — IMU-only drift MEASURED on ARTEX113; ARTEX115 has never logged (SD card full)
+
+**IMU-only drift, from 113's three GPS flights.** Method: from 140 starting points (every 2 s
+of airborne time), take the GPS-aided position and velocity, then integrate ONLY the
+accelerometer (`sensor_combined`), rotated by the attitude estimate, and compare with the
+GPS-aided track after 2, 5, 10, 20 s. Done raw and with the EKF's learned accelerometer
+bias removed (the best case right after GPS is lost).
+
+| after | median | 90th percentile | worst |
+|---|---|---|---|
+| 2 s | 0.45 m | 2.1 m | 5.7 m |
+| 5 s | 1.5 m | 6.9 m | 17 m |
+| 10 s | 3.7-4.0 m | 15.5 m | 30 m |
+| 20 s | 9-11 m | 37-39 m | 62-69 m |
+
+Removing the learned bias changed almost nothing: the error is dominated by attitude error
+(1 deg of tilt error turns gravity into 0.17 m/s^2 sideways) and time-varying noise, not a
+constant bias. **IMU-only position on this aircraft is good for about 1-2 s and useless past
+about 5 s.** That is measured, not assumed. It confirms that autonomous indoor flight needs a
+horizontal reference at several updates per second.
+Caveats: the "truth" is the GPS-aided estimate (itself good to 1-2 m, which inflates the 2 s
+figure); these were outdoor flights with manoeuvres (a steady hover would sit at the better
+end); 3 flights.
+
+**ARTEX115: no logs at all.** Over USB (jetson-1 USB-A; the Jetson's USB-C is a device port and
+saw nothing): `log/` empty, **`logger` not running, SD card 3828 of 3838 MB used, 10 MB free**,
+exactly as noted on 30 Sep and never fixed. The card holds `APM/` (ArduPilot leftovers),
+`logdata.txt`, `dataman`, `parameters_backup.bson`, `uavcan.db`, `ufw/`. **115 has recorded
+none of our tests and would record no flight.** Fix before any flight: copy the card off, then
+free the space (operator to approve; not done).
+
 ## 2026-10-20 — IMU stability in ARTEX113's six real flights: healthy
 
 From the card logs (in-air portion only, 1 s trimmed each end). Three flights without GPS
