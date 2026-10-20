@@ -359,6 +359,45 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-20 — first simulation results (Gazebo SITL on jetson-2); HITL/SIH impossible on the ARTEX firmware
+
+**Hardware-in-the-loop is not possible on the current ARTEX firmware.** Of its 101 built-in
+programs, `pwm_out_sim` (simulated outputs), `simulator_mavlink` (HITL bridge) and `sih`
+(simulation-in-hardware) are all absent, and there are no `SIH_*` parameters or HITL airframe.
+The vendor stripped them. (`uxrce_dds_client`, the ROS 2 interface, IS present.) HITL would need a
+different firmware build; not attempted (there is no copy of the vendor firmware to go back to).
+
+**Software simulation instead:** PX4 v1.16.0 SITL + Gazebo Harmonic 8.15 on jetson-2, headless,
+stock `gz_x500` (an ARTEX model needs specs not yet measured). jetson-2's ELRS relay was stopped
+for the session (PX4 SITL uses the same UDP ports) and restarted afterwards; simulator parameters
+were reset (`EKF2_GPS_CTRL` 7, `SENS_BOARD_X_OFF` 0).
+
+**Debugging on the way (all simulator-side, recorded so it is not relearned):**
+- Runs 1-2 aborted "did not leave the ground". PX4's own takeoff appeared not to climb either, but
+  Gazebo ground truth showed the model DID rise: the simulator was still settling after a startup
+  "Accel #0 fail: TIMEOUT" (recovered; sensors then 250 Hz, EKF healthy).
+- The real cause of the aborts: the x500's true hover thrust in this sim is **0.73**, and the
+  controller's spool cap was 0.5 + 0.2 = 0.7. The abort was correct behaviour. The runner now takes
+  its hover guess from the vehicle's `MPC_THR_HOVER` (`--hover` overrides).
+- Touchdown: disarming at the controller's own "landed" was refused by PX4 ("Disarming denied: not
+  landed"); touchdown is now handed to PX4 LAND, which confirms and disarms ("Disarmed by landing").
+
+**Results, `offboard_control.py`, target 1.0 m:**
+| run | GNSS | hold | height in hold | horizontal drift (Gazebo ground truth) |
+|---|---|---|---|---|
+| 3 | fused | 15 s | mean 0.987 m, std 0.021 m | - |
+| indoor | **off** (flags 0x00a5) | 20 s | mean 0.986 m, std 0.023 m | **0.21 m in 24 s** |
+| indoor + **1 deg board-tilt error** | off | 20 s | mean 0.986 m, std 0.021 m | **4.5 m at 4 s, 10 m at 7.5 s, 46 m in 23 s** |
+
+**What this shows (test 1a):** the IMU + height controller holds HEIGHT to about +/-2 cm in
+simulation with or without GPS, and lands cleanly. Horizontal position is not held at all: in
+a perfect simulation it barely moves (perfect IMU, no wind), but a single degree of attitude
+error, which every real airframe has (113 itself carries a 1.7 deg level trim), produces drift that
+grows with the square of time, exactly 1/2 x 0.17 m/s^2 x t^2. That matches the IMU-only drift
+measured from 113's real flights (median about 4 m in 10 s). **Autonomous indoor hover on IMU and
+rangefinder alone is ruled out by measurement and simulation alike; a horizontal reference is
+required.** Pilot-flown Altitude (the pilot corrects the drift) remains the indoor mode.
+
 ## 2026-10-20 — ARTEX113 health check over USB (jetson-2): healthy
 
 Read-only, over USB on jetson-2 (113 on USB power only; handset off).
