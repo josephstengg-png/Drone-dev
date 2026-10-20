@@ -216,6 +216,10 @@ def main() -> int:  # pragma: no cover -- exercised against SITL, not in unit te
     ap.add_argument("--hold-s", type=float, default=20.0)
     ap.add_argument("--rate-hz", type=float, default=50.0)
     ap.add_argument("--csv", default="offboard_run.csv")
+    ap.add_argument("--hover", type=float, default=None,
+                    help="hover thrust guess; default: the vehicle's own MPC_THR_HOVER. A fixed 0.5 "
+                         "left the SITL x500 (hover above 0.7) unable to lift on 20 Oct. For the "
+                         "real ARTEX, PX4's own estimate in past flights was 0.41-0.44.")
     args = ap.parse_args()
 
     conn = agent.connect(args.link, None)
@@ -260,7 +264,11 @@ def main() -> int:  # pragma: no cover -- exercised against SITL, not in unit te
         print("[offboard] REFUSED: no LOCAL_POSITION_NED (no height estimate)", flush=True)
         return 2
     z0 = st["z"]
-    ctl = HeightHold(Limits(target_height_m=args.height), yaw_rad=st["yaw"], hold_s=args.hold_s)
+    hover = args.hover if args.hover is not None else agent.read_param(conn, "MPC_THR_HOVER")
+    hover = float(hover) if hover else Limits().hover_thrust
+    print(f"[offboard] hover thrust guess {hover:.2f}", flush=True)
+    ctl = HeightHold(Limits(target_height_m=args.height, hover_thrust=hover),
+                     yaw_rad=st["yaw"], hold_s=args.hold_s)
     idle = Command(IDLE, 0.0, level_quaternion(st["yaw"]))
     for _ in range(int(args.rate_hz)):            # PX4 needs setpoints before OFFBOARD
         send(idle); pump(); time.sleep(1.0 / args.rate_hz)
@@ -295,15 +303,26 @@ def main() -> int:  # pragma: no cover -- exercised against SITL, not in unit te
                                        0, 0, 0, 0, 0, 0, 0, 0)
             break
         if cmd.request == "disarm":
-            print("[offboard] landed; disarming", flush=True)
-            for _ in range(10):
-                conn.mav.command_long_send(conn.target_system, 1,
-                                           mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-                                           0, 0, 0, 0, 0, 0, 0, 0)
+            # Hand the touchdown to PX4's own LAND: it confirms ground contact with its land
+            # detector and disarms itself (COM_DISARM_LAND). Disarming ourselves at our own
+            # 'landed' was refused ("Disarming denied: not landed") in SITL on 20 Oct, and
+            # stopping the stream raised an offboard-loss failsafe.
+            print("[offboard] near the ground; handing touchdown to PX4 LAND", flush=True)
+            conn.mav.command_long_send(conn.target_system, 1, mavutil.mavlink.MAV_CMD_NAV_LAND,
+                                       0, 0, 0, 0, 0, 0, 0, 0)
+            t_land = time.time()
+            while st["armed"] and time.time() - t_land < 15:
+                pump(); time.sleep(0.05)
+            if st["armed"]:
+                print("[offboard] PX4 has not disarmed after 15 s; sending disarm", flush=True)
                 for _ in range(10):
-                    pump(); time.sleep(0.05)
-                if not st["armed"]:
-                    break
+                    conn.mav.command_long_send(conn.target_system, 1,
+                                               mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                                               0, 0, 0, 0, 0, 0, 0, 0)
+                    for _ in range(10):
+                        pump(); time.sleep(0.05)
+                    if not st["armed"]:
+                        break
             break
         send(cmd)
         time.sleep(max(0.0, 1.0 / args.rate_hz - (time.time() - now)))
