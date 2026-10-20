@@ -359,6 +359,25 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-20 — ARTEX115 SD card backed up over USB; the "full" card is one 3.7 GB placeholder file
+
+Over USB (jetson-1, MAVLink FTP via `pymavlink.mavftp`), read-only. **Backed up to
+`~/drone-dev/fc-backups/2026-10-20/artex115-sdcard/`**: 9 files, every one verified by size:
+`dataman` (68,528 B, mission/geofence storage), `parameters_backup.bson` (2,391 B),
+`param_import_fail.txt` (1,163 B), `logdata.txt` (0 B), `APM/STRG_BAK/STRG0.bak` (32,768 B,
+ArduPilot storage backup), `APM/STRG_BAK/last_storage_bak`, `uavcan.db/` (3 small files).
+
+**Why the card is full:** a single read-only file **`FREESPAC.E` of about 3.7 GB** (nsh prints
+its size wrapped to -280,985,600). It is a placeholder, not PX4 data; its origin is unknown.
+Everything real on the card totals about 105 KB. Not copied (meaningless content). **Deleting
+`FREESPAC.E` (or formatting the card, now that it is backed up) would let the logger run.**
+Operator to approve; not done.
+
+**`param_import_fail.txt`** records a past boot of this firmware (`Artex` branch, hash 9fd89623,
+built 12 Nov 2025) where importing parameters from internal flash FAILED and PX4 fell back to
+`parameters_backup.bson` on the card. Date unknown. If the card had been missing or corrupt at
+that boot, the aircraft would have come up on defaults. Worth knowing; not acted on.
+
 ## 2026-10-20 — IMU-only drift MEASURED on ARTEX113; ARTEX115 has never logged (SD card full)
 
 **IMU-only drift, from 113's three GPS flights.** Method: from 140 starting points (every 2 s
