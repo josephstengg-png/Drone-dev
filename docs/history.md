@@ -359,6 +359,44 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-20 — ARTEX simulation model built and calibrated; visible in Gazebo on jetson-2's screen
+
+**Specs from the operator:** about 500 g all-up (assumed to include the battery; consistent with the
+real 0.42 hover), motors 136.6 mm front-back x 200 mm side-side (a stretched X; the stated diagonal
+145.9 + 84.8 = 230.7 mm is ~11 mm short of the 242 mm those imply, so the rectangle was used),
+Gemfan Hurricane SL 5125-3 props (5.1 in, 3-blade), EMAX ECO II 2004 "likely 2400 KV", 4S
+5000 mAh 312 g battery (143x44x23 mm), TFmini centred facing down, Caddx FPV camera ignored.
+
+**`sim/make_artex_model.py`** generates the model from PX4's x500 (every number and its source in the
+file): `sim/gz_artex/models/artex_base`, `.../artex` (motors + a downward 0.4-12 m lidar standing in
+for the TFmini) and airframe **`4099_gz_artex`**, which mirrors the REAL ARTEX's control settings
+(normalised rotor positions +/-1, KM +/-0.05, default gains, `MPC_THR_HOVER` 0.5).
+`sim/deploy_artex_sim.sh <jetson>` installs and rebuilds. Derived: inertia 8.3e-4 / 1.03e-3 /
+1.81e-3 kg m^2, top rotor speed 2939 rad/s (2400 KV x 14.8 V x 0.79 load).
+
+**Calibration:** Gazebo's motor plugin gave about 1.5x the thrust of `motorConstant x w^2`: the first
+model hovered at throttle 0.333. The constant was scaled by (1079/1321)^2 so the model hovers at the
+real ARTEX's **0.42** (PX4's estimator on 113's real flights: 0.41-0.44). Kept the x500's rotor
+inertia (larger than a 5 in prop's; slightly dulls yaw, not hover).
+
+**Controller tuning found by the model:** integrator limit 0.15 -> 0.25 (0.15 could not absorb a 0.17
+hover-guess error: 8 cm steady offset) and gain 0.10 -> 0.30 (0.10 took 20+ s to absorb 0.08).
+
+**ARTEX model flights (`offboard_control.py`, 1.0 m target, GNSS fused):**
+| run | hover thrust in hold | hold mean / std |
+|---|---|---|
+| uncalibrated | 0.33 | 1.083 / 0.047 m |
+| calibrated, ki 0.10 | 0.41-0.47 | 1.064 / 0.029 m (drifting down 1.08 -> 1.05) |
+| **calibrated, ki 0.30** | **0.40-0.50** | **1.022 / 0.026 m** (5 s blocks 1.007, 1.026, 1.018, 1.037) |
+
+**The simulation can be watched:** headless runs show nothing (the operator asked where the
+simulations were). The Gazebo viewer now runs on jetson-2's own display:
+`DISPLAY=:1 XAUTHORITY=/run/user/$(id -u)/gdm/Xauthority gz sim -g` against the running server.
+
+jetson-2's ELRS relay is stopped while the simulator runs (shared UDP ports); restart with
+`sudo systemctl start elrs-link.service` when done. The x500 runs' simulator parameters were archived
+to `~/sitl-param-archive/` on jetson-2.
+
 ## 2026-10-20 — first simulation results (Gazebo SITL on jetson-2); HITL/SIH impossible on the ARTEX firmware
 
 **Hardware-in-the-loop is not possible on the current ARTEX firmware.** Of its 101 built-in

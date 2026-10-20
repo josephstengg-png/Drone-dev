@@ -43,8 +43,11 @@ class Limits:
     descent_rate_ms: float = 0.3
     kp_height: float = 1.0            # height error (m) -> climb-rate setpoint (m/s)
     kp_vz: float = 0.25               # climb-rate error (m/s) -> thrust
-    ki_vz: float = 0.10
-    i_limit: float = 0.15             # integrator may move thrust by at most this much
+    ki_vz: float = 0.30              # 0.10 took over 20 s to absorb a 0.08 hover-guess error
+                                      # in SITL (20 Oct: hold drifted 1.08 -> 1.05 m)
+    i_limit: float = 0.25             # integrator may move thrust by at most this much.
+                                      # 0.15 left an 8 cm steady error in SITL (20 Oct) when
+                                      # the hover guess (0.5) was 0.17 above the truth (0.33)
     hover_thrust: float = 0.50        # MPC_THR_HOVER; the ARTEX has never learned its own
     thrust_min: float = 0.12          # MPC_THR_MIN
     thrust_max: float = 0.80          # headroom kept for PX4's attitude control
