@@ -359,6 +359,30 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-20 — ARTEX115 SD card formatted over USB, files restored byte-for-byte, logger works
+
+Operator approved formatting after a full copy. `rm /fs/microsd/FREESPAC.E` was refused
+("Permission denied": the FAT read-only flag; the PX4 shell has no chmod), so: backed up every
+file except `FREESPAC.E` to **`~/Desktop/artex115/`** (and earlier to
+`fc-backups/2026-10-20/artex115-sdcard/`), sizes checked against the card; then, disarmed, over
+USB on jetson-1: `dataman stop`, `umount /fs/microsd`, `mkfatfs -F 32 /dev/mmcsd0`, remount:
+**3838 MB free**.
+
+**Restored** with MAVLink FTP. The first batch stalled after one bad write (the tool, not the card:
+shell writes worked), so each file was re-sent on a fresh connection. **All 7 non-empty files
+verified byte-for-byte with PX4's own CRC32** (note: PX4's crc32part has no start/end inversion,
+so compare with `~zlib.crc32(data, 0xFFFFFFFF)`); the two empty files recreated with FTP
+CreateFile. The card tree matches the original minus `FREESPAC.E`.
+
+**Rebooted 115:** `logger` now **running** (it was not), `dataman` reading the restored file, card
+3837 MB free. **`logger on` test: wrote `/fs/microsd/log/2026-10-20/05_49_45.ulg`, 0.84 MiB at
+38 KiB/s, 0 dropouts**, then `logger off`. With `SDLOG_MODE` 0 it will log every arm-to-disarm.
+**115 can record flights again.**
+
+Mistakes made on the way, no harm done: my raw FTP helper used 14 for "reset sessions" (it is 2; 14 is
+CalcFileCRC32), harmless refusals; the PX4 shell tool once latched onto the ELRS receiver's
+heartbeat (sysid 255, also routed down USB) and reported "sysid 0"; a retry fixed it.
+
 ## 2026-10-20 — ARTEX115 SD card backed up over USB; the "full" card is one 3.7 GB placeholder file
 
 Over USB (jetson-1, MAVLink FTP via `pymavlink.mavftp`), read-only. **Backed up to
