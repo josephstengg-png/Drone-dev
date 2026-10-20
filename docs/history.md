@@ -359,6 +359,38 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-20 — IMU stability in ARTEX113's six real flights: healthy
+
+From the card logs (in-air portion only, 1 s trimmed each end). Three flights without GPS
+(Altitude), three with GPS.
+
+| flight | GPS | accel vib (max) | gyro vib (max) | clipping | IMU0 vs IMU1 accel / gyro | attitude error rms / max | EKF accel / gyro bias | filter faults |
+|---|---|---|---|---|---|---|---|---|
+| sess100/log100 | no | 4.2 | 0.19 | 0 | 0.85 / 0.025 | 1.8 / 5.9 deg | 0.027 / 0.0015 | 0 |
+| sess100/log101 | no | 4.0 | 0.16 | 0 | 0.58 / 0.017 | 2.3 / 12.3 deg | 0.088 / 0.0018 | 0 |
+| sess101/log100 | no | 2.6 | 0.18 | 0 | 0.41 / 0.030 | 1.9 / 10.8 deg | 0.067 / 0.0025 | 0 |
+| 2026-04-17 08:40 | yes | 3.0 | 0.20 | 0 | 0.39 / 0.056 | 3.1 / 18.3 deg | 0.064 / 0.0050 | 0 |
+| 2026-04-17 08:42 | yes | 4.0 | 0.22 | 0 | 1.01 / 0.078 | 3.1 / 17.5 deg | 0.056 / 0.0035 | 0 |
+| 2026-06-03 07:03 | yes | 3.3 | 0.13 | 0 | 0.76 / 0.041 | 2.1 / 10.1 deg | 0.161 / 0.0077 | 0 |
+(units: m/s^2, rad/s, deg)
+
+**Reading:** vibration is very low (QGC calls under 30 m/s^2 good); **no accelerometer
+clipping in any flight**; no estimator filter faults; gyro biases tiny; the two IMUs agree
+closely on rotation and to within about 1 m/s^2 on acceleration (in-flight peaks of 0.85-1.01 are
+above PX4's 0.7 pre-arm limit, which is common in manoeuvres; worth watching, not a fault).
+Attitude follows its setpoint within about 2-3 deg RMS even on PX4's untuned default gains.
+**The IMU is stable and healthy.** No difference in IMU behaviour between the GPS and no-GPS
+flights: GPS does not affect attitude.
+
+**What it means for drift:** the EKF's accelerometer bias estimates of 0.03-0.16 m/s^2 are the size
+that, uncorrected, would integrate to about 1.5-8 m of position error in 10 s. That is the
+horizontal limit already described: a horizontal reference is missing, not IMU quality.
+
+Caveat: 113 only; pilot, place and dates of the `sess` flights unknown.
+
+**ARTEX115 is now on jetson-1's USB** (`usb-MicoAir_MicoAir743v2_0-if00`), after moving off
+the Jetson's USB-C device port. Its radio link is off (handset off).
+
 ## 2026-10-20 — ARTEX113's full card history: it HAS flown, including pilot-flown Altitude without GPS
 
 The operator copied 113's SD-card logs to a USB stick; all 43 `.ulg` copied read-only to
