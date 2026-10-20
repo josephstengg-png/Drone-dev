@@ -359,6 +359,24 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-20 — ARTEX113 health check over USB (jetson-2): healthy
+
+Read-only, over USB on jetson-2 (113 on USB power only; handset off).
+- Disarmed; no failsafe; health warning and error flags 0. `can_arm_mode_flags` 114563
+  (Altitude allowed). `commander check` FAILED only because it sat in Offboard with no
+  setpoint stream (the same as 115 and 113 on 19 Oct).
+- Both gyros and both accelerometers OK, no failovers; selected IMU is #1 (id 3604506).
+- Both EKF instances healthy, attitude valid, no horizontal position (flags 229 = 0x00e5, the
+  indoor state); filter faults 0; every pre-flight innovation check passes; `ekf2 status` test ratio
+  reads 1.0 on both (also seen before with GNSS off; not a fault indication).
+- Magnetometer: 0.517 G, inclination -15 deg (expected about 0.41 G and -12.8 deg, tolerances 0.2 G
+  and 20 deg): passes, `pre_flt_fail_mag_field_disturbed` False at this spot.
+- IMU agreement at rest: accel 0.06 m/s^2, gyro 0.0005 rad/s (excellent).
+- Logger running (not logging while disarmed); card 37 MB used, 3801 MB free.
+- Indoor profile intact: `EKF2_GPS_CTRL` 0, `EKF2_GPS_CHECK` 1023, `GF_MAX_VER_DIST` 3, `GF_ACTION` 5,
+  `NAV_DLL_ACT` 3, `BAT_EMERGEN_THR` 0.10, `SDLOG_MODE` 0.
+- Battery reads 2.08 V / 0%: USB power only, no flight battery. Not a fault.
+
 ## 2026-10-20 — ARTEX115 SD card formatted over USB, files restored byte-for-byte, logger works
 
 Operator approved formatting after a full copy. `rm /fs/microsd/FREESPAC.E` was refused
