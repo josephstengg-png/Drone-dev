@@ -359,6 +359,57 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-20 — SITL campaign on the ARTEX model: refusals, mission, stop-at-every-stage, faults
+
+`sim/sim_tests.py` on jetson-2 (PX4 v1.16.0 SITL + Gazebo Harmonic, airframe 4099_gz_artex, the real
+indoor safety parameters). Pilot emulated over MAVLink (centred-stick MANUAL_CONTROL, Altitude mode
+for ch7, forced disarm 21196 for the kill switch). Fresh simulator, parameters wiped, for every case.
+Valid run finished 20 Oct ~17:30 local; results `/tmp/sim_results.json` on jetson-2.
+
+**Four earlier full runs were invalid — harness faults, not aircraft behaviour:** (1) EKF2_GPS_CTRL 0
+persisted in `parameters.bson` across restarts; (2) `pump()` swallowed COMMAND_ACKs (random "no
+reply") and heights were not measured from the ground (local z = -0.4 m on the ground), so hover was
+never "reached"; (3) a `gz sim` server ignored SIGTERM, survived 40 min, and later PX4 instances
+attached to its world with a crashed aircraft in it — now TERM then KILL, and abort if anything
+survives; (4) arming 2 s after boot hit "ekf2 missing data" — now retried for up to 30 s.
+Also: PX4 writes parameters lazily, so a reboot right after a set loses it — force MAV_CMD 245 first.
+**`MAV_CMD_INJECT_FAILURE` does nothing to GPS/mag/baro in a Gazebo build** (only simulator_mavlink
+and the battery simulator act on it, and MAVLink sends no ack when SYS_FAILURE_EN=1); a motor
+"failure" only forges an ESC report while Gazebo keeps the motor spinning. Sensor loss was therefore
+modelled by switching that sensor's EKF2 fusion off in flight. Motor failure is untestable here.
+
+**Refusals, GPS fusion off from boot:** no global position published. Altitude arms; Position, Hold
+and Mission can be *selected* on the ground but arming is refused ("Resolve system health failures").
+
+**Mission with GPS (8 m square, 2.5 m):** cross-track max 0.39 m, mean 0.24 m; landed and disarmed itself.
+
+**Stop at every stage:**
+
+| Stage | Land | Disarm | Kill | Pilot → Altitude |
+|---|---|---|---|---|
+| On ground, armed | disarmed 10.9 s | off 0.9 s | off 0.9 s | auto-disarm 10.9 s |
+| Climbing (~1 m) | 0.58 m/s, disarmed 11.1 s | REFUSED "not landed" | off 1.0 s, fell 4.1 m/s, upright | held 0.97 m |
+| Hover 2.5 m | 0.95 m/s, disarmed 11.5 s | REFUSED | off 0.8 s, fell 6.7 m/s, flipped 179° | held 2.52 m |
+| Mid-mission | 0.61 m/s, disarmed 12.5 s | REFUSED | off 0.4 s, fell 6.8 m/s, flipped 115° | held 2.50 m |
+| Landing | disarmed 9.0 s | refused, then auto 9.6 s | off 0.8 s, fell 5.0 m/s | descent stopped, held 1.47 m |
+
+**Faults (with GPS — the indoor no-GPS combinations are NOT yet tested):**
+
+| Fault | PX4 response | Shadow guard |
+|---|---|---|
+| GPS loss mid-mission | LAND at 4.6 s, disarmed 12.6 s | none — missed |
+| Mag fusion off, hover | none in 45 s, kept hovering (GPS heading) | hold (false: error-rate) |
+| Baro fusion off, hover | none in 45 s, held 2.47 m | hold (false: error-rate) |
+| GCS link loss, hover | LAND at 12.8 s (COM_DL_LOSS_T 5 — slower than set, unexplained), disarmed 23.8 s | hold (false) |
+| RC loss in Altitude | Hold 0.8 s → LAND 5.8 s → disarmed 16.8 s | none — missed |
+| Low battery | LAND at 16 s, disarmed 27 s | land (correct) |
+
+**Conclusions:** Land is the safe stop at every stage. A normal disarm cannot drop it in the air.
+The kill switch cuts motors in <1 s but drops it at 4–7 m/s and it lands inverted from 2.5 m — last
+resort only indoors. Our guard false-alarms to "hold" by counting PX4 pre-arm messages as errors and
+misses GPS and RC loss. Open: faults without GPS (indoor config), the 12.8 s link-loss timing, RC-loss
+"Hold" is impossible without position (indoors it must fall to descend — untested).
+
 ## 2026-10-20 — ARTEX simulation model built and calibrated; visible in Gazebo on jetson-2's screen
 
 **Specs from the operator:** about 500 g all-up (assumed to include the battery; consistent with the
