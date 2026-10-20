@@ -359,6 +359,45 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-20 — ARTEX113's full card history: it HAS flown, including pilot-flown Altitude without GPS
+
+The operator copied 113's SD-card logs to a USB stick; all 43 `.ulg` copied read-only to
+`~/drone-dev/fc-backups/2026-10-20/artex113-sdcard-logs/` and scanned.
+
+**Real flights, props on, none by us:**
+| log | length | modes | GNSS fused | climb | hover thrust (PX4 estimate) | notes |
+|---|---|---|---|---|---|---|
+| sess100/log100 | 34 s | ALTCTL | **no (0 sats)** | 2.1 m | 0.411 | "Disarming denied: not landed", then landing detected |
+| sess100/log101 | 62 s | ALTCTL | **no (0 sats)** | 1.9 m | 0.415 | same |
+| sess101/log100 | 44 s | ALTCTL | **no (0 sats)** | 2.2 m | 0.419 | landing detected, disarmed by landing |
+| 2026-04-17 08:40 | 76 s | ALTCTL/POSCTL/LOITER/RTL | yes (~24 sats) | 8.8 m | 0.432 | geofence breach -> failsafe |
+| 2026-04-17 08:42 | 201 s | POSCTL/LAND | yes (~26) | 2.8 m | 0.442 | **"Emergency battery level" failsafe at 14.4 V**: consistent with 113's backwards battery thresholds (emergency 0.50), fixed 15 Oct |
+| 2026-06-03 07:03 | 90 s | ALTCTL | yes (~8) | 5.4 m | 0.420 | kill engaged during the log |
+`sess` folders are written when the flight controller has no clock, so those three are undated.
+Max accelerometer vibration metric in flight 3.0-4.6 (low). All armed by the RC switch.
+
+**CORRECTION to the 19 Oct entry "NO logged flight (sim or hardware) without GPS exists":**
+it does. Three short pilot-flown **Altitude-mode flights with no GNSS** (0 satellites), to about 2 m,
+34-62 s each, ending in a normal landing, are on 113's card. That entry had listed the card logs as
+not examined. They are evidence that the ARTEX can be hand-flown without GPS; they say nothing
+about hands-off hover or drift, and who flew them, where and when is unknown.
+
+**Hover thrust:** PX4's own estimate across six flights is **0.41-0.44**, against
+`MPC_THR_HOVER` 0.5 (an untouched default). Use about 0.42 for the simulation model and as the
+controller's hover guess.
+
+**CORRECTION to the 19 Oct incident entry ("uneven motor commands up to 36%"):** that figure came
+from 1-second samples. The full trace shows **motors 1 and 2 at about 95% throttle (DShot 1933 and
+1951) for about 0.5 s at 4.2 s**, the moment of the first `Failsafe activated`, then up to about 50%
+on motor 4 after the LAND failover at 13.5 s. The incident was more violent than reported.
+
+**ARTEX115 on a Jetson's USB-C: not detected** by either Jetson (no ttyACM, no new USB device).
+That port is the Jetson's device-mode port (the `l4tbr0` link); a flight controller needs a USB-A
+host port.
+
+**Motor (operator, by dimensions and series): EMAX ECO II 2004**, KV unmarked (1600/2000/2400/3000
+were made). Recorded in `notes.md`.
+
 ## 2026-10-19 — Gazebo Harmonic and the PX4 simulator installed on both Jetsons; offboard_control.py
 
 **Jetsons, corrected facts:** Ubuntu **24.04.4**, aarch64, Jetson Linux R39 (rev 2.1), 415 GB
