@@ -55,7 +55,11 @@ def test_export_uses_the_dump_types(tmp_path):
     rows = ["# x", "115\t1\tGF_ACTION\t2\t6", "115\t1\tNAV_DLL_ACT\t0\t6",
             "115\t1\tBAT_LOW_THR\t0.4\t9", "115\t1\tBAT_CRIT_THR\t0.25\t9",
             "115\t1\tBAT_EMERGEN_THR\t0.5\t9", "115\t1\tEKF2_GPS_CHECK\t0\t6",
-            "115\t1\tGF_MAX_VER_DIST\t7.0\t9", "115\t1\tEKF2_GPS_CTRL\t7\t6"]
+            "115\t1\tGF_MAX_VER_DIST\t7.0\t9", "115\t1\tEKF2_GPS_CTRL\t7\t6",
+            "115\t1\tMPC_THR_HOVER\t0.5\t9", "115\t1\tMPC_USE_HTE\t0\t6",
+            "115\t1\tMPC_LAND_SPEED\t0.6\t9", "115\t1\tFD_FAIL_P\t60\t6",
+            "115\t1\tFD_FAIL_R\t60\t6", "115\t1\tMPC_MAN_TILT_MAX\t35.0\t9",
+            "115\t1\tMPC_Z_VEL_MAX_UP\t3.0\t9"]
     dump.write_text("\n".join(rows) + "\n")
     out = tmp_path / "o.params"
 

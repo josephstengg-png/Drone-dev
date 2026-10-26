@@ -359,6 +359,51 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-26 — Option A applied to both aircraft (anti-surge / anti-drift limits); bench noise, CG and safety-policy findings
+
+**Applied (operator-approved "upload option A", 26 Oct), over USB, disarmed, via `tools/param_baseline.py
+--profile indoor`; every write read back and verified on BOTH aircraft:**
+
+| Parameter | 115 | 113 | Why |
+|---|---|---|---|
+| `MPC_THR_HOVER` | 0.5 → 0.42 | 0.5 → 0.42 | real hover 0.41-0.44 (113 logs); the high guess surges at take-off |
+| `MPC_USE_HTE` | 0 → 1 | 0 → 1 | hover estimator follows battery sag (0.37 → 0.41 logged) |
+| `MPC_LAND_SPEED` | 0.6 (kept) | 1.0 → 0.6 | one gentle descent rate on both |
+| `FD_FAIL_P` / `FD_FAIL_R` | 60 → 45 | 60 → 45 | earlier tumble detection |
+| `MPC_MAN_TILT_MAX` (indoor) | 35 → 20 | 35 → 20 | slower possible drift |
+| `MPC_Z_VEL_MAX_UP` (indoor) | 3 → 1 m/s | 3 → 1 m/s | slower commanded climb |
+
+**`CBRK_FLIGHTTERM` left at 121212 (termination disabled) — operator's decision, pending.** So the
+tumble detector still only disarms in the first ~4 s after arming (COM_SPOOLUP_TIME 1 + COM_LKDOWN_TKO 3)
+and only WARNS after that (PX4 v1.16 `failsafe.cpp`). Backups: full dumps
+`fc-backups/2026-10-26/ARTEX11{3,5}-2026-10-26-before-optionA.params` (1080 params each) and restore
+JSONs `baseline-sysid11{3,5}-2026-10-26-before-indoor.json` (`param_baseline.py --restore`). Not yet
+confirmed to persist across a power cycle: read them back on next power-up. Option A is not flight-tested.
+
+**Props identified (operator):** Gemfan Hurricane SL 5125-3; motor KV taken as 2400 (inferred from the
+EMAX 5-inch/4S pairing and the 0.41-0.44 hover; 1600 KV would hover near 0.55).
+
+**Sensor noise at rest, live over USB, 60 s (21 Oct):** gyro 115 0.0031-0.0035 / 113 0.0011 rad/s
+(Gazebo model 0.00087); accel 0.017-0.044 m/s² (model 0.0064); mag 0.0006-0.0037 G (model 0.0001);
+baro as height 0.02 m on both (model ~0.25 m, too noisy). Gravity 9.806/9.807 (accels calibrated).
+113 rests at 2.7° roll, 115 at -1.0° pitch: check the bench with a spirit level before calling it a
+level-calibration offset. TFmini unmeasurable on the ground (below its 0.4 m minimum).
+
+**113 flight logs, steady hover (4 flights):** front motors work harder in every flight, so the CG is
+**~8-15 mm forward** of centre (from command², thrust ∝ ω²; motor/prop mismatch could contribute);
+left-right centred ±1.3 mm. Hover command rises 0.370 → 0.408 as the pack falls 15.8 → 14.9 V; pack
+sags 0.4-0.7 V rest-to-hover. Current sensor unusable (reads ~-0.6 A). Vendor never entered the real
+geometry: `CA_ROTOR*` are the generic ±1 square, `THR_MDL_FAC` 0, `DSHOT_BIDIR_EN` 0 (no RPM).
+
+**Safety policy as configured (indoor, read from the dumps + v1.16 source):** every automatic "Land"
+becomes **Descend** with no position (straight down, may drift). RC loss 0.5 s → land; ground-link loss
+5 s → land **even in pilot-flown Altitude** (dll loss is only excepted in auto modes); battery 20/15/10 %
+→ warn / RTL→land / land; **the 3 m geofence is not evaluated indoors** (no home/global position);
+motor/ESC failure undetectable (no ESC telemetry). The pilot's handset is the only control over a
+mid-flight tumble (kill, ch8) and over the ceiling. Proposed but NOT done: companion rules on the
+TFmini (ceiling, uncommanded climb, tilt, motor saturation — option B), tether/net/barrier and a pilot
+rule card (option C).
+
 ## 2026-10-20 — SITL campaign on the ARTEX model: refusals, mission, stop-at-every-stage, faults
 
 `sim/sim_tests.py` on jetson-2 (PX4 v1.16.0 SITL + Gazebo Harmonic, airframe 4099_gz_artex, the real

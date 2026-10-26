@@ -43,6 +43,13 @@ COMMON = {
     "EKF2_GPS_CHECK": 1023,    # PX4 1.16 default, all GPS quality checks ON. Both aircraft
                                # had 0, so a 3-7 m indoor fix was fused and the position
                                # wandered by up to 12 m in 30 s on a stationary aircraft.
+    # Option A, 26 Oct 2026 (operator-approved): stop a drift/tilt/motor-surge before it starts.
+    "MPC_THR_HOVER": 0.42,     # was the untouched 0.5; 113's logs show 0.41-0.44. A high guess
+                               # makes the aircraft surge upward at take-off
+    "MPC_USE_HTE": 1,          # hover-thrust estimator on: follows battery sag (0.37->0.41 logged)
+    "MPC_LAND_SPEED": 0.6,     # 113 had 1.0, 115 0.6: one gentle, predictable descent rate
+    "FD_FAIL_P": 45,           # tumble detection 60 -> 45 deg. With CBRK_FLIGHTTERM still set
+    "FD_FAIL_R": 45,           # this disarms only in the first ~4 s after arming, else warns
 }
 PROFILES = {
     "indoor": {
@@ -50,6 +57,8 @@ PROFILES = {
         "GF_MAX_VER_DIST": 3.0,  # metres above home. 1 m breached on the bench on GPS
                                  # height noise. NOT evaluated at all with GNSS fusion off.
         "EKF2_GPS_CTRL": 0,      # no GNSS fusion indoors: no position, pilot flies Altitude
+        "MPC_MAN_TILT_MAX": 20.0,  # most tilt the pilot can command (was 35): slower drift
+        "MPC_Z_VEL_MAX_UP": 1.0,   # fastest climb in Altitude mode (was 3 m/s)
     },
     "outdoor": {**COMMON},       # plus the per-aircraft values below
 }
