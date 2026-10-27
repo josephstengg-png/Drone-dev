@@ -115,8 +115,10 @@ display here. Use the agent for anything that must work, and USB for parameter w
    the path. Nothing below is a substitute.
 2. **The guard on the companion** (`safety_rules.py`): WARN → HOLD → LAND → DISARM, on a
    severity-weighted error rate over a sliding minute, battery, tilt, telemetry gap and
-   estimator health. Climb-only — recovery is a human decision. **It never disarms an
-   aircraft that is airborne**, and on a pilot takeover or kill it stands down entirely:
+   estimator health. Climb-only — recovery is a human decision. **It does not disarm an
+   airborne aircraft unless run with `--allow-kill`** (staged response, 26 Oct 2026: LAND first, then CUT
+   after 3 s if still tilted/saturated, 3 s + 2 s pilot margin if still climbing, 1.5 s at ≥45° tilt;
+   sim-validated 27 Oct, never run on hardware), and on a pilot takeover or kill it stands down entirely:
    it sends nothing, **including no disarm, on the ground too** (decided 14 Oct 2026). It
    then says STILL ARMED every 5 s and waits up to 60 s for the pilot. Disarming is the
    pilot's: arm switch (channel 6, proven 14 Oct: disarmed an agent-armed aircraft in
