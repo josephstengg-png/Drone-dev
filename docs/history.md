@@ -359,6 +359,63 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-27 — Staged guard response (descend, then cut after a set time) validated in Gazebo, 10 runs per scenario
+
+**What changed (26 Oct, `safety_rules.py` + `drone_agent.py`, 276 tests):** the guard now answers in two
+stages. **Stage 1 = LAND** (PX4 Descend indoors): tilt ≥ 30° for 0.5 s, climbing > 0.5 m/s for 1 s with
+the throttle stick at/below centre, any motor ≥ 85 % for 0.5 s, or height above a 2.0 m ceiling.
+**Stage 2 = CUT** (force disarm), only with `--allow-kill`: tilt ≥ 45° for 1.5 s at once; or 3 s after
+stage 1 still tilted ≥ 30° / saturated; or 3 s **+ 2 s pilot margin** (operator's request) still climbing.
+A pilot mode switch makes the guard stand down. Pre-arm "Preflight Fail"/"Arming denied" chatter no
+longer counts as errors (it used to latch HOLD before every SITL take-off). New agent flags:
+`--ceiling-m`, `--cut-after-s`, `--motor-range` (sim 150,2939; real DShot assumed 0,1999, UNCONFIRMED),
+`--throttle-chan`. CLAUDE.md's "never disarms an aircraft that is airborne" no longer holds with
+`--allow-kill`.
+
+**Model fixes first (`sim/make_artex_model.py`):** operator's dimensions (body 205×50×50 mm, 22.3 mm
+clearance, props 48.4 mm off the floor, 4-inch front arms, battery on top, feet under each motor);
+x500 legs and thin rotor collisions removed (they tipped the model over and crashed ODE);
+`THRUST_CAL` 1.0 (the old fudge caused the roll oscillation, so the 20 Oct campaign figures need a
+re-run); real rate gains and option A in airframe `4099_gz_artex`.
+
+**Results, 10 instances each** (`sim/results/2026-10-26-staged/` and `sim/results/2026-10-27-staged-push/`;
+the push cases of 26 Oct were invalid after instance 1, because a second gz-transport node failed silently, and were re-run 27 Oct):
+
+| Scenario | Valid | Guard | PX4 | Result |
+|---|---|---|---|---|
+| healthy hover | 10/10 | nothing | — | tilt ≤ 3.8° |
+| pilot manoeuvres | 10/10 | nothing | — | tilt 21.5–23.1°, no false alarm |
+| gust 3–6 N, 0.5 s | 10/10 | nothing | — | tilt 5.7–9.3°, recovered |
+| weak motor (65–75 %) | 10/10 | no cut | — | no false cut |
+| motor out | 10/10 | descend 0.32–0.39 s, cut 1.78–1.84 s | terminated 10/10 | lands inverted from ~1 m |
+| tumble 1.0–1.5 N·m | 10/10 | descend in 8 (0.11–0.32 s); cut in 3 (1.65–1.93 s) | terminated 3 | 7 recovered upright (peak tilt 69–133°) with no cut; 3 went to 180° and were cut |
+| surge 3–3.8 N up, 2.5 s | 9/10 | descend in 2 (0.77, 1.05 s) | — | 7 rose slowly (to 1.4–1.8 m) under every trigger; none cut |
+| ceiling (pilot climbs) | 10/10 | descend at 2.04–2.09 m | — | — |
+| runaway, nobody reacts | 10/10 | descend 0.67–0.84 s, cut 5.67–5.86 s | — | cut exactly 5.0 s after descend (3 s + 2 s margin), 10/10 |
+| runaway, pilot takes over 1.5 s after descend | 8/10 | descend 0.51–0.78 s, then stands down | — | no cut 8/8; pilot holds height in Altitude |
+
+**Read with care:**
+- **Runaway heights (41–59 m) are not meaningful.** The sim's runaway is an external upward push
+  through Gazebo, which neither descend nor cut can cancel; on a real aircraft the excess lift would
+  come from the motors and the cut would remove it. What's validated is the timing. But indoors,
+  5 s of runaway climb puts the aircraft in the ceiling long before the cut fires. The pilot margin
+  costs height.
+- **A pilot who moves the sticks during a guard descent overrides it**, and the guard stands down, so a
+  pilot can fly up through the ceiling. By design (the pilot outranks the guard), but it should be known.
+- **Three cases never got airborne** (instance 8 surge and runaway_pilot, instance 9 runaway_pilot):
+  PX4 raised a failsafe ("Landing at current position") during the stick take-off, cause not
+  identified. In instance 8 surge the model flipped on take-off and the guard cut it, correctly. In
+  instance 8 runaway_pilot the estimator read 1.9–2.1 m while the model sat on the ground, and the guard
+  fired a ceiling LAND on it. Relevant to the real aircraft: the TFmini can't measure below 0.4 m, so on
+  the ground the guard falls back to estimator height, and a 2 m baro error would trip the ceiling.
+- The `pilot_has_it` flag came up True in runs where nobody took over, after the guard's own LAND or
+  cut. Same known false "PILOT HAS IT" bug (the guard reads its own consequence as a takeover). Here it
+  came after the action, so no outcome changed.
+
+**Not yet done:** DShot scaling of SERVO_OUTPUT_RAW on the real aircraft (props-off check); over ELRS
+the guard's commands arrive ~0.7 s late; `CBRK_FLIGHTTERM` / stage-3 PX4 backstop still the operator's
+decision; re-run of the 20 Oct sim_tests campaign on the corrected model.
+
 ## 2026-10-26 — Option A applied to both aircraft (anti-surge / anti-drift limits); bench noise, CG and safety-policy findings
 
 **Applied (operator-approved "upload option A", 26 Oct), over USB, disarmed, via `tools/param_baseline.py

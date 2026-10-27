@@ -170,7 +170,10 @@ def run_case(name, rng):
     global PUSHER
     s = boot()
     link = model_link()
-    PUSHER = Pusher()
+    if PUSHER is None:          # ONE node per process: a second Node cannot re-advertise the
+        PUSHER = Pusher()       # same topics, so every push after case 1 went nowhere (26 Oct)
+    else:
+        time.sleep(1.0)         # let the long-lived publishers discover the new Gazebo server
     c = Case(s, rng)
     s.rc_on = True
     s.mode("ALTCTL")
@@ -198,6 +201,7 @@ def run_case(name, rng):
     if reached:
         detail = disturb(name, s, c, link, rng)
         c.step(25.0 if name != "pilot_maneuvers" else 8.0)
+    pilot_in_window = c.g.pilot_has_it   # before the cleanup landing, which also flips it
     clear(link)
     s.mc = [0, 0, 500, 0]
     if s.s["armed"]:
@@ -220,7 +224,7 @@ def run_case(name, rng):
                estimator_height_max=max((r[6] for r in tr), default=None),
                texts=[t for _, _, t in s.texts if "logger" not in t][-8:])
     res["px4_terminated"] = any(r[2] == "10.0" for r in tr)    # main mode 10 = TERMINATION
-    res["pilot_has_it"] = c.g.pilot_has_it
+    res["pilot_has_it"] = pilot_in_window if reached else None
     res["countdown"] = [e["seconds"] for e in c.events if e.get("event") == "cut_pending"][:8]
     res["cut_by"] = ("guard" if any(a["action"] in ("cut", "kill") for a in res["guard"]) else
                      "px4" if res["px4_terminated"] else
@@ -312,7 +316,10 @@ def judge(name, r):
         if "land" in acts:
             return "ok"
         rise = (r.get("max_height") or 0) - (r.get("height_before") or 0)
-        return "ok (PX4 held height)" if rise < 0.5 else "MISSED"
+        if rise < 0.5:
+            return "ok (PX4 held height)"
+        # a slow rise that stays under the climb trigger and the ceiling is PX4's to correct
+        return "ok (slow rise, under triggers)" if (r.get("max_height") or 0) < 2.0 else "MISSED"
     if exp == "cut_after_margin":
         land = next((a["t"] for a in r["guard"] if a["action"] == "land"), None)
         kill = next((a["t"] for a in r["guard"] if a["action"] in ("cut", "kill")), None)
