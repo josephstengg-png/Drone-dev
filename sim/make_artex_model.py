@@ -32,6 +32,16 @@ BATTERY = dict(mass=0.312, x=0.143, y=0.044, z=0.023)  # 4S 5000 mAh, 143x44x23 
 MOTOR_MASS = 0.018             # kg, EMAX ECO II 2004 (spec sheet ~18 g)
 PROP_DIAMETER = 0.131          # m, Gemfan Hurricane SL 5125-3 (5.1 in, 3-blade)
 TFMINI_RANGE = (0.40, 12.0)    # m, Benewake TFmini, mounted at the centre facing down
+# operator, 26 Oct 2026: heights above the floor with the aircraft standing on it
+BODY = dict(x=0.205, y=0.050, z=0.050)   # m, the "coffin" body, modelled as a box (L x W x H)
+BODY_CLEARANCE = 0.0223        # m, body underside to floor
+MOTOR_MOUNT_H = 0.0270         # m, motor mount to floor
+PROP_H = 0.0484                # m, prop plane to floor (mount 27.0 + 20.7 mount-to-prop)
+FRONT_ARM = 0.1016             # m, front arms "4 inches": from the body's side (y 25 mm) to a
+                               # front motor (x 68.3, y 100) is 101.4 mm -- consistent
+ORIGIN_H = BODY_CLEARANCE + BODY["z"] / 2   # model origin = body centre, 47.3 mm up
+# operator's photos, 26 Oct 2026: the battery is strapped ON TOP of the body, not inside it
+BATTERY_Z = BODY["z"] / 2 + BATTERY["z"] / 2    # battery centre above the body centre (36.5 mm)
 
 # ---- from the aircraft's own logs -----------------------------------------------------------
 HOVER_THROTTLE = 0.42          # PX4 hover_thrust_estimate, ARTEX113 flights: 0.411-0.442
@@ -42,14 +52,14 @@ V_LOADED = 14.8                # V, 4S under load
 LOAD_FACTOR = 0.79             # loaded rpm / (KV x V); typical for a 5 in 3-blade
 OMEGA_MIN = 150.0              # rad/s at idle output (PX4 x500 default, DShot idle ~5%)
 MOMENT_CONSTANT = 0.0125       # m, rotor torque/thrust for a 5 in prop (x500's 13 in: 0.016)
-BODY = dict(x=0.12, y=0.06, z=0.03)   # m, the rest of the airframe as a small central box
 
-# ---- calibrated against the simulator ---------------------------------------------------------
-# Gazebo's MulticopterMotorModel gave MORE thrust than motorConstant * w^2 predicts: with the
-# uncalibrated constant the SITL ARTEX hovered at throttle 0.333 (w = 1079 rad/s) instead of 0.42
-# (w = 1321 rad/s), 20 Oct 2026, two runs. Scale the constant by (1079/1321)^2 so the model hovers
-# where the real aircraft does.
-THRUST_CAL = (1079.0 / 1321.0) ** 2
+# ---- no thrust fudge ------------------------------------------------------------------------------
+# 20 Oct 2026 the model hovered at 0.333 and a (1079/1321)^2 "calibration" was applied. WRONG CAUSE,
+# found 26 Oct: the airframe ran PX4's default rate gains (about 3x the real ARTEX's on roll), the
+# model sat in a +/-125 deg/s roll limit cycle with the motors swinging 150 <-> 2849 rad/s, and the
+# mean of w^2 over that swing is what lifted it. With the real gains the hover is steady and
+# motorConstant * w^2 is right as derived. Kept as a named 1.0 so the history stays readable.
+THRUST_CAL = 1.0
 
 
 def derived() -> dict:
@@ -63,11 +73,16 @@ def derived() -> dict:
     b, m = BATTERY, BATTERY["mass"]
     body_mass = MASS_TOTAL - m - 4 * MOTOR_MASS
     box = lambda mm, a, bb: mm / 12 * (a * a + bb * bb)  # noqa: E731
-    ixx = box(m, b["y"], b["z"]) + box(body_mass, BODY["y"], BODY["z"]) + 4 * MOTOR_MASS * hy ** 2
-    iyy = box(m, b["x"], b["z"]) + box(body_mass, BODY["x"], BODY["z"]) + 4 * MOTOR_MASS * hx ** 2
+    # centre of gravity of the base link: body at 0, battery on top at BATTERY_Z, motors on their
+    # mounts (MOTOR_MOUNT_H). Inertia is taken about that point (parallel axis).
+    mz = MOTOR_MOUNT_H - ORIGIN_H
+    cg_z = (m * BATTERY_Z + 4 * MOTOR_MASS * mz) / (m + body_mass + 4 * MOTOR_MASS)
+    up = m * (BATTERY_Z - cg_z) ** 2 + body_mass * cg_z ** 2 + 4 * MOTOR_MASS * (mz - cg_z) ** 2
+    ixx = box(m, b["y"], b["z"]) + box(body_mass, BODY["y"], BODY["z"]) + 4 * MOTOR_MASS * hy ** 2 + up
+    iyy = box(m, b["x"], b["z"]) + box(body_mass, BODY["x"], BODY["z"]) + 4 * MOTOR_MASS * hx ** 2 + up
     izz = box(m, b["x"], b["y"]) + box(body_mass, BODY["x"], BODY["y"]) + 4 * MOTOR_MASS * (hx * hx + hy * hy)
     return dict(omega_max=omega_max, omega_hover=omega_hover, k_thrust=k_thrust, hx=hx, hy=hy,
-                base_mass=base_mass, ixx=ixx, iyy=iyy, izz=izz,
+                base_mass=base_mass, ixx=ixx, iyy=iyy, izz=izz, cg_z=cg_z,
                 max_thrust_g=k_thrust * omega_max ** 2 / G * 1000)
 
 
@@ -81,6 +96,7 @@ def sub(text: str, pattern: str, repl: str, count: int = 0, expect: int | None =
 def make_base(src: str, d: dict) -> str:
     s = src.replace("<model name='x500_base'>", "<model name='artex_base'>")
     s = sub(s, r"(<link name=\"base_link\">.*?<mass>)2\.0(</mass>)", rf"\g<1>{d['base_mass']:.4f}\2", expect=1)
+    s = sub(s, r"(<link name=\"base_link\">\s*<inertial>)", rf"\g<1>\n        <pose>0 0 {d['cg_z']:.4f} 0 0 0</pose>", expect=1)
     s = sub(s, r"(<link name=\"base_link\">.*?<ixx>)[0-9.e-]+", rf"\g<1>{d['ixx']:.3e}", expect=1)
     s = sub(s, r"(<link name=\"base_link\">.*?<iyy>)[0-9.e-]+", rf"\g<1>{d['iyy']:.3e}", expect=1)
     s = sub(s, r"(<link name=\"base_link\">.*?<izz>)[0-9.e-]+", rf"\g<1>{d['izz']:.3e}", expect=1)
@@ -92,6 +108,30 @@ def make_base(src: str, d: dict) -> str:
                   f"<scale>{scale:.4f} {scale:.4f} {scale:.4f}</scale>")
     s = s.replace("0.2792307692307692 0.016923076923076923", f"{PROP_DIAMETER:.4f} 0.0100")
     s = s.replace("0.35355339059327373 0.35355339059327373 0.05", "0.24 0.24 0.05")
+    # No rotor collisions. x500's are 0.85 mm-thick boxes; spinning into the ground after a
+    # tumble they tripped an ODE assertion and killed the Gazebo server (26 Oct 2026). The
+    # body's collision box still meets the floor; prop strikes are not modelled.
+    s = sub(s, r"\s*<collision name=\"rotor_\d_collision\">.*?</collision>", "", expect=4)
+    # No x500 landing gear. Its legs (22 cm tall, skids 26 cm apart) tipped the model over on a
+    # slow stick take-off (26 Oct 2026). The ARTEX's measured stance instead: the body box at
+    # its real size and height, and -- ASSUMED, the operator gave heights not the feet -- four
+    # small feet under the motors carrying it 22.3 mm off the floor. The x500 frame MESH still
+    # draws legs; they are visual only.
+    s = sub(s, r"\s*<collision name=\"base_link_collision_[1-4]\">.*?</collision>", "", expect=4)
+    s = s.replace("<size>0.24 0.24 0.05</size>", f"<size>{BODY['x']} {BODY['y']} {BODY['z']}</size>")
+    s = sub(s, r"(<collision name=\"base_link_collision_0\">\s*<pose>)0 0 \.007 0 0 0", r"\g<1>0 0 0 0 0 0", expect=1)
+    foot_h = MOTOR_MOUNT_H
+    feet = "".join(f"""
+      <collision name="foot_{i}">
+        <pose>{x:.4f} {y:.4f} {-ORIGIN_H + foot_h / 2:.4f} 0 0 0</pose>
+        <geometry><box><size>0.012 0.012 {foot_h:.4f}</size></box></geometry>
+      </collision>""" for i, (x, y) in enumerate(((d['hx'], d['hy']), (d['hx'], -d['hy']),
+                                                   (-d['hx'], d['hy']), (-d['hx'], -d['hy']))))
+    s = sub(s, r"(<collision name=\"base_link_collision_0\">.*?</collision>)", lambda m: m.group(1) + feet, expect=1)
+    # rotors in the measured prop plane, relative to the body centre; spawn standing on the floor
+    s = sub(s, r"(<link name=\"rotor_\d\">.*?<pose>-?[0-9.]+ -?[0-9.]+ )0\.06( 0 0 0</pose>)",
+            rf"\g<1>{PROP_H - ORIGIN_H:.4f}\2", expect=4)
+    s = s.replace("<pose>0 0 .24 0 0 0</pose>", f"<pose>0 0 {ORIGIN_H + 0.002:.4f} 0 0 0</pose>", 1)
     return s
 
 
@@ -103,7 +143,7 @@ def make_motors(src: str, d: dict) -> str:
     s = s.replace("<momentConstant>0.016</momentConstant>", f"<momentConstant>{MOMENT_CONSTANT}</momentConstant>")
     lidar = f"""
     <link name="lidar_sensor_link">
-      <pose relative_to="base_link">0 0 -0.02 0 1.5708 0</pose>
+      <pose relative_to="base_link">0 0 {-BODY["z"] / 2:.4f} 0 1.5708 0</pose>
       <inertial><mass>0.001</mass><inertia><ixx>1e-6</ixx><iyy>1e-6</iyy><izz>1e-6</izz>
         <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia></inertial>
       <sensor name="lidar" type="gpu_lidar">
@@ -133,9 +173,12 @@ def make_airframe(d: dict) -> str:
 #
 # @type Quadrotor
 #
-# Control allocation and tuning mirror the REAL ARTEX as configured today (19 Oct 2026 dump):
-# normalised rotor positions +/-1, KM +/-0.05, PX4 default rate gains, MPC_THR_HOVER 0.5
-# (untuned; PX4's estimator learned ~0.42 in flight). Physics live in the Gazebo model.
+# Control allocation and tuning mirror the REAL ARTEX (113/115 dumps, identical, 26 Oct 2026):
+# normalised rotor positions +/-1, KM +/-0.05, the vendor's rate gains (roll K 0.35, pitch K 0.40,
+# yaw K 1.2 -- NOT PX4's defaults: until 26 Oct this file used the defaults and the model oscillated
+# in roll), gyro filters 80/30 Hz, and option A (hover 0.42 + estimator, land 0.6, tilt 20,
+# climb 1 m/s, tumble 45 deg) and the height settings (barometer reference EKF2_HGT_REF 0 -- PX4's
+# default 1 is GPS, which indoors does not exist; found 26 Oct). Physics live in the Gazebo model.
 
 . ${{R}}etc/init.d/rc.mc_defaults
 
@@ -162,8 +205,34 @@ param set-default CA_ROTOR3_KM -0.05
 
 {ec}
 
-param set-default MPC_THR_HOVER 0.5
+param set-default MC_ROLLRATE_K 0.35
+param set-default MC_ROLLRATE_P 0.15
+param set-default MC_ROLLRATE_I 0.2
+param set-default MC_ROLLRATE_D 0.003
+param set-default MC_PITCHRATE_K 0.40
+param set-default MC_PITCHRATE_P 0.15
+param set-default MC_PITCHRATE_I 0.2
+param set-default MC_PITCHRATE_D 0.003
+param set-default MC_YAWRATE_K 1.2
+param set-default MC_YAWRATE_P 0.2
+param set-default MC_YAWRATE_I 0.1
+param set-default MC_YAWRATE_D 0.0
+param set-default MC_ROLL_P 6.5
+param set-default MC_PITCH_P 6.5
+param set-default MC_YAW_P 2.8
+param set-default IMU_GYRO_CUTOFF 80
+param set-default IMU_DGYRO_CUTOFF 30
+
+param set-default MPC_THR_HOVER 0.42
+param set-default MPC_USE_HTE 1
+param set-default MPC_LAND_SPEED 0.6
+param set-default MPC_MAN_TILT_MAX 20
+param set-default MPC_Z_VEL_MAX_UP 1.0
+param set-default FD_FAIL_P 45
+param set-default FD_FAIL_R 45
 param set-default BAT1_N_CELLS 4
+param set-default EKF2_HGT_REF 0
+param set-default EKF2_RNG_DELAY 5
 param set-default EKF2_RNG_CTRL 1
 param set-default EKF2_RNG_A_HMAX 1.0
 """

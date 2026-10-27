@@ -13,6 +13,20 @@ decision, not a timeout.
     HOLD    stop the mission, hover where you are
     LAND    descend and land in place, now
     DISARM  cut the motors -- only ever once the aircraft is on the ground
+    CUT     cut the motors IN THE AIR. Only the staged tumble rules reach it, only after a
+            descent has been tried and failed, and only when cut_enabled (the agent's
+            --allow-kill). It drops the aircraft; it exists because a tumbling aircraft
+            under power is worse than a falling one.
+
+THE STAGED RESPONSE (26 Oct 2026, operator: "descend first, then cut after a set time").
+    stage 1 -> LAND: tilt >= 30 deg for 0.5 s, an uncommanded climb, a saturated motor, or the
+               rangefinder ceiling. Indoors PX4 turns LAND into Descend (no position).
+    stage 2 -> CUT:  tilt >= 45 deg for 1.5 s, or still airborne 3 s after stage 1 and not
+               recovering (still tilted or saturated) -- or still CLIMBING 3 + 2 s after it:
+               a runaway climb gets a 2 s pilot margin (operator, 26 Oct 2026: "keep that rule
+               but allow margin for the pilot to react and take over"). A mode switch on the
+               handset before the cut makes the agent stand down for good.
+    PX4's own tumble detector (FD_FAIL_*, CBRK_FLIGHTTERM) is the backstop beneath both.
 
 WHY A RATE AND NOT A COUNT. PX4 talks constantly and a healthy aircraft still emits the odd
 warning, so a count would either fire on the first grumble or never. One "EKF ..." message
@@ -31,8 +45,8 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass, field
 
-NONE, WARN, HOLD, LAND, DISARM = "none", "warn", "hold", "land", "disarm"
-RUNG = {NONE: 0, WARN: 1, HOLD: 2, LAND: 3, DISARM: 4}
+NONE, WARN, HOLD, LAND, DISARM, CUT = "none", "warn", "hold", "land", "disarm", "cut"
+RUNG = {NONE: 0, WARN: 1, HOLD: 2, LAND: 3, DISARM: 4, CUT: 5}
 
 # MAV_SEVERITY 0-4: EMERGENCY, ALERT, CRITICAL, ERROR, WARNING. NOTICE (5) and below are
 # routine chatter -- "Ready for takeoff", "Armed by external command" -- and score nothing.
@@ -44,6 +58,9 @@ SEVERITY_WEIGHT = {0: 8.0, 1: 6.0, 2: 4.0, 3: 2.0, 4: 1.0}
 # gap rule for a real link loss.
 CONSEQUENCE_TEXTS = ("failsafe activated", "connection to ground station lost",
                      "gcs connection regained", "no connection to the ground control station")
+# Arming chatter. A disarmed aircraft refusing to arm, or one refusing a disarm in the air, is
+# PX4 doing its job; scoring it latched HOLD before take-off in every SITL run (20 Oct 2026).
+ARMING_TEXTS = ("preflight fail", "arming denied", "disarming denied", "[logger]")
 
 
 @dataclass
@@ -69,6 +86,23 @@ class Limits:
     innovation_ratio: float = 1.0     # PX4 calls >1.0 a failing innovation test
     innovation_sustain_s: float = 3.0 # one spike is noise; three seconds is a trend
 
+    # Staged response. Normal indoor flight: tilt <= 20 deg (MPC_MAN_TILT_MAX), motors 0.34-0.70
+    # (113's logs), climb <= 1 m/s (MPC_Z_VEL_MAX_UP) -- every trigger sits clear of those.
+    stage1_tilt_deg: float = 30.0
+    stage1_tilt_s: float = 0.5
+    climb_vz: float = 0.5             # m/s up with the throttle stick at or below centre
+    climb_s: float = 1.0
+    stick_centre: float = 0.5         # throttle stick, 0 bottom .. 1 top
+    stick_deadband: float = 0.1
+    motor_sat: float = 0.85           # fraction of full command
+    motor_sat_s: float = 0.5
+    ceiling_m: float | None = 2.0     # rangefinder height; None switches the rule off
+    cut_enabled: bool = False         # stage 2 needs the agent's --allow-kill
+    cut_tilt_deg: float = 45.0
+    cut_tilt_s: float = 1.5
+    cut_after_s: float = 3.0          # the "set duration" of descent before a cut
+    pilot_margin_s: float = 2.0       # extra time before a runaway-CLIMB cut, for the pilot
+
 
 @dataclass
 class Verdict:
@@ -92,11 +126,27 @@ class Watchdog:
         self._attitude_lost = False
         self._innovation_since: float | None = None
         self._manual: tuple[str, str] | None = None
+        self._armed: bool | None = None
+        self._airborne: bool | None = None
+        self._height: float | None = None
+        self._vz: float | None = None
+        self._stick: float | None = None
+        self._motor_max: float | None = None
+        self._since: dict[str, float | None] = {}
+        self._stage1_at: float | None = None
+        self._px4_failsafe: str | None = None
 
     # ---- telemetry in -------------------------------------------------------------
 
     def statustext(self, severity: int, text: str, now: float) -> None:
-        if any(c in text.lower() for c in CONSEQUENCE_TEXTS):
+        low = text.lower()
+        if any(c in low for c in CONSEQUENCE_TEXTS):
+            # PX4 is already acting. Say so (WARN never commands anything), but do not
+            # pile a mode change on top of its failsafe.
+            if "failsafe" in low and self._armed is not False:
+                self._px4_failsafe = text.strip()
+            return
+        if any(c in low for c in ARMING_TEXTS) or self._armed is False:
             return
         weight = SEVERITY_WEIGHT.get(int(severity))
         if weight:
@@ -124,6 +174,38 @@ class Watchdog:
                 self._innovation_since = now
         else:
             self._innovation_since = None
+
+    def armed(self, armed: bool, now: float) -> None:
+        if armed and self._armed is False:
+            self._events.clear()          # pre-arm chatter belongs to the ground
+        self._armed = bool(armed)
+
+    def airborne(self, airborne: bool | None, now: float) -> None:
+        self._airborne = airborne
+
+    def vertical(self, height_m: float | None, vz_up: float | None, now: float) -> None:
+        """Height above ground (rangefinder when valid) and climb rate, m and m/s up."""
+        if height_m is not None:
+            self._height = height_m
+        if vz_up is not None:
+            self._vz = vz_up
+
+    def stick(self, throttle: float | None, now: float) -> None:
+        """Pilot's throttle stick, 0 bottom .. 1 top; None when unknown."""
+        self._stick = throttle
+
+    def motors(self, outputs: list[float], now: float) -> None:
+        """Motor commands as fractions of full (0..1)."""
+        self._motor_max = max(outputs) if outputs else None
+
+    def _held(self, key: str, cond: bool, now: float) -> float:
+        """Seconds a condition has been continuously true (0 when false)."""
+        if not cond:
+            self._since[key] = None
+            return 0.0
+        if self._since.get(key) is None:
+            self._since[key] = now
+        return now - self._since[key]
 
     def manual(self, action: str, reason: str) -> None:
         """An operator command. Outranks nothing -- it joins the ladder like any rule."""
@@ -188,6 +270,11 @@ class Watchdog:
             action, reason = self._manual
             found.append((action, f"operator: {reason}"))
 
+        if self._px4_failsafe:
+            found.append((WARN, f"PX4 failsafe: {self._px4_failsafe}"))
+
+        found += self._staged(now)
+
         climbed = False
         for action, reason in found:
             if RUNG[action] > RUNG[self._action]:
@@ -197,6 +284,57 @@ class Watchdog:
 
         return Verdict(action=self._action, reasons=list(self._reasons),
                        error_rate=rate, climbed=climbed)
+
+
+    def _staged(self, now: float) -> list[tuple[str, str]]:
+        lim, out = self.limits, []
+        flying = self._armed is not False
+        tilt = self._tilt_deg or 0.0
+        t_tilt = self._held("tilt", flying and tilt >= lim.stage1_tilt_deg, now)
+        stick_low = (self._stick is not None
+                     and self._stick <= lim.stick_centre + lim.stick_deadband)
+        climbing = self._vz is not None and self._vz > lim.climb_vz
+        t_climb = self._held("climb", flying and climbing and stick_low, now)
+        saturated = self._motor_max is not None and self._motor_max >= lim.motor_sat
+        t_sat = self._held("sat", flying and saturated, now)
+        t_cut_tilt = self._held("cut_tilt", flying and tilt >= lim.cut_tilt_deg, now)
+
+        stage1 = []
+        if t_tilt >= lim.stage1_tilt_s:
+            stage1.append(f"stage 1: tilt {tilt:.0f} deg >= {lim.stage1_tilt_deg:.0f} for {t_tilt:.1f}s")
+        if t_climb >= lim.climb_s:
+            stage1.append(f"stage 1: climbing {self._vz:.1f} m/s with throttle at/below centre")
+        if t_sat >= lim.motor_sat_s:
+            stage1.append(f"stage 1: motor at {self._motor_max:.2f} for {t_sat:.1f}s")
+        if (flying and lim.ceiling_m is not None and self._height is not None
+                and self._height > lim.ceiling_m):
+            stage1.append(f"stage 1: height {self._height:.2f} m above ceiling {lim.ceiling_m} m")
+        if stage1 and self._stage1_at is None:
+            self._stage1_at = now
+        out += [(LAND, r) for r in stage1]
+
+        if lim.cut_enabled and flying:
+            if t_cut_tilt >= lim.cut_tilt_s:
+                out.append((CUT, f"stage 2: tilt {tilt:.0f} deg >= {lim.cut_tilt_deg:.0f} for {t_cut_tilt:.1f}s"))
+            if self._stage1_at is not None and self._airborne is not False:
+                waited = now - self._stage1_at
+                if waited >= lim.cut_after_s and (tilt >= lim.stage1_tilt_deg or saturated):
+                    out.append((CUT, f"stage 2: {waited:.1f}s after stage 1, still airborne and "
+                                     "not recovering"))
+                elif waited >= lim.cut_after_s + lim.pilot_margin_s and climbing:
+                    out.append((CUT, f"stage 2: still climbing {waited:.1f}s after stage 1 "
+                                     f"(incl. {lim.pilot_margin_s:.0f}s pilot margin)"))
+        return out
+
+    def cut_in(self, now: float) -> float | None:
+        """Seconds until the earliest stage-2 cut could fire, for the countdown; None if none pending."""
+        lim = self.limits
+        if not lim.cut_enabled or self._stage1_at is None or self._action == CUT:
+            return None
+        climbing_only = not ((self._tilt_deg or 0) >= lim.stage1_tilt_deg
+                             or (self._motor_max or 0) >= lim.motor_sat)
+        due = lim.cut_after_s + (lim.pilot_margin_s if climbing_only else 0.0)
+        return max(0.0, due - (now - self._stage1_at))
 
 
 def on_ground_action(action: str, airborne: bool | None) -> str:
@@ -210,4 +348,4 @@ def on_ground_action(action: str, airborne: bool | None) -> str:
         return DISARM
     if action == DISARM and airborne is not False:
         return LAND
-    return action
+    return action                 # CUT is deliberate: it stays CUT wherever the aircraft is

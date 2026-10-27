@@ -782,11 +782,23 @@ def limits_from_args(args) -> safety_rules.Limits:
     lim = safety_rules.Limits()
     for attr, name in (("hold_rate", "hold_rate"), ("land_rate", "land_rate"),
                        ("battery_land_pct", "battery_land_pct"),
-                       ("tilt_land_deg", "tilt_land_deg")):
+                       ("tilt_land_deg", "tilt_land_deg"),
+                       ("cut_after_s", "cut_after_s")):
         given = getattr(args, attr, None)
         if given is not None:
             setattr(lim, name, given)
+    ceiling = getattr(args, "ceiling_m", None)
+    if ceiling is not None:
+        lim.ceiling_m = ceiling if ceiling > 0 else None
+    lim.cut_enabled = bool(getattr(args, "allow_kill", False))   # stage 2 is a kill
     return lim
+
+
+def parse_motor_range(text: str | None) -> tuple[float, float]:
+    """'min,max' of SERVO_OUTPUT_RAW for this platform. DShot reports 0..1999 (the real
+    ARTEX, UNCONFIRMED props-off); the Gazebo model reports rotor speed 150..2939 rad/s."""
+    lo, hi = (float(x) for x in (text or "0,1999").split(","))
+    return lo, hi
 
 
 class Guard:
@@ -823,6 +835,9 @@ class Guard:
         self.killed_by_pilot = False
         self.handback_requests = 0       # times the switch asked for OFFBOARD after a takeover
         self._prev_mode: int | None = None
+        self.motor_lo, self.motor_hi = parse_motor_range(getattr(args, "motor_range", None))
+        self.throttle_chan = getattr(args, "throttle_chan", 3) or 3
+        self._range_at = 0.0                 # last valid rangefinder reading
         # A flag that predates the run is an abort nobody cleared. Refuse to fly rather
         # than guess which it was, and say which case this is -- the operator needs to
         # know whether the abort happened just now or last time.
@@ -837,6 +852,7 @@ class Guard:
                     and msg.type != mavutil.mavlink.MAV_TYPE_GCS:
                 self.wd.heartbeat(now)
                 self.armed = bool(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED)
+                self.wd.armed(self.armed, now)
                 self._note_mode(vehicle_main_mode(msg))
         elif kind == "STATUSTEXT":
             text = statustext_of(msg)
@@ -853,6 +869,24 @@ class Guard:
                 self.airborne, self._seen_landed_state = False, True
             elif msg.landed_state in MAV_LANDED_AIRBORNE:
                 self.airborne, self._seen_landed_state = True, True
+            self.wd.airborne(self.airborne, now)
+        elif kind == "DISTANCE_SENSOR":
+            d = msg.current_distance
+            if msg.min_distance < d < msg.max_distance:      # 65535 / 0 = no return
+                self._range_at = now
+                self.wd.vertical(d / 100.0, None, now)
+        elif kind == "LOCAL_POSITION_NED":
+            # height from the estimator only while the rangefinder is silent (below 0.4 m)
+            fallback = -msg.z if now - self._range_at > 1.0 else None
+            self.wd.vertical(fallback, -msg.vz, now)
+        elif kind == "RC_CHANNELS":
+            raw = getattr(msg, f"chan{self.throttle_chan}_raw", 0)
+            self.wd.stick((raw - 1000) / 1000.0 if 900 < raw < 2100 else None, now)
+        elif kind == "SERVO_OUTPUT_RAW":
+            span = self.motor_hi - self.motor_lo
+            outs = [getattr(msg, f"servo{i}_raw") for i in range(1, 5)]
+            if self.armed and span > 0:
+                self.wd.motors([max(0.0, (v - self.motor_lo) / span) for v in outs], now)
         elif kind == "GLOBAL_POSITION_INT" and not self._seen_landed_state:
             self.airborne = (msg.relative_alt / 1000.0) > 1.0
         elif kind == "ESTIMATOR_STATUS":
@@ -950,6 +984,12 @@ class Guard:
         if v.climbed:
             log(f"[safety] {v.action.upper()}: " + "; ".join(v.reasons[-2:])
                 + f" (error rate {v.error_rate:.1f}/min)")
+        left = self.wd.cut_in(time.time())
+        if left is not None and self.airborne is not False and int(left) != getattr(self, "_cd", None):
+            self._cd = int(left)      # once a second: the pilot's window to take over
+            log(f"[safety] DESCENDING -- CUT IN {left:.0f}s unless the pilot takes over (ch7)")
+            emit(dict(event="cut_pending", slot=self.slot, seconds=round(left, 1),
+                      t_epoch=round(time.time(), 3)))
         self._finish_landing()
         if safety_rules.RUNG[v.action] >= safety_rules.RUNG[safety_rules.HOLD] \
                 and v.action != self.acted:
@@ -976,6 +1016,14 @@ class Guard:
             self.stop_streaming = True
             self.landing_since = time.time()
             self._send_disarm()
+        elif real == safety_rules.CUT:
+            if self.allow_kill:
+                return self.kill("; ".join(reasons[-2:]))
+            # unreachable through the rules (cut_enabled follows --allow-kill), kept as a seatbelt
+            log("[safety] CUT refused without --allow-kill: landing instead")
+            self.conn.mav.command_long_send(self.conn.target_system, 1,
+                                            mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0, 0, 0, 0, 0)
+            real = safety_rules.LAND
         ev = dict(event="safety", slot=self.slot, action=action, carried_out=real,
                   airborne=self.airborne, reasons=reasons,
                   error_rate=round(self.wd.error_rate(time.time()), 2),
@@ -1482,6 +1530,14 @@ def main() -> int:
                     help="weighted vehicle errors per minute that force a landing")
     ap.add_argument("--battery-land-pct", type=float, default=None)
     ap.add_argument("--tilt-land-deg", type=float, default=None)
+    ap.add_argument("--ceiling-m", type=float, default=None,
+                    help="rangefinder height that triggers a descent (default 2.0; 0 = off)")
+    ap.add_argument("--cut-after-s", type=float, default=None,
+                    help="stage 2: seconds of failed descent before an in-air cut "
+                         "(default 3; needs --allow-kill)")
+    ap.add_argument("--motor-range", default="0,1999",
+                    help="SERVO_OUTPUT_RAW min,max for motor saturation (DShot 0,1999)")
+    ap.add_argument("--throttle-chan", type=int, default=3)
     args = ap.parse_args()
 
     if args.verb in ("prepare", "upload") and not args.plan:

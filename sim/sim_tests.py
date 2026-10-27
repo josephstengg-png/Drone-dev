@@ -75,9 +75,11 @@ def stop_sim():
         raise RuntimeError(f"simulator processes survived SIGKILL: {left}")
 
 
-def start_sim(gui=True, wipe=True):
+def start_sim(gui=True, wipe=True, params=None, ready="Ready for takeoff"):
+    """params: {NAME: value} applied at boot (PX4_PARAM_* env, rcS) -- e.g. GPS off from power-up."""
     env = dict(os.environ, PX4_SYS_AUTOSTART="4099", PX4_SIM_MODEL="gz_artex",
                PX4_GZ_WORLD="default", GZ_IP="127.0.0.1", HEADLESS="1")
+    env.update({f"PX4_PARAM_{k}": str(v) for k, v in (params or {}).items()})
     # Start every case from the airframe's own defaults: parameters persist in SITL, and on 20 Oct
     # an interrupted refusal test left EKF2_GPS_CTRL at 0, which silently broke every GPS test after it.
     for f in (PX4_DIR / "build/px4_sitl_default/rootfs").glob("parameters*.bson") if wipe else ():
@@ -88,7 +90,7 @@ def start_sim(gui=True, wipe=True):
     Path("/tmp/sitl_px4.pid").write_text(str(p.pid))
     for _ in range(90):
         time.sleep(1)
-        if "Ready for takeoff" in (GZB_DIR / "sitl.log").read_text(errors="ignore"):
+        if ready in (GZB_DIR / "sitl.log").read_text(errors="ignore"):
             break
     if gui:
         xa = f"/run/user/{os.getuid()}/gdm/Xauthority"
@@ -116,6 +118,8 @@ class Sim:
         self.acks, self.pvals = {}, {}
         self.z0 = 0.0   # local z of the ground (about -0.4 m in this world); heights are above it
         self.hb_on, self.rc_on = True, False
+        self.mc = [0, 0, 500, 0]          # pilot sticks: x pitch, y roll, z throttle (500 = hold), r yaw
+        self.on_msg = None                # callback(msg) for every message from the vehicle
         self.wd = sr.Watchdog(now=time.time())
         self.wd_max = (sr.NONE, [])
         self._stop = False
@@ -133,7 +137,7 @@ class Sim:
         while not self._stop:
             with self.lock:
                 if self.rc_on:
-                    self.c.mav.manual_control_send(self.c.target_system, 0, 0, 500, 0, 0)
+                    self.c.mav.manual_control_send(self.c.target_system, *self.mc, 0)
                 if self.hb_on and n % 20 == 0:
                     self.c.mav.heartbeat_send(6, 8, 0, 0, 0)
             n += 1
@@ -152,6 +156,8 @@ class Sim:
                 continue
             if m.get_srcSystem() != self.c.target_system:
                 continue
+            if self.on_msg is not None:
+                self.on_msg(m)
             k, now = m.get_type(), time.time()
             if k == "HEARTBEAT" and m.type != 6:
                 self.s["armed"] = bool(m.base_mode & 128)
