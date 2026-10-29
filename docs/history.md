@@ -359,6 +359,56 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-29 (pm) — Takeover ladder built; the offboard height loop CANNOT be closed over ELRS
+
+**Built** (commit 4d9728a, 293 tests):
+- **`drone_agent.py offboard-flight --stage prearm|arm|takeoff|hold|descent|landing|disarm`**:
+  - flies `HeightHold` in OFFBOARD up to the stage under test and holds that stage open
+    (`--wait-s`, default 15);
+  - reports outcome, takeover source, stage, height and tilt at takeover, setpoints sent, and
+    received telemetry rates.
+- **Guard classifies every exit from OFFBOARD** (`safety_rules.classify_mode_exit`):
+  - `pilot_switch` if ch7 left centre after the mode change, `link_loss` if it stayed centred
+    for `--classify-s` (1.5 s), `unknown` if no RC reading came.
+  - It stands down at once in every case. The classification only changes what is reported, and
+    the operator is told plainly when it was the link.
+  - The kill switch is now also seen on RC ch8 (`--kill-pwm-above 1750`, check with rc-check
+    first), not only in STATUSTEXT.
+  - In flight, the agent's commanded climb stands in for the throttle stick, so the "climbing
+    with the stick at centre" rule doesn't fire on the agent's own take-off.
+- **`sim/takeover_tests.py`**: runs the real agent as a subprocess on 14540. The harness is the
+  pilot on 14550, with RC over `RC_CHANNELS_OVERRIDE` (ch7 → Altitude, ch8 kill), so PX4 sees a
+  real mode switch and kill switch.
+- **SITL trap:** with `RC_CHAN_CNT` 0, PX4 treats RC as uncalibrated. `rc_update` still publishes
+  the switches (the kill works), but never a valid `manual_control_setpoint`, so ManualControl
+  ignores the mode slot. Set `RC_CHAN_CNT` 8 in sim.
+- Old Jetson copies backed up to `jetson-2:~/FlightPlanner/backups/tools-2026-10-29/`.
+
+**First SITL hold case: PASS.** ch7 flip → ALTCTL in 0.37 s, classified `pilot_switch`, agent
+silent, pilot landed and killed, disarmed.
+
+**The finding that changes the plan:**
+- SITL, 5 Hz setpoints, no radio delay: the hover oscillated (thrust 0.12 ↔ 0.59) to 1.54 m and
+  hit the controller's 1.5 m ceiling abort. At 50 Hz it held 1.00 m ±1 cm.
+- Offline 1-D model, 5 Hz with ELRS's ~0.35 s one-way delay:
+  - the default gains are unstable from just 0.1 s of delay;
+  - across a search of 864 gain sets, none survived a ±0.05 hover-thrust error at 0.35–0.5 s
+    delay (through the 1.5 m ceiling, or stuck on the floor);
+  - the best "tuned" set swung 0.72–1.27 m even with the hover thrust known exactly.
+- **Consequence:** a thrust-only height loop closed across ELRS is not safe. The agent now
+  **refuses flight stages (take-off onwards) on a real aircraft unless `--link` is serial
+  (wired)**. T1–T2 (pre-arm, arm) still run over ELRS. Tests pin both the instability and the
+  refusal.
+- **Operator decision needed:**
+  - (a) wire a Jetson to its FC (UART/USB) — the loop is proven at 50 Hz; or
+  - (b) the agent flies Altitude through a virtual joystick (`MANUAL_CONTROL`), so PX4 holds
+    height on the FC and the radio carries only climb commands. This changes the takeover model
+    and needs `COM_RC_IN_MODE` changes.
+  - Offboard over ELRS with tuning alone: not recommended.
+
+**Running:** SITL campaign, 8 scenarios (7 stages + no-takeover) × 10, ELRS-like outages
+(mean 10 s apart, 0.5–1.5 s), 20 Hz. Results to follow.
+
 ## 2026-10-29 — Manual-takeover test ladder designed (agent flies offboard, pilot takes over at stage N); nothing built or flown yet
 
 **Goal (operator):** prove that the RC pilot can take an aircraft back from the agent in real time at
