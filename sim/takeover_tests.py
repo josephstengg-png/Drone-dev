@@ -209,7 +209,8 @@ def run_case(scn, seed, outage, wait_s, extra=()):
             elif scn == "arm":
                 wait(lambda: pilot.s["armed"], 10); time.sleep(2.0); do_flip("kill")
             elif scn == "takeoff":
-                if wait(lambda: pilot.height() >= 0.2 or agent.result, 15) and not agent.result:
+                # in the climb: at 0.2 m the kill raced the agent reaching its 0.3 m pause (29 Oct)
+                if wait(lambda: pilot.height() >= 0.1 or agent.result, 15) and not agent.result:
                     do_flip("kill")
             elif scn == "hold":
                 time.sleep(3.0)

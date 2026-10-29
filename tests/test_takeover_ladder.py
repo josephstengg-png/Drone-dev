@@ -257,3 +257,46 @@ def test_elrs_delay_drives_the_height_loop_through_the_ceiling():
 def test_flight_stages_are_refused_on_a_real_aircraft_over_the_radio():
     src = (Path(agent.__file__)).read_text()
     assert 'wired = args.link.startswith(("serial:", "/dev/"))' in src
+
+
+# ---- fixes after the 29 Oct SITL campaign ---------------------------------------------------
+
+def test_guard_height_is_measured_from_the_agents_zero(tmp_path, monkeypatch):
+    g, clock, events, _ = _guard(tmp_path, monkeypatch)
+    g.z0 = -0.9                           # the EKF origin had drifted 0.9 m by take-off
+    g.observe(_msg("LOCAL_POSITION_NED", z=-2.0, vz=0.0))
+    assert abs(g.wd._height - 1.1) < 1e-9   # 1.1 m above the floor, not 2.0 over the ceiling
+
+
+def test_spool_freezes_at_the_first_sign_of_lift():
+    ctl = oc.HeightHold(oc.Limits(hover_thrust=0.5), hold_s=5.0)
+    ctl.start(0.0, 0.0)
+    t, thrusts = 0.0, []
+    for i in range(40):                   # 2 s on the floor; climbing from 1 s
+        vz = 0.2 if t >= 1.0 else 0.0
+        thrusts.append(ctl.step(t, 0.05, 0.0, True, vz, 0.0).thrust)
+        t += 0.05
+    assert thrusts[19] > thrusts[10]      # ramping before lift
+    assert len(set(thrusts[21:])) == 1    # frozen after it
+    assert thrusts[-1] < 0.5 + 0.2        # short of the full spool
+
+
+def test_a_dip_on_the_floor_does_not_hide_lift():
+    ctl = oc.HeightHold(oc.Limits(hover_thrust=0.5), hold_s=5.0)
+    ctl.start(0.0, 0.0)
+    for i, h in enumerate([0.0, -0.05, -0.10, -0.10, -0.04, -0.03]):
+        cmd = ctl.step(i * 0.05, 0.05, h, True, 0.0, 0.0)
+    assert ctl._lift_thrust is not None   # risen 0.07 m from the lowest reading
+
+
+def test_takeoff_setpoint_waits_on_the_floor():
+    ctl = oc.HeightHold(oc.Limits(hover_thrust=0.5), hold_s=5.0)
+    ctl.start(0.0, 0.0)
+    for i in range(30):                   # 1.5 s stuck on the floor
+        cmd = ctl.step(i * 0.05, 0.05, 0.0, True, 0.0, 0.0)
+    assert cmd.height_sp == 0.0           # not 0.6 m of climb demand waiting at lift-off
+
+
+def test_the_takeoff_pause_counts_as_takeoff():
+    src = (Path(agent.__file__)).read_text()
+    assert 'enter("takeoff" if stage == "takeoff" and name == "hold" else name)' in src

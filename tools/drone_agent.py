@@ -838,6 +838,9 @@ class Guard:
         self.motor_lo, self.motor_hi = parse_motor_range(getattr(args, "motor_range", None))
         self.throttle_chan = getattr(args, "throttle_chan", 3) or 3
         self._range_at = 0.0                 # last valid rangefinder reading
+        # Estimator z at the flying verb's height zero. The EKF origin is set at boot and drifts
+        # (0.9 m by take-off in SITL, 29 Oct), so raw -z is not height above the floor.
+        self.z0: float | None = None
         # Takeover classification (29 Oct 2026): which way the aircraft left OFFBOARD.
         self.mode_chan = getattr(args, "mode_chan", 7) or 7
         self.kill_chan = getattr(args, "kill_chan", 8) or 8
@@ -887,7 +890,7 @@ class Guard:
                 self.wd.vertical(d / 100.0, None, now)
         elif kind == "LOCAL_POSITION_NED":
             # height from the estimator only while the rangefinder is silent (below 0.4 m)
-            fallback = -msg.z if now - self._range_at > 1.0 else None
+            fallback = -(msg.z - (self.z0 or 0.0)) if now - self._range_at > 1.0 else None
             self.wd.vertical(fallback, -msg.vz, now)
         elif kind == "RC_CHANNELS":
             if self.stick_override is None:
@@ -1580,7 +1583,7 @@ def cmd_offboard_flight(args) -> int:
         if state["z"] is None:
             result["error"] = "no LOCAL_POSITION_NED (no height estimate)"
             return 2
-        state["z0"] = state["z"]
+        state["z0"] = guard.z0 = state["z"]
         rate_s = time.time() - t_start
         result["rx_hz"] = {k: round(v / rate_s, 1) for k, v in rx.items()
                            if k in ("LOCAL_POSITION_NED", "ATTITUDE", "RC_CHANNELS", "HEARTBEAT")}
@@ -1638,6 +1641,9 @@ def cmd_offboard_flight(args) -> int:
             return 2
         emit(dict(event="armed", slot=args.slot, sysid=conn.target_system,
                   armed_epoch=round(time.time(), 3)))
+        # Re-zero on the floor at arming: the estimate drifted 0.24 m between the first zero and
+        # take-off in one SITL run, enough for the controller to think it was already airborne.
+        state["z0"] = guard.z0 = state["z"]
         if stage == "arm":
             took = pump(args.wait_s, lambda: hands_off() or not state["armed"])
             result["outcome"] = "takeover" if guard.pilot_has_it else \
@@ -1681,7 +1687,9 @@ def cmd_offboard_flight(args) -> int:
             # with the stick at centre" rule must not fire on a climb the agent asked for.
             guard.stick_override = max(0.0, min(1.0, 0.5 + (cmd.vz_sp or 0.0)))
             guard.wd.stick(guard.stick_override, now)
-            enter(oc.stage_of(cmd.phase, cmd.height_sp, lim.final_zone_m))
+            name = oc.stage_of(cmd.phase, cmd.height_sp, lim.final_zone_m)
+            # the take-off test's pause at --takeoff-pause-m holds take-off open; it is not "hold"
+            enter("takeoff" if stage == "takeoff" and name == "hold" else name)
             trace.append((round(now - t_start, 2), cmd.phase, None if h is None else round(h, 3),
                           None if cmd.height_sp is None else round(cmd.height_sp, 3),
                           round(cmd.thrust, 3), state["mode"]))
