@@ -359,6 +359,79 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-29 (end of day) — T3 run 2 set up; ARTEX113 now refuses to arm (High Accelerometer Bias); inspection over USB
+
+**Run-2 setup (agreed with the operator):**
+- fixes 1 and 3 on (`--lift-by-climb --ground-attitude`), fix 2 off;
+- take-off pause **0.5 m** (`--takeoff-pause-m 0.5`), so the hold is on the rangefinder; 5 s hold;
+- tether about 0.8 m; USB cable slack with a strain relief.
+- The agent now writes its trace before touching the link in `finally` (commit 7cb6553, 311 tests).
+
+**SITL check of that exact configuration** (`sim/results/2026-10-29-run2-config/`, hold at 0.5 m, 2 runs):
+- Run 1: from the agent's side, a smooth climb with no overshoot and a hold at 0.49–0.51 m on the
+  rangefinder; landed, PX4 disarmed.
+- Run 2: flew the same way, but after the hand-over to PX4 LAND the sim never reported "Landing
+  detected", and the harness timed out (agent killed, no result).
+- Both runs lost the harness's own GCS link, so there's no truth. **That harness fault now recurs
+  in about half of all runs today and needs fixing**; it isn't a flight problem.
+
+**Pre-arm checks before run 2:**
+- The first check found the height estimate had **moved 0.38 m in 5 s** (climb rate about 0) and
+  "Preflight Fail: heading estimate not stable" repeating. Most likely the aircraft had been
+  handled and turned during setup: it faced −152° against −161° on run 1.
+- Held. After a minute untouched: 1.5 cm in the last 5 s, heading warning gone, yaw steady 0.1°,
+  15.62 V / 79 %, RC centred, kill off.
+- The operator didn't say what the tether weight is made of. A steel weight near the compass
+  should be avoided.
+
+**T3 run 2: not flown.**
+- Attempt 1: "Preflight Fail: High Accelerometer Bias" appeared as the agent connected. I tried to
+  decline at the gate; the operator interrupted that call. The agent then timed out at the gate
+  without arming.
+- Attempt 2, operator said try again: **PX4 denied the arm 7 times** ("Resolve system health
+  failures first"). Nothing armed, the agent exited cleanly, and nothing was tuned around it.
+
+**Inspection over USB** (PX4 console via `tools/mav_shell.py --link /dev/ttyACM0`, read-only):
+
+| | IMU 0 (0x6A, SPI2) | IMU 1 (0x37, SPI3) |
+|---|---|---|
+| errors | 0 | 0 |
+| accel clipping | none | **2 on x, 2 on y** (the drops) |
+| vibration at rest | 0.07 | 0.07 |
+| gravity measured | 9.73 m/s² | 9.66 m/s² |
+| temperature | 45 °C | 49 °C |
+| EKF accel bias | x +0.12, **y −0.27** m/s² | x −0.04, **y −0.21** m/s² |
+| bias stable | **False** | **False** |
+
+- `EKF2_ABL_LIM` 0.40, `COM_ARM_IMU_ACC` 0.70. Gyro and compass biases are small and stable.
+- Calibration: `CAL_ACC0_X/Y/ZOFF` 0.206/0.003/0.078, `CAL_ACC1` 0.150/−0.077/0.137.
+
+**Reading:**
+- Both IMUs give the same y bias, at about 55–65 % of the limit, and it isn't settling. So this
+  is the **estimate wandering, not a sensor failing**.
+- Indoors with GPS fusion off, nothing observes horizontal motion, and the EKF can't separate a
+  sideways accelerometer offset from a slight tilt. That's why the warning came and went all day.
+  It's the same root cause as the drift.
+- The two drops (a 1.6 g impact and a 42° tip on run 1) may have added a real offset as well.
+
+**Options, in order:**
+1. Power-cycle with the aircraft level and still, then arm within minutes.
+2. 6-position accelerometer calibration in QGC, props off (a parameter change: back up, ask).
+3. Not raising `EKF2_ABL_LIM`.
+4. Optical flow, which makes the bias observable and fixes the drift.
+
+The operator was given a physical checklist for after the drops: props, motor screws, arms, flight
+controller standoffs and dampers, rangefinder pointing down, compass/GPS mast, battery strap, USB port.
+
+**To do first next session:**
+- Pull ARTEX113's logs 43–47 (T2 runs 1–3 and the two dry runs) over USB. LOG_ENTRY didn't answer
+  at shutdown, probably because the flight controller had just been power-cycled.
+  Use `python3 tools/pull_fc_logs.py --out <dir> 43 44 45 46 47` on jetson-2 (MAVLink
+  LOG_REQUEST_DATA; `--list` first). Added to the repo at shutdown.
+- Physical inspection results; then the accelerometer-bias decision; then T3 run 2 as set up above.
+- Fix the harness's GCS-link dropouts.
+- The arm takes 10–14 s over ELRS (see the late entry).
+
 ## 2026-10-29 (evening) — REAL ARTEX113 T3 run 1, props ON, tethered, over USB: first in-flight kill PASS; lifted ~0.3 m and drifted
 
 **Before the run:**
