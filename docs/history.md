@@ -359,6 +359,55 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-29 (eve) — Takeover ladder SITL campaign: recognition 100 %, gate NOT met
+
+`sim/takeover_tests.py --instances 10 --outage 10,0.5,1.5 --seed 2910`, jetson-2, 11:43–12:57.
+8 scenarios × 10 on fresh SITL boots, agent at 20 Hz, 8.4 % of setpoints dropped in 0.5–1.5 s
+bursts. Full write-up and logs: `FlightPlanner/sim/results/2026-10-29-takeover-ladder/`.
+
+| Stage | PASS | VOID | NOT REACHED | FAIL | Other |
+|---|---|---|---|---|---|
+| prearm | 10 | | | | |
+| arm | 10 | | | | |
+| takeoff | 1 | | | 8 (label race) | 1 sim no boot |
+| hold | 9 | 1 | | | |
+| descent | 5 | 2 | 3 | | |
+| landing | 8 | 1 | 1 | | |
+| disarm | 5 | 2 | 3 | | |
+| no takeover | 6 | 1 | | 1 | 2 false alarm |
+
+**Held:**
+- 22/22 ch7 flips were classified `pilot_switch`, every kill was seen as `kill_switch`, and 7/7
+  lost-link drops were classified `link_loss`. There were zero pilot claims without a flip.
+- ch7 → ALTCTL: median 0.44 s (0.13–0.99).
+- Every run ended disarmed. Peak tilt was 20.5°.
+- Kill → *disarmed* flag is about 6 s. That is `COM_KILL_DISARM` 5 s; the motor cut is at the kill.
+
+**Takeoff "FAIL" is a harness label race, not a failure.** The pilot kills at true height
+≥ 0.2 m, which is exactly when the agent enters its 0.3 m pause (reported as "hold"). All 8
+disarmed from 0.20–0.33 m.
+
+**Two real problems, both found from the logs:**
+1. **The guard's ceiling and the agent use different height zeros.**
+   - The guard falls back to raw `-LOCAL_POSITION_NED.z` when there is no rangefinder; the agent
+     measures from `z0` at flight start.
+   - EKF z had drifted about 0.9 m by take-off: the agent read 1.11 m when the guard read 2.01 m
+     and landed it.
+   - This caused 5 runs (2 "false alarms", 3 not reached).
+   - On ARTEX the TFmini masks it above 0.4 m, but the fallback below 0.4 m has the same bug.
+2. **Take-off overshoot to the 1.5 m ceiling (5 controller aborts).**
+   - The ground spool ramps thrust past hover before lift-off (lifts at about 0.53, climbs
+     about 2.5 m/s).
+   - An injected gap then held the stale thrust (4 of 5). One run overshot with no gap.
+
+**Gate (plan step 2) NOT met.** Real T1/T2 do not depend on either problem: they are ground-only
+and passed 10/10. Fixes proposed, not yet made:
+- the guard measures height from the same `z0`;
+- the harness kills during the climb (≤ 0.15 m), or the 0.3 m pause counts as take-off;
+- a spool that stops at the first sign of lift.
+
+elrs-link.service on jetson-2 restarted (active) after the campaign.
+
 ## 2026-10-29 (pm) — Takeover ladder built; the offboard height loop CANNOT be closed over ELRS
 
 **Built** (commit 4d9728a, 293 tests):

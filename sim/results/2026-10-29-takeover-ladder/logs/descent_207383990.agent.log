@@ -1,0 +1,18 @@
+[link] udpin:0.0.0.0:14540 -- waiting for heartbeat
+[link] connected, vehicle is sysid 1
+[ladder] stage: prearm
+[ladder] stage: arm
+[vehicle] Armed by external command
+[ladder] stage: takeoff
+[vehicle] Takeoff detected
+[vehicle] Failsafe activated
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] LEFT OUR MODE: main mode 6 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[safety] *** OFFBOARD LOST ON THE LINK -- NOT A PILOT TAKEOVER *** the mode switch is still in the middle. PX4 failed over to Altitude and the agent has stood down for good. PILOT: you have the aircraft -- fly it and land it.
+[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8).
+[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8).
+[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8).
+[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8).
+[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8).
+[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8).
+[safety] *** LEAVING THE AIRCRAFT ARMED *** nobody disarmed it in 30 s and the agent will not. It stays armed until the arm switch or kill switch is used.

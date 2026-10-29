@@ -1,0 +1,15 @@
+[link] udpin:0.0.0.0:14540 -- waiting for heartbeat
+[link] connected, vehicle is sysid 1
+[ladder] stage: prearm
+[ladder] stage: arm
+[vehicle] Armed by external command
+[ladder] stage: takeoff
+[vehicle] Takeoff detected
+[ladder] stage: hold
+[safety] LAND: stage 1: height 2.03 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] acting: LAND -> LAND (airborne)
+[vehicle] Landing at current position
+[vehicle] Failsafe activated
+[vehicle] Landing detected
+[safety] on the ground -- disarming
+[vehicle] Disarmed by external command

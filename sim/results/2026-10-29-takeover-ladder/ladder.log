@@ -1,0 +1,81 @@
+[ 1] prearm       PASS                         src=kill_switch stage=prearm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[ 1] arm          PASS                         src=kill_switch stage=arm lat=5.99 losses=0 outcome=takeover hmax=None tilt=0.0
+[ 1] takeoff      FAIL (took over in hold)     src=kill_switch stage=hold lat=5.88 losses=0 outcome=takeover hmax=0.366 tilt=0.0
+[ 1] hold         PASS                         src=pilot_switch stage=hold lat=0.47 losses=0 outcome=takeover hmax=1.02 tilt=0.0
+[ 1] descent      PASS                         src=pilot_switch stage=descent lat=0.62 losses=0 outcome=takeover hmax=1.02 tilt=0.1
+[ 1] landing      PASS                         src=pilot_switch stage=landing lat=0.86 losses=0 outcome=takeover hmax=1.014 tilt=0.0
+[ 1] disarm       PASS                         src=kill_switch stage=disarm lat=2.26 losses=0 outcome=takeover hmax=1.019 tilt=0.0
+[ 1] no_takeover  FALSE ALARM                  src=None stage=None lat=None losses=0 outcome=guard_acted hmax=1.483 tilt=3.6
+[ 2] prearm       PASS                         src=kill_switch stage=prearm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[ 2] arm          PASS                         src=kill_switch stage=arm lat=5.98 losses=0 outcome=takeover hmax=None tilt=0.0
+[ 2] takeoff      FAIL (took over in hold)     src=kill_switch stage=hold lat=5.88 losses=0 outcome=takeover hmax=0.27 tilt=0.0
+[ 2] hold         PASS                         src=pilot_switch stage=hold lat=0.42 losses=0 outcome=takeover hmax=0.997 tilt=0.0
+[ 2] descent      PASS                         src=pilot_switch stage=descent lat=0.23 losses=0 outcome=takeover hmax=1.014 tilt=0.0
+[ 2] landing      PASS                         src=pilot_switch stage=landing lat=0.33 losses=0 outcome=takeover hmax=1.008 tilt=0.0
+[ 2] disarm       NOT REACHED (guard_acted)    src=None stage=None lat=None losses=0 outcome=guard_acted hmax=1.213 tilt=4.6
+[ 2] no_takeover  FALSE ALARM                  src=None stage=None lat=None losses=0 outcome=guard_acted hmax=1.154 tilt=5.4
+[ 3] prearm       PASS                         src=kill_switch stage=prearm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[ 3] arm          PASS                         src=kill_switch stage=arm lat=5.98 losses=0 outcome=takeover hmax=None tilt=0.0
+[ 3] takeoff      FAIL (took over in hold)     src=kill_switch stage=hold lat=5.83 losses=0 outcome=takeover hmax=0.279 tilt=0.0
+[ 3] hold         PASS                         src=pilot_switch stage=hold lat=0.38 losses=0 outcome=takeover hmax=0.989 tilt=0.0
+[ 3] descent      VOID (link loss)             src=link_loss stage=takeoff lat=None losses=0 outcome=takeover hmax=0.467 tilt=0.0
+[ 3] landing      PASS                         src=pilot_switch stage=landing lat=0.29 losses=0 outcome=takeover hmax=1.004 tilt=0.0
+[ 3] disarm       NOT REACHED (controller_abort) src=None stage=None lat=None losses=0 outcome=controller_abort hmax=1.525 tilt=0.0
+[ 3] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.025 tilt=0.0
+[ 4] prearm       PASS                         src=kill_switch stage=prearm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[ 4] arm          PASS                         src=kill_switch stage=arm lat=5.98 losses=0 outcome=takeover hmax=None tilt=0.0
+[ 4] takeoff      FAIL (took over in hold)     src=kill_switch stage=hold lat=5.94 losses=0 outcome=takeover hmax=0.28 tilt=0.0
+[ 4] hold         PASS                         src=pilot_switch stage=hold lat=0.13 losses=0 outcome=takeover hmax=0.991 tilt=0.0
+[ 4] descent      NOT REACHED (guard_acted)    src=None stage=None lat=None losses=0 outcome=guard_acted hmax=1.172 tilt=3.6
+[ 4] landing      PASS                         src=pilot_switch stage=landing lat=0.84 losses=0 outcome=takeover hmax=1.157 tilt=3.6
+[ 4] disarm       NOT REACHED (controller_abort) src=None stage=None lat=None losses=0 outcome=controller_abort hmax=1.588 tilt=20.5
+[ 4] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.006 tilt=0.0
+[ 5] prearm       PASS                         src=kill_switch stage=prearm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[ 5] arm          PASS                         src=kill_switch stage=arm lat=5.99 losses=0 outcome=takeover hmax=None tilt=0.0
+[ 5] takeoff      PASS                         src=kill_switch stage=takeoff lat=5.6 losses=0 outcome=takeover hmax=0.124 tilt=6.2
+[ 5] hold         PASS                         src=pilot_switch stage=hold lat=0.38 losses=0 outcome=takeover hmax=0.993 tilt=0.0
+[ 5] descent      VOID (link loss)             src=link_loss stage=takeoff lat=None losses=0 outcome=takeover hmax=0.798 tilt=0.0
+[ 5] landing      NOT REACHED (guard_acted)    src=None stage=None lat=None losses=0 outcome=guard_acted hmax=1.112 tilt=6.7
+[ 5] disarm       PASS                         src=kill_switch stage=disarm lat=2.06 losses=0 outcome=takeover hmax=1.015 tilt=0.1
+[ 5] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.016 tilt=0.0
+[ 6] prearm       PASS                         src=kill_switch stage=prearm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[ 6] arm          PASS                         src=kill_switch stage=arm lat=5.98 losses=0 outcome=takeover hmax=None tilt=0.0
+[ 6] takeoff      FAIL (took over in hold)     src=kill_switch stage=hold lat=5.99 losses=0 outcome=takeover hmax=0.234 tilt=0.0
+[ 6] hold         VOID (link loss)             src=link_loss stage=arm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[ 6] descent      PASS                         src=pilot_switch stage=descent lat=0.98 losses=0 outcome=takeover hmax=1.018 tilt=0.0
+[ 6] landing      PASS                         src=pilot_switch stage=landing lat=0.19 losses=0 outcome=takeover hmax=1.018 tilt=0.1
+[ 6] disarm       VOID (link loss)             src=link_loss stage=hold lat=None losses=0 outcome=takeover hmax=1.069 tilt=0.1
+[ 6] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.017 tilt=0.0
+[ 7] prearm       PASS                         src=kill_switch stage=prearm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[ 7] arm          PASS                         src=kill_switch stage=arm lat=5.98 losses=0 outcome=takeover hmax=None tilt=0.0
+[ 7] takeoff      CRASH                        src=None stage=None lat=None losses=None outcome=None hmax=None tilt=0.0
+[ 7] hold         PASS                         src=pilot_switch stage=hold lat=0.38 losses=0 outcome=takeover hmax=1.004 tilt=0.0
+[ 7] descent      NOT REACHED (controller_abort) src=None stage=None lat=None losses=0 outcome=controller_abort hmax=1.504 tilt=7.3
+[ 7] landing      VOID (link loss)             src=link_loss stage=landing lat=None losses=0 outcome=takeover hmax=1.057 tilt=0.1
+[ 7] disarm       PASS                         src=kill_switch stage=disarm lat=2.12 losses=0 outcome=takeover hmax=1.015 tilt=0.0
+[ 7] no_takeover  VOID (link loss)             src=link_loss stage=takeoff lat=None losses=0 outcome=takeover hmax=-0.006 tilt=0.0
+[ 8] prearm       PASS                         src=kill_switch stage=prearm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[ 8] arm          PASS                         src=kill_switch stage=arm lat=5.98 losses=0 outcome=takeover hmax=None tilt=0.0
+[ 8] takeoff      FAIL (took over in hold)     src=kill_switch stage=hold lat=5.91 losses=0 outcome=takeover hmax=0.371 tilt=3.7
+[ 8] hold         PASS                         src=pilot_switch stage=hold lat=0.38 losses=0 outcome=takeover hmax=0.996 tilt=0.0
+[ 8] descent      PASS                         src=pilot_switch stage=descent lat=0.99 losses=0 outcome=takeover hmax=1.027 tilt=0.0
+[ 8] landing      PASS                         src=pilot_switch stage=landing lat=0.99 losses=0 outcome=takeover hmax=1.0 tilt=0.0
+[ 8] disarm       PASS                         src=kill_switch stage=disarm lat=2.32 losses=0 outcome=takeover hmax=1.161 tilt=4.9
+[ 8] no_takeover  FAIL (controller_abort)      src=None stage=None lat=None losses=0 outcome=controller_abort hmax=1.504 tilt=11.5
+[ 9] prearm       PASS                         src=kill_switch stage=prearm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[ 9] arm          PASS                         src=kill_switch stage=arm lat=5.98 losses=0 outcome=takeover hmax=None tilt=0.0
+[ 9] takeoff      FAIL (took over in hold)     src=kill_switch stage=hold lat=5.96 losses=0 outcome=takeover hmax=0.328 tilt=3.4
+[ 9] hold         PASS                         src=pilot_switch stage=hold lat=0.52 losses=0 outcome=takeover hmax=1.024 tilt=2.3
+[ 9] descent      PASS                         src=pilot_switch stage=descent lat=0.67 losses=0 outcome=takeover hmax=1.02 tilt=0.0
+[ 9] landing      PASS                         src=pilot_switch stage=landing lat=0.63 losses=0 outcome=takeover hmax=1.016 tilt=1.2
+[ 9] disarm       VOID (link loss)             src=link_loss stage=descent lat=None losses=0 outcome=takeover hmax=1.005 tilt=0.1
+[ 9] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.01 tilt=0.0
+[10] prearm       PASS                         src=kill_switch stage=prearm lat=None losses=0 outcome=takeover hmax=None tilt=0.0
+[10] arm          PASS                         src=kill_switch stage=arm lat=5.98 losses=0 outcome=takeover hmax=None tilt=0.0
+[10] takeoff      FAIL (took over in hold)     src=kill_switch stage=hold lat=5.93 losses=0 outcome=takeover hmax=0.347 tilt=0.0
+[10] hold         PASS                         src=pilot_switch stage=hold lat=0.49 losses=0 outcome=takeover hmax=1.092 tilt=4.0
+[10] descent      NOT REACHED (controller_abort) src=None stage=None lat=None losses=0 outcome=controller_abort hmax=1.687 tilt=0.0
+[10] landing      PASS                         src=pilot_switch stage=landing lat=0.33 losses=0 outcome=takeover hmax=1.009 tilt=0.0
+[10] disarm       PASS                         src=kill_switch stage=disarm lat=2.28 losses=0 outcome=takeover hmax=1.015 tilt=0.0
+[10] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.023 tilt=0.1
+DONE /tmp/ladder.json
