@@ -271,3 +271,8 @@ def test_guard_height_is_measured_from_the_agents_zero(tmp_path, monkeypatch):
 def test_the_takeoff_pause_counts_as_takeoff():
     src = (Path(agent.__file__)).read_text()
     assert 'enter("takeoff" if stage == "takeoff" and name == "hold" else name)' in src
+
+
+def test_ground_stages_do_not_need_a_height_estimate():
+    src = (Path(agent.__file__)).read_text()
+    assert 'if state["z"] is None and upto >= oc.STAGES.index("takeoff"):' in src

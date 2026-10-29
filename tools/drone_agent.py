@@ -1580,7 +1580,9 @@ def cmd_offboard_flight(args) -> int:
     t_start = time.time()
     try:
         pump(2.0)
-        if state["z"] is None:
+        # Only flight stages need height. ARTEX113's ELRS link carries LOCAL_POSITION_NED at
+        # 0.5 Hz (29 Oct), so a 2 s window can miss it, and pre-arm and arm never use it.
+        if state["z"] is None and upto >= oc.STAGES.index("takeoff"):
             result["error"] = "no LOCAL_POSITION_NED (no height estimate)"
             return 2
         state["z0"] = guard.z0 = state["z"]
