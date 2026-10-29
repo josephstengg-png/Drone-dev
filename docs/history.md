@@ -359,6 +359,70 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-29 — Manual-takeover test ladder designed (agent flies offboard, pilot takes over at stage N); nothing built or flown yet
+
+**Goal (operator):** prove that the RC pilot can take an aircraft back from the agent in real time at
+every stage of a minimal flight: in place, 0 → 1 m → 0, no horizontal movement. Full plan:
+`FlightPlanner/docs/takeover-ladder-plan.md` and the doc "Manual-Takeover Test Ladder"
+(https://claude.ai/artifact/KUyHNY69uLx4aAoPXdpyBW).
+
+**Operator's corrections to my first two drafts (these define the test):**
+- The **agent** does every stage in OFFBOARD: pre-arm, arm, take-off, hold, descent, landing. My
+  draft had the pilot fly take-off and hover in Altitude, with the agent only commanding PX4 LAND.
+  Rejected.
+- **Each test is separate** and cumulative, not one run that steps through: T1 = pre-arm → takeover;
+  T2 = pre-arm, arm → takeover; T3 = … take-off → takeover; T4 = … mid-flight → takeover; and so on.
+- Pre-arm, arm, take-off and disarm stages: the takeover is the **kill switch (ch8)**. Pass = disarmed,
+  with no false alarm. Mid-flight, descent and landing stages: the pilot **flies the aircraft**
+  (ch7 centre → −100 Altitude).
+- Real aircraft, all stages. The link is **ELRS only**: no Jetson is wired to its flight controller
+  (operator, 29 Oct).
+
+| Test | Agent runs | Takeover | Pass |
+|---|---|---|---|
+| T1 | pre-arm | kill ch8 | arm refused, agent silent, no false alarm |
+| T2 | + arm | kill ch8 / arm sw ch6 | disarmed, no re-arm |
+| T3 | + take-off (kill ≤ 0.3 m) | kill ch8 | disarmed, drop ≤ 0.3 m |
+| T4 | + hold 1 m | ch7 → Altitude, pilot flies | ALTCTL ≤ 0.5 s, agent silent |
+| T5 | + descent (~0.5 m) | ch7 → Altitude | same |
+| T6 | + landing (touchdown) | ch7 → Altitude | same, no bounce |
+| T7 | + disarm stage | kill ch8 | motors stop, agent silent |
+
+If no takeover comes within the wait window, the agent ends the test safely by itself: disarmed (T1–T2),
+PX4 LAND then disarm (T3–T5), finish the landing (T6–T7).
+
+**Risk I raised and the operator accepted:** an offboard height loop over ELRS closes across the radio.
+Measured 19 Oct: ~0.7 s round trip, 5–7 of ~20 setpoints/s delivered, more than one > 1 s gap per run.
+Each gap is an offboard-loss failsafe → Altitude in the air, which reads like a pilot takeover. So:
+- spurious mode changes are classified, and a run that has one is void;
+- the pilot's throttle stays centred from arming, so a gap falls into Altitude holding height;
+- raising `COM_OF_LOSS_T` from 1.0 to 2.0 s is an **open operator decision** (param change: back up, ask,
+  restore), to be decided after the sim runs with loss injected.
+
+**To build (none exists for a real aircraft today):**
+1. `drone_agent.py offboard-flight --stage … --wait-s`, reusing `HeightHold` (offboard_control.py),
+   the Guard and its pilot latch. SITL-only by default; a real aircraft needs
+   `--real-aircraft --expect-sysid`, a 1.2 m cap and a tether.
+2. Pilot-vs-failsafe classification from RC_CHANNELS ch7/ch8 movement. This also fixes the known false
+   "PILOT HAS IT", which the 27 Oct sim showed again after the guard's own LAND or cut.
+3. A steady ~5 Hz setpoint stream.
+
+**Order:** build + tests → sim T1–T7 × 10 with ELRS-like loss on jetson-2 → 113 props-off T1–T2 × 3 →
+check option A persisted and 113's 2.7° bench roll → 113 props-on, tethered, T3…T7 with ≥ 2 clean
+runs each. Guard on, without `--allow-kill`, on hardware (DShot scaling unconfirmed).
+
+**Context from this session, for the record:**
+- 27 Oct staged-guard results (entry below), including the instance-8 false ceiling LAND on the
+  estimator height while on the ground. The TFmini is blind below 0.4 m.
+- The operator cannot watch the sims remotely off the drone switch: the Jetsons are reachable only on
+  the ground LAN.
+- Still open from earlier:
+  - `CBRK_FLIGHTTERM` / a PX4 termination backstop
+  - options B and C
+  - bench mass/CG/inertia measurements
+  - whether the 500 g includes the battery
+  - re-run of the 20 Oct sim campaign on the corrected model
+
 ## 2026-10-27 — Staged guard response (descend, then cut after a set time) validated in Gazebo, 10 runs per scenario
 
 **What changed (26 Oct, `safety_rules.py` + `drone_agent.py`, 276 tests):** the guard now answers in two
