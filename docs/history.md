@@ -359,6 +359,74 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-29 (late) — REAL ARTEX113, props off: T1 3/3, T2 3/3 PASS; USB wired link found
+
+**Getting a link** (each step is the fix for the step before):
+1. Preflight NO-GO: jetson-2 was not associated with any backpack, because 113's handset was
+   off. The only Wi-Fi in range was an "ExpressLRS RX" hotspot, 00:4B:12:D4:9D:09. That was
+   **ARTEX115's receiver**: 115 was on USB power with no handset, so its RX had gone to Wi-Fi
+   mode. Recorded so it isn't mistaken for 113's again.
+2. Once the handset was on, `sudo nmcli --wait 45 con up elrs-backpack` attached jetson-2 to E4:CB.
+3. Preflight then said the backpack had "received NOTHING from the aircraft". The cause was the
+   receiver/handset side; after the operator dealt with it: **GO** (−54 dBm, 0 % loss, sysid
+   113, battery 100 %).
+
+**ARTEX113 parameters, read-only:**
+- `EKF2_HGT_REF` 0, `EKF2_RNG_CTRL` 1, **`EKF2_RNG_A_HMAX` 1.0**: the same estimator setup as
+  the sim, so the same height-estimate gap should be expected on the real aircraft.
+- `MPC_THR_HOVER` 0.42, `COM_RC_OVERRIDE` 1.
+- RC_MAP_FLTMODE/KILL_SW/ARM_SW 7/8/6; COM_FLTMODE1/4/6 = Altitude/Offboard/Position.
+- `COM_DISARM_PRFLT` 10, `COM_KILL_DISARM` 5, `COM_OF_LOSS_T` 1.0, `COM_OBL_RC_ACT` 0,
+  `COM_DISARM_LAND` 1.0, `RC_CHAN_CNT` 16.
+
+**Live switch check** (90 s of RC_CHANNELS over ELRS):
+- ch7 read 1000/1500/2000, ch8 1000→2000 on both presses, ch6 1000, RSSI 100.
+- RC_CHANNELS arrives at only about 2/s over ELRS.
+
+**ELRS telemetry rates:** ATTITUDE 6/s, RC_CHANNELS 2/s, LOCAL_POSITION_NED **0.5/s**,
+DISTANCE_SENSOR **0.2/s**.
+- T1's first attempt was refused for "no LOCAL_POSITION_NED" in the agent's 2 s window.
+- Ground stages never use height, so it is now required only from take-off (commit 35e778d,
+  test added).
+
+**T1 (pre-arm → kill), 3 runs: 3/3 PASS.**
+- Each run: OFFBOARD entered, kill seen, agent stood down, nothing armed.
+- Two kills were seen via PX4's "Kill engaged", one via ch8 = 2000 first. Both paths are proven
+  on hardware.
+- Takeover came 4.4–11.9 s into pre-arm.
+
+**T2 (pre-arm → arm → kill), 3 runs: 3/3 PASS** (one retry):
+- Each run: armed by the agent through the `--gate` (ARM only after the operator's per-run
+  "props off, area clear"), kill seen, agent stood down and sent nothing.
+- PX4 logged "Disarmed by kill-switch" about 4.5 s later (`COM_KILL_DISARM`). No re-arm, no
+  false alarm.
+- Flight-controller logs on the SD card, not yet pulled: `2026-10-29/06_44_50.ulg`,
+  `06_47_00.ulg`, `06_51_29.ulg`.
+- Run 3's first attempt: PX4 denied the arm, "Preflight Fail: **High Accelerometer Bias**".
+  - Nothing armed and nothing was tuned around it. ARTEX113 had been powered about 40 min,
+    with no GPS fusion, after two kill cycles.
+  - The retry minutes later was clean: no bias text in 20 s, accel healthy in SYS_STATUS.
+  - Whether 113 was power-cycled in between was not recorded.
+  - Watch for it: if it recurs straight after boot, recalibrate the accelerometer (see ARTEX115).
+- Over ELRS the agent took **10–14 s from the arm stage starting to seeing "armed"** (the arm
+  command is re-sent every 3 s; heartbeats arrive at about 1/s). This is to look at; it did not
+  affect the results.
+
+**A wired link already exists:**
+- jetson-2 has ARTEX113's flight controller on **USB**: `/dev/ttyACM0`,
+  `usb-MicoAir_MicoAir743v2_0-if00`, sysid 113.
+- `CBRK_USB_CHK` is 197848, so arming with USB connected is allowed, with no parameter change.
+- USB rates: LOCAL_POSITION_NED 24.8/s, DISTANCE_SENSOR 8.2/s, ATTITUDE 82/s, RC_CHANNELS 16.6/s.
+- So T3 can run on `--link serial:/dev/ttyACM0`. The USB cable is a second line to the
+  aircraft; the operator decides how it is routed beside the tether.
+
+**Option (a) built for T3:**
+- The agent's height now comes from `oc.HeightSource`: the rangefinder while it has a fresh
+  reading (< 0.5 s old), else the estimator carried on from the rangefinder's last offset, so
+  the hand-over at 0.4 m doesn't step.
+- 4 tests added, suite 300.
+- SITL truth check below.
+
 ## 2026-10-29 (night) — Ladder campaign 2 (40 runs) + ground truth: the guard was right, the agent's height is wrong
 
 Campaign 2 used the same harness and seed as the evening campaign, cut to 5 runs per scenario,

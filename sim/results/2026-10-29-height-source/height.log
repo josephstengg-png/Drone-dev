@@ -1,0 +1,5 @@
+[ 1] no_takeover  CRASH                        src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.02 tilt=0.0
+[ 2] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.0 tilt=0.0
+[ 3] no_takeover  CRASH                        src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.0 tilt=0.0
+[ 4] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.0 tilt=0.2
+DONE /tmp/height.json

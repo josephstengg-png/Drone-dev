@@ -1478,7 +1478,8 @@ def cmd_offboard_flight(args) -> int:
     result["hover_thrust"] = hover = float(hover) if hover else oc.Limits().hover_thrust
     result["com_disarm_land_s"] = read_param(conn, "COM_DISARM_LAND")
     if sim:     # the offboard port streams too little by default (20 Oct). Not asked of the
-        for msg_id, us in ((32, 50000), (30, 50000), (65, 100000), (245, 200000)):  # radio.
+        for msg_id, us in ((32, 50000), (30, 50000), (65, 100000), (245, 200000),  # radio.
+                           (132, 50000)):
             conn.mav.command_long_send(conn.target_system, 1,
                                        mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
                                        0, msg_id, us, 0, 0, 0, 0, 0)
@@ -1497,6 +1498,7 @@ def cmd_offboard_flight(args) -> int:
     tx = dict(sent=0, dropped=0, last=0.0, on=True)
     cur = dict(cmd=oc.Command(oc.IDLE, 0.0, oc.level_quaternion(0.0)), stage=None, t_stage=None)
     trace = []
+    heights = oc.HeightSource()
 
     def transmit(now):
         if not tx["on"] or guard.stop_streaming or now - tx["last"] < 1.0 / args.setpoint_hz:
@@ -1513,9 +1515,8 @@ def cmd_offboard_flight(args) -> int:
         tx["sent"] += 1
 
     def height():
-        if state["z"] is None or state.get("z0") is None:
-            return None
-        return -(state["z"] - state["z0"])
+        est = None if state["z"] is None or state.get("z0") is None else -(state["z"] - state["z0"])
+        return heights.height(est, time.time())
 
     def enter(name):
         if name == cur["stage"]:
@@ -1541,6 +1542,9 @@ def cmd_offboard_flight(args) -> int:
                     state["last_hb"] = time.time()
                 elif kind == "LOCAL_POSITION_NED":
                     state.update(z=msg.z, vz=msg.vz, t_lp=time.time())
+                elif kind == "DISTANCE_SENSOR" and \
+                        msg.min_distance < msg.current_distance < msg.max_distance:
+                    heights.range(msg.current_distance / 100.0, time.time())
                 elif kind == "ATTITUDE":
                     state["yaw"] = msg.yaw
                     state["tilt"] = math.degrees(math.acos(max(-1.0, min(1.0, math.cos(msg.roll)

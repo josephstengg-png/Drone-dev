@@ -276,3 +276,31 @@ def test_the_takeoff_pause_counts_as_takeoff():
 def test_ground_stages_do_not_need_a_height_estimate():
     src = (Path(agent.__file__)).read_text()
     assert 'if state["z"] is None and upto >= oc.STAGES.index("takeoff"):' in src
+
+
+# ---- height from the rangefinder (29 Oct 2026, after ground truth) ---------------------------
+
+def test_a_fresh_rangefinder_reading_is_the_height():
+    hs = oc.HeightSource()
+    hs.range(2.0, 10.0)
+    assert hs.height(1.1, 10.1) == 2.0    # the estimator read 0.9 m low; the range is truth
+
+
+def test_below_the_rangefinder_the_estimator_carries_its_last_offset():
+    hs = oc.HeightSource()
+    hs.range(0.45, 10.0)
+    assert hs.height(0.25, 10.0) == 0.45
+    h = hs.height(0.15, 11.0)             # range stale: descended under its 0.4 m floor
+    assert abs(h - 0.35) < 1e-9           # 0.15 + the 0.2 m offset, no step at the hand-over
+
+
+def test_no_reading_at_all_is_no_height():
+    assert oc.HeightSource().height(None, 0.0) is None
+    hs = oc.HeightSource()
+    assert hs.height(0.3, 0.0) == 0.3     # estimator alone until the rangefinder speaks
+
+
+def test_the_agent_flies_on_the_height_source():
+    src = (Path(agent.__file__)).read_text()
+    assert "return heights.height(est, time.time())" in src
+    assert "heights.range(msg.current_distance / 100.0, time.time())" in src

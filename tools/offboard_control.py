@@ -271,6 +271,32 @@ class OutageModel:
         return now < self._end
 
 
+@dataclass
+class HeightSource:
+    """Height above the floor: the rangefinder while it has a fresh reading, else the estimator
+    carried on from the rangefinder's last offset, so the hand-over at its 0.4 m floor does not
+    step.
+
+    29 Oct 2026, SITL against ground truth: the rangefinder was within 7 cm throughout, while
+    the estimator (baro reference, range aiding only below EKF2_RNG_A_HMAX 1.0 m, the same on
+    ARTEX113) read up to 1.07 m low -- the aircraft reached 2 m believing it was at 1.1 m.
+    """
+    fresh_s: float = 0.5
+    _rng: float | None = None
+    _t_rng: float | None = None
+    _bias: float = 0.0
+
+    def range(self, distance_m: float, now: float) -> None:
+        self._rng, self._t_rng = distance_m, now
+
+    def height(self, estimator_m: float | None, now: float) -> float | None:
+        if self._t_rng is not None and now - self._t_rng < self.fresh_s:
+            if estimator_m is not None:
+                self._bias = self._rng - estimator_m
+            return self._rng
+        return None if estimator_m is None else estimator_m + self._bias
+
+
 # ======================================================================================
 # Runner: simulator only
 # ======================================================================================
