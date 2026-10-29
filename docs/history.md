@@ -392,7 +392,7 @@ silent, pilot landed and killed, disarmed.
   hit the controller's 1.5 m ceiling abort. At 50 Hz it held 1.00 m ±1 cm.
 - Offline 1-D model, 5 Hz with ELRS's ~0.35 s one-way delay:
   - the default gains are unstable from just 0.1 s of delay;
-  - across a search of 864 gain sets, none survived a ±0.05 hover-thrust error at 0.35–0.5 s
+  - across about 850 gain sets in three searches, none survived a ±0.05 hover-thrust error at 0.35–0.5 s
     delay (through the 1.5 m ceiling, or stuck on the floor);
   - the best "tuned" set swung 0.72–1.27 m even with the hover thrust known exactly.
 - **Consequence:** a thrust-only height loop closed across ELRS is not safe. The agent now
