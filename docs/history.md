@@ -359,6 +359,95 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-29 (evening) — REAL ARTEX113 T3 run 1, props ON, tethered, over USB: first in-flight kill PASS; lifted ~0.3 m and drifted
+
+**Before the run:**
+- Gentle take-off built at the operator's request: `accel_max_ms2` 1.0 (commit 140afbe).
+  - The climb-rate command slews at 1 m/s².
+  - Upward thrust is capped at the learned hover + 0.043.
+  - The spool is quick to 0.8 × the hover guess, then +0.043/s; take-off timeout 12 s.
+  - SITL with truth, 0.3 m target, 4 runs: three gentle (true peak 0.24–0.39 m, climb
+    0.46–0.70 m/s, up 1.1–1.4 m/s²). One went to a **true 0.68 m** at 1.12 m/s: the estimate
+    drifted −0.6 m on the floor in a freshly booted sim, hiding the lift-off.
+  - Results in `sim/results/2026-10-29-gentle-takeoff/`.
+- **A spark while the operator moved something; jetson-2 lost power and rebooted** (15:47).
+  - Source unknown.
+  - Health check afterwards was clean: ext4 journal recovered with 30 orphan inodes; NVMe 0 media
+    errors; all 13 deployed files identical to the workstation; temperatures 44–48 °C; links up.
+  - Its clock reset to 1970 and was set from the workstation.
+  - ARTEX113's logs after this are named `sess107/…` with time_utc in the year 2000, so the
+    flight controller rebooted too.
+- The first T3 attempt was stopped by the operator at READY ("area not clear"); it never armed.
+
+**Pre-arm checks over USB:**
+- height estimate 2.4 cm drift in 5 s, climb rate 0.006 m/s;
+- roll −0.4°, pitch −1.3° on the floor;
+- 16.10 V, 92 %;
+- RC ch7 1500, ch8 1000, RSSI 100.
+- The TFmini reports min 40 cm / max 1200 cm, and the agent only uses readings inside that, so
+  the 2–3 cm floor readings are ignored.
+
+**T3 run 1** (`--stage takeoff --wait-s 5`, `--link serial:/dev/ttyACM0`):
+- The operator saw it lift about 0.3 m and drift more than 20 cm straight away, **towards the
+  USB cable**, and killed it per the plan.
+- The agent saw ch8 = 2000 and stood down. PX4: "Kill engaged", disarmed 5 s later.
+- **The first in-flight takeover on hardware: PASS.**
+- The USB link dropped at the impact, so the agent exited on a SerialException without writing
+  its trace. To fix: the trace should be written on any exit.
+- PX4's log was pulled over USB with MAVLink LOG_REQUEST_LIST/LOG_REQUEST_DATA (newest id 48,
+  551 KB, 0 chunks missing). Saved as
+  `fc-backups/2026-10-29/artex113-logs/ARTEX113-2026-10-29-T3-run1-tethered.ulg`.
+
+**What the log shows:**
+- PX4's land detector called it **airborne from the first spool** (t = 1.0 s), as on the bench.
+- Lift-off at about **0.40 thrust** (t ≈ 4.2 s), so the true hover is close to the 0.42 guess.
+- Kill at 5.04 s.
+- Floor impact at 5.25 s: a 1.6 g spike, then it tipped to 42° pitch. **USB dropped at this
+  moment.**
+- The agent's setpoints stopped, so at 6.0 s PX4 switched to Altitude (offboard-loss failsafe).
+  Disarmed at 10.1 s.
+- **The height estimate fell 0.27 m on the floor under the spool** (0.48 → 0.21), the same
+  mechanism as the sim's 0.68 m run.
+  - The agent never saw 0.15 m and was still ramping thrust when the kill came.
+  - Without the kill it would have kept climbing until the TFmini took over at 0.4 m.
+  - The **climb rate stayed true**: about 0.00 on the floor, +0.06–0.10 m/s as it lifted.
+- **Wind-up on the floor:**
+  - Front-rear motor difference grew steadily from 0 to +0.15 during the 3 s on the floor
+    (CW–CCW to +0.09). PX4 was fighting the 1.3° floor tilt it couldn't correct.
+  - Its integrators were never reset because the land detector said airborne.
+  - The 1 m/s² spool tripled the time on the floor (about 1.5 s → about 4 s).
+- The operator's observation that it **drifted towards the USB cable** points at cable tension as
+  well. The log can't separate a cable tug from released wind-up.
+- `actuator_motors` after the kill shows the allocator's demand, not the outputs.
+  `actuator_outputs` isn't logged, so the motor cut can't be confirmed from this log (the
+  operator saw it drop).
+
+**Fixes, each behind its own switch** (commit 3cf81b0, 310 tests):
+1. `--lift-by-climb`: lift-off also from a sustained climb rate (> 0.05 m/s for 0.2 s, thrust
+   above half the hover guess). While on the floor, `HeightSource.floor()` re-zeroes the estimate.
+2. `--spool-fast-frac 0.9`: less time on the floor. **The operator disagrees with this one; it
+   stays off by default.**
+3. `--ground-attitude`: command the attitude it sits at on the floor until lift-off, then ease to
+   level over 1 s, leaving PX4 nothing to wind up.
+
+The harness now also records true horizontal drift. SITL, 2 runs each: results below. The sim
+floor is flat and has no cable, so fix 3's benefit can't be shown there, only that it does no harm.
+
+**SITL results for the fixes** (`sim/results/2026-10-29-t3-fixes/`, 2 runs each, all 6 passed):
+- fix 1: true peak 0.31/0.39 m, climb 0.30/0.32 m/s, up 0.6/0.8 m/s². The gentlest of the three.
+- fix 2: peak 0.30 m, lift-off 3.8 s after arm instead of 4.6–4.7 s.
+- fix 3: peak 0.39 m, no harm.
+- The −0.6 m floor dip didn't recur in these boots, so fix 1's main case is covered by ARTEX113's
+  real log and the unit tests, not by these sims.
+- Two runs lost the harness's own GCS link, so no truth.
+- **New:** holding at 0.3 m is in the rangefinder's blind zone. In one run the agent held "0.30 m"
+  while the true height sagged to 0.10 m. A hold at 0.5 m or more uses the rangefinder.
+- Drift on a flat sim floor: 0.79 m in one run (a steady 0.04 m/s over 17 s); others 0.04–0.08 m.
+
+**Bigger point for T4 onwards:** even a perfect lift-off drifts indoors, because nothing holds
+horizontal position (0.5° of residual tilt is about 1 m in 5 s). For hold stages, either add an
+optical-flow sensor or plan for the pilot taking over within seconds.
+
 ## 2026-10-29 (late) — REAL ARTEX113, props off: T1 3/3, T2 3/3 PASS; USB wired link found
 
 **Getting a link** (each step is the fix for the step before):
