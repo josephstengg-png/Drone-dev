@@ -31,6 +31,7 @@ import math
 from dataclasses import dataclass, field
 
 IDLE, TAKEOFF, HOLD, LAND, DONE, ABORT = "idle", "takeoff", "hold", "land", "done", "abort"
+G = 9.81
 
 
 @dataclass
@@ -57,7 +58,14 @@ class Limits:
     spool_margin: float = 0.2         # how far above the assumed hover thrust the ground spool
                                       # may go. 0.1 left a heavier aircraft stuck on the floor
                                       # (true hover 0.6 vs assumed 0.5) in the 19 Oct tests.
-    takeoff_timeout_s: float = 6.0    # must be airborne by then, or abort
+    accel_max_ms2: float = 1.0        # operator, 29 Oct: commanded motion changes no faster than
+                                      # this, and upward thrust is held to it. SITL lift-offs had
+                                      # run at 3-5 m/s^2 up and braked at 4-6. Braking is NOT held.
+    spool_fast_frac: float = 0.8      # the spool is quick to this fraction of the hover guess,
+                                      # then slow (accel_max's thrust per second) until lift, so it
+                                      # lifts just above the TRUE hover whatever the guess
+    takeoff_timeout_s: float = 12.0   # must be airborne by then, or abort (6 s before the slow
+                                      # spool: at 0.043/s it needs ~2 s more per 0.09 of hover error)
     airborne_height_m: float = 0.15
     land_height_m: float = 0.10
     landed_dwell_s: float = 1.0
@@ -97,6 +105,8 @@ class HeightHold:
     _last_valid: float | None = None
     _sat_since: float | None = None
     _landed_since: float | None = None
+    _vz_sp: float = 0.0
+    _spool_thrust: float = 0.0
     airborne: bool = False
     reason: str = ""
 
@@ -139,8 +149,10 @@ class HeightHold:
                 now - self._t_phase > L.takeoff_timeout_s:
             return self._abort(now, "did not leave the ground (props off, or not enough thrust)")
 
-        if height >= L.airborne_height_m:
+        if height >= L.airborne_height_m and not self.airborne:
+            # start the loop from the thrust it lifted at: that is about the TRUE hover
             self.airborne = True
+            self._i = clamp(self._spool_thrust - L.hover_thrust, -L.i_limit, L.i_limit)
 
         # ---- phase logic: move the height setpoint ---------------------------------------
         if self.phase == TAKEOFF:
@@ -164,20 +176,32 @@ class HeightHold:
                 self._landed_since = None
 
         # ---- height -> climb rate -> thrust ---------------------------------------------
+        # thrust above the learned hover that buys accel_max: a = g * (T / T_hover - 1)
+        up_margin = L.hover_thrust * L.accel_max_ms2 / G
         vz_sp = clamp(L.kp_height * (self._height_sp - height),
                       -L.descent_rate_ms, L.climb_rate_ms)
+        step = L.accel_max_ms2 * dt   # the climb-rate command slews at accel_max, both ways
+        vz_sp = clamp(vz_sp, self._vz_sp - step, self._vz_sp + step) if self.airborne else 0.0
+        self._vz_sp = vz_sp
         err = vz_sp - (vz if vz is not None else 0.0)
         if self.airborne:            # frozen on the ground: no wind-up against the floor
             self._i = clamp(self._i + L.ki_vz * err * dt, -L.i_limit, L.i_limit)
-        thrust = L.hover_thrust + L.kp_vz * err + self._i
+        hover = L.hover_thrust + self._i
+        thrust = min(hover + L.kp_vz * err, hover + up_margin)
         if not self.airborne:
             # On the ground the closed loop is not used: the integrator is frozen (no wind-up
             # against the floor) and the proportional term alone cannot lift an aircraft
             # heavier than the hover guess. So ramp thrust steadily from minimum to
             # hover + margin, bounded, until the aircraft leaves the floor; then the loop
             # takes over. With no lift at all it sits at that bound until the timeout aborts.
-            spool = clamp((now - self._t_phase) / L.spool_s, 0.0, 1.0)
-            thrust = L.thrust_min + spool * (L.hover_thrust + L.spool_margin - L.thrust_min)
+            # (29 Oct) Quick to spool_fast_frac of the guess, then up_margin per second, so the
+            # thrust at lift is within about one second's ramp -- ~accel_max -- of the true hover.
+            t = now - self._t_phase
+            quick = clamp(t / L.spool_s, 0.0, 1.0) * (L.spool_fast_frac * L.hover_thrust
+                                                      - L.thrust_min)
+            slow = max(0.0, t - L.spool_s) * up_margin
+            thrust = min(L.thrust_min + quick + slow, L.hover_thrust + L.spool_margin)
+            self._spool_thrust = thrust
         thrust = clamp(thrust, L.thrust_min, L.thrust_max)
 
         if self.airborne and thrust >= L.thrust_max:

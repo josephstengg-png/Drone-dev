@@ -304,3 +304,49 @@ def test_the_agent_flies_on_the_height_source():
     src = (Path(agent.__file__)).read_text()
     assert "return heights.height(est, time.time())" in src
     assert "heights.range(msg.current_distance / 100.0, time.time())" in src
+
+
+# ---- gentle take-off: accel_max 1.0 m/s^2 (operator, 29 Oct 2026) ----------------------------
+
+def _takeoff(true_hover, guess=0.42, target=0.3, dip=0.1, lag=0.15, seconds=12.0, dt=0.005):
+    """1-D model with SITL's faults: 20 Hz loop, delayed telemetry, an estimate that dips on the
+    floor as thrust rises. Returns (peak height, peak upward accel, peak speed) once airborne."""
+    ctl = oc.HeightHold(oc.Limits(hover_thrust=guess, target_height_m=target, ceiling_m=1.2),
+                        hold_s=5.0)
+    ctl.start(0.0, 0.0)
+    h = v = t = nxt = 0.0
+    applied, hist, peak, a_up, v_max = 0.12, [], 0.0, 0.0, 0.0
+    while t < seconds:
+        hist.append((t, h, v, applied))
+        if t >= nxt:
+            nxt += 0.05
+            _, hh, vv, th = ([x for x in hist[-100:] if x[0] <= t - lag] or hist[:1])[-1]
+            est = hh - (dip * min(1.0, th / 0.5) if hh < 0.15 else 0.0)
+            cmd = ctl.step(t, 0.05, est, True, vv, 0.0)
+            assert cmd.phase != oc.ABORT, ctl.reason
+            applied = cmd.thrust
+        a = G * (applied / true_hover - 1.0) - 0.5 * v
+        a = 0.0 if h <= 0.0 and a < 0.0 else a
+        v += a * dt
+        h = max(0.0, h + v * dt)
+        v = max(0.0, v) if h == 0.0 else v
+        if h > 0.005:
+            a_up, v_max = max(a_up, a), max(v_max, v)
+        peak, t = max(peak, h), t + dt
+    return peak, a_up, v_max
+
+
+def test_takeoff_is_gentle_when_the_hover_guess_is_right():
+    peak, a_up, v_max = _takeoff(0.42)
+    assert peak < 0.36 and a_up < 1.5 and v_max < 0.7   # before: 0.50 m, 6.3 m/s^2, 1.38 m/s
+
+
+def test_takeoff_stays_gentle_with_the_hover_guess_off_by_ten_percent():
+    for true_hover in (0.38, 0.46):
+        peak, a_up, v_max = _takeoff(true_hover)
+        assert peak < 0.36 and a_up < 2.0 and v_max < 0.7
+
+
+def test_a_heavy_aircraft_still_gets_off_the_floor_inside_the_timeout():
+    peak, _, _ = _takeoff(0.60, seconds=14.0)          # hover 43 % above the guess
+    assert peak > 0.25
