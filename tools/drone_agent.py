@@ -1739,6 +1739,11 @@ def cmd_offboard_flight(args) -> int:
         return 0
     finally:
         tx["on"] = False
+        # The trace first, before anything below touches the link: in T3 run 1 (29 Oct) the USB
+        # dropped at the floor impact, the pump() here raised again and the trace was lost.
+        if args.trace:
+            Path(args.trace).write_text("t_s,phase,height_m,height_sp_m,thrust,mode\n" + "".join(
+                ",".join("" if v is None else str(v) for v in r) + "\n" for r in trace))
         result["takeover_source"] = guard.takeover_source if guard.pilot_has_it else None
         result["link_losses"] = guard.link_losses
         result["setpoints"] = dict(sent=tx["sent"], dropped_sim=tx["dropped"],
@@ -1768,9 +1773,6 @@ def cmd_offboard_flight(args) -> int:
         result["passed"] = (result["outcome"] == "takeover" and result["takeover_stage"] == stage
                             and result["takeover_source"] in ("pilot_switch", "kill_switch")
                             and not result.get("safety"))
-        if args.trace:
-            Path(args.trace).write_text("t_s,phase,height_m,height_sp_m,thrust,mode\n" + "".join(
-                ",".join("" if v is None else str(v) for v in r) + "\n" for r in trace))
         emit(result)
 
 

@@ -409,3 +409,9 @@ def test_fix_switches_are_wired_into_the_agent():
     assert "lift_by_climb=args.lift_by_climb" in src
     assert "heights.floor(estimate(), now)" in src
     assert "cmd.q = oc.attitude_quaternion(k * floor_att[0], k * floor_att[1], ctl.yaw_rad)" in src
+
+
+def test_the_trace_is_written_before_the_link_is_touched_again():
+    src = (Path(agent.__file__)).read_text()
+    fin = src.index('    finally:\n        tx["on"] = False\n        # The trace first')
+    assert src.index("Path(args.trace).write_text", fin) < src.index("pump(guard.classify_s", fin)
