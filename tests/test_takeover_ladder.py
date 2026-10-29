@@ -1,5 +1,6 @@
 """The takeover ladder (29 Oct 2026, docs/takeover-ladder-plan.md): telling a pilot takeover from
 a lost link, the stage profiles that hold each stage open, and the simulator's ELRS outages."""
+import math
 import random
 import sys
 import types
@@ -302,7 +303,7 @@ def test_no_reading_at_all_is_no_height():
 
 def test_the_agent_flies_on_the_height_source():
     src = (Path(agent.__file__)).read_text()
-    assert "return heights.height(est, time.time())" in src
+    assert "return heights.height(estimate(), time.time())" in src
     assert "heights.range(msg.current_distance / 100.0, time.time())" in src
 
 
@@ -350,3 +351,61 @@ def test_takeoff_stays_gentle_with_the_hover_guess_off_by_ten_percent():
 def test_a_heavy_aircraft_still_gets_off_the_floor_inside_the_timeout():
     peak, _, _ = _takeoff(0.60, seconds=14.0)          # hover 43 % above the guess
     assert peak > 0.25
+
+
+# ---- T3 run 1 fixes (29 Oct 2026), each behind its own switch --------------------------------
+
+def _spool_until(lim, vz_of_t, seconds=8.0):
+    ctl = oc.HeightHold(lim, hold_s=5.0)
+    ctl.start(0.0, 0.0)
+    t = 0.0
+    while t < seconds and not ctl.airborne:
+        ctl.step(t, 0.05, 0.0, True, vz_of_t(t), 0.0)  # the estimate never reaches 0.15 m
+        t += 0.05
+    return ctl
+
+
+def test_fix1_lift_off_is_seen_from_a_sustained_climb_rate():
+    lim = oc.Limits(hover_thrust=0.42, lift_by_climb=True)
+    ctl = _spool_until(lim, lambda t: 0.08 if t >= 4.0 else 0.0)
+    assert ctl.airborne and 4.15 <= ctl.airborne_at <= 4.35
+
+
+def test_fix1_off_by_default_so_the_height_rule_alone_applies():
+    ctl = _spool_until(oc.Limits(hover_thrust=0.42), lambda t: 0.08 if t >= 4.0 else 0.0)
+    assert not ctl.airborne
+
+
+def test_fix1_a_climb_rate_glitch_at_low_thrust_is_not_lift():
+    lim = oc.Limits(hover_thrust=0.42, lift_by_climb=True)
+    ctl = _spool_until(lim, lambda t: 0.4 if t < 0.5 else 0.0, seconds=1.0)
+    assert not ctl.airborne
+
+
+def test_fix1_the_floor_is_zero_whatever_the_estimate_drifted_to():
+    hs = oc.HeightSource()
+    hs.floor(-0.27, 10.0)                 # ARTEX113's estimate fell 0.27 m under the spool
+    assert abs(hs.height(-0.27, 10.0)) < 1e-9
+    assert abs(hs.height(-0.17, 10.5) - 0.10) < 1e-9   # then it climbs 0.10 m
+
+
+def test_fix1_the_rangefinder_still_wins_when_fresh():
+    hs = oc.HeightSource()
+    hs.range(0.45, 10.0)
+    hs.floor(-0.27, 10.1)                 # fresh range: the floor call changes nothing
+    assert hs.height(-0.27, 10.1) == 0.45
+
+
+def test_fix3_attitude_quaternion_matches_level_and_holds_the_angles():
+    assert all(abs(a - b) < 1e-12 for a, b in zip(oc.attitude_quaternion(0, 0, 0.7),
+                                                   oc.level_quaternion(0.7)))
+    w, x, y, z = oc.attitude_quaternion(0.0, math.radians(-1.3), 0.0)
+    pitch = math.degrees(math.asin(2 * (w * y - z * x)))
+    assert abs(pitch + 1.3) < 1e-9
+
+
+def test_fix_switches_are_wired_into_the_agent():
+    src = (Path(agent.__file__)).read_text()
+    assert "lift_by_climb=args.lift_by_climb" in src
+    assert "heights.floor(estimate(), now)" in src
+    assert "cmd.q = oc.attitude_quaternion(k * floor_att[0], k * floor_att[1], ctl.yaw_rad)" in src

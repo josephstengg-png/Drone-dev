@@ -64,6 +64,10 @@ class Limits:
     spool_fast_frac: float = 0.8      # the spool is quick to this fraction of the hover guess,
                                       # then slow (accel_max's thrust per second) until lift, so it
                                       # lifts just above the TRUE hover whatever the guess
+    lift_by_climb: bool = False       # fix 1 (T3 run 1, 29 Oct): lift-off is ALSO a sustained
+    lift_vz_ms: float = 0.05          # climb rate over this, above half the hover guess. The
+    lift_hold_s: float = 0.2          # estimate fell 0.27 m on the floor under the spool, so
+                                      # the agent never saw 0.15 m; climb rate stayed true
     takeoff_timeout_s: float = 12.0   # must be airborne by then, or abort (6 s before the slow
                                       # spool: at 0.043/s it needs ~2 s more per 0.09 of hover error)
     airborne_height_m: float = 0.15
@@ -89,6 +93,15 @@ def level_quaternion(yaw_rad: float) -> tuple:
     return (math.cos(yaw_rad / 2.0), 0.0, 0.0, math.sin(yaw_rad / 2.0))
 
 
+def attitude_quaternion(roll_rad: float, pitch_rad: float, yaw_rad: float) -> tuple:
+    """(w, x, y, z) for roll, pitch, yaw applied Z-Y-X, as PX4 composes them."""
+    cr, sr = math.cos(roll_rad / 2.0), math.sin(roll_rad / 2.0)
+    cp, sp = math.cos(pitch_rad / 2.0), math.sin(pitch_rad / 2.0)
+    cy, sy = math.cos(yaw_rad / 2.0), math.sin(yaw_rad / 2.0)
+    return (cr * cp * cy + sr * sp * sy, sr * cp * cy - cr * sp * sy,
+            cr * sp * cy + sr * cp * sy, cr * cp * sy - sr * sp * cy)
+
+
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
@@ -107,7 +120,9 @@ class HeightHold:
     _landed_since: float | None = None
     _vz_sp: float = 0.0
     _spool_thrust: float = 0.0
+    _lift_since: float | None = None
     airborne: bool = False
+    airborne_at: float | None = None
     reason: str = ""
 
     # ---- operator events -------------------------------------------------------------
@@ -149,9 +164,14 @@ class HeightHold:
                 now - self._t_phase > L.takeoff_timeout_s:
             return self._abort(now, "did not leave the ground (props off, or not enough thrust)")
 
-        if height >= L.airborne_height_m and not self.airborne:
+        lifted = height >= L.airborne_height_m
+        if L.lift_by_climb and not self.airborne:
+            sign = (vz or 0.0) > L.lift_vz_ms and self._spool_thrust >= 0.5 * L.hover_thrust
+            self._lift_since = (self._lift_since or now) if sign else None
+            lifted = lifted or (sign and now - self._lift_since >= L.lift_hold_s)
+        if lifted and not self.airborne:
             # start the loop from the thrust it lifted at: that is about the TRUE hover
-            self.airborne = True
+            self.airborne, self.airborne_at = True, now
             self._i = clamp(self._spool_thrust - L.hover_thrust, -L.i_limit, L.i_limit)
 
         # ---- phase logic: move the height setpoint ---------------------------------------
@@ -312,6 +332,13 @@ class HeightSource:
 
     def range(self, distance_m: float, now: float) -> None:
         self._rng, self._t_rng = distance_m, now
+
+    def floor(self, estimator_m: float | None, now: float) -> None:
+        """The aircraft is on the floor: whatever the estimator says now is 0 m. (Fix 1, 29 Oct:
+        on ARTEX113 it fell 0.27 m under the spool before lift-off.)"""
+        fresh = self._t_rng is not None and now - self._t_rng < self.fresh_s
+        if estimator_m is not None and not fresh:
+            self._bias = -estimator_m
 
     def height(self, estimator_m: float | None, now: float) -> float | None:
         if self._t_rng is not None and now - self._t_rng < self.fresh_s:

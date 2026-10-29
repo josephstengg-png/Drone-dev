@@ -1,0 +1,5 @@
+[ 1] no_takeover  FAIL (None)                  src=None stage=None lat=None losses=None outcome=None hmax=None tilt=10.2
+[ 2] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=0.31 tilt=0.0
+[ 3] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=0.313 tilt=0.1
+[ 4] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=0.41 tilt=0.1
+DONE /tmp/gentle.json

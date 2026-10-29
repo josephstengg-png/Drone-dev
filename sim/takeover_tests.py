@@ -66,6 +66,7 @@ class Pilot:
         self.max_tilt = 0.0
         # truth beside what the aircraft believes: (t, Gazebo height, rangefinder, estimator -z)
         self.track, self.max_alt, self.rng, self.est = [], 0.0, None, None
+        self.ll0, self.max_drift = None, 0.0          # horizontal drift from the start, truth
         self._stop = False
         self.lock = threading.Lock()
         threading.Thread(target=self._tx, daemon=True).start()
@@ -107,11 +108,18 @@ class Pilot:
                 tilt = math.degrees(math.acos(max(-1.0, min(1.0, 1 - 2 * (x * x + y * y)))))
                 if self.alt0 is None:
                     self.alt0 = m.alt
+                if self.ll0 is None:
+                    self.ll0 = (m.lat, m.lon)
+                dn = (m.lat - self.ll0[0]) * 1e-7 * 111320.0
+                de = (m.lon - self.ll0[1]) * 1e-7 * 111320.0 * math.cos(math.radians(m.lat * 1e-7))
+                drift = math.hypot(dn, de)
                 self.s.update(alt=(m.alt - self.alt0) / 1000.0, tilt=tilt)
                 if self.s["armed"]:
                     self.max_tilt = max(self.max_tilt, tilt)
                     self.max_alt = max(self.max_alt, self.s["alt"])
-                    self.track.append((round(now, 3), round(self.s["alt"], 3), self.rng, self.est))
+                    self.max_drift = max(self.max_drift, drift)
+                    self.track.append((round(now, 3), round(self.s["alt"], 3), self.rng, self.est,
+                                       round(drift, 3)))
             elif k == "DISTANCE_SENSOR":
                 d = m.current_distance / 100.0
                 self.rng = round(d, 3) if m.min_distance < m.current_distance < m.max_distance else None
@@ -264,6 +272,7 @@ def run_case(scn, seed, outage, wait_s, extra=()):
                passed_by_agent=r.get("passed"), abort_reason=r.get("abort_reason"),
                setpoints=r.get("setpoints"), max_height_m=r.get("max_height_m"),
                true_max_tilt=round(pilot.max_tilt, 1), true_max_height_m=round(pilot.max_alt, 2),
+               true_max_drift_m=round(pilot.max_drift, 2),
                crashed=crashed,
                disarmed=not pilot.s["armed"], error=r.get("error"),
                classified=[e.get("source") for e in agent.events if e.get("event") == "takeover_classified"],
@@ -272,7 +281,7 @@ def run_case(scn, seed, outage, wait_s, extra=()):
                duration_s=round(time.time() - t0, 1))
     res["verdict"] = judge(scn, res)
     pilot.close()
-    (LOGS / f"{tag}.truth.csv").write_text("t,true_height_m,rangefinder_m,estimator_m\n" + "".join(
+    (LOGS / f"{tag}.truth.csv").write_text("t,true_height_m,rangefinder_m,estimator_m,drift_m\n" + "".join(
         ",".join("" if v is None else str(v) for v in r) + "\n" for r in pilot.track))
     try:
         (LOGS / f"{tag}.sitl.log").write_bytes((T.GZB_DIR / "sitl.log").read_bytes())

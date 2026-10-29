@@ -1490,7 +1490,7 @@ def cmd_offboard_flight(args) -> int:
         every, lo, hi = (float(x) for x in args.sim_outage.split(","))
         outage = oc.OutageModel(every, lo, hi, random.Random(args.seed))
     state = dict(armed=False, mode=None, z=None, vz=None, t_lp=None, tilt=None, yaw=None,
-                 last_hb=None)
+                 roll=None, pitch=None, last_hb=None)
     rx = {}
     stdin = dict(pending=[], eof=False)
     guard = Guard(conn, args)
@@ -1514,9 +1514,11 @@ def cmd_offboard_flight(args) -> int:
                                           0.0, 0.0, 0.0, c.thrust, **kw)
         tx["sent"] += 1
 
+    def estimate():
+        return None if state["z"] is None or state.get("z0") is None else -(state["z"] - state["z0"])
+
     def height():
-        est = None if state["z"] is None or state.get("z0") is None else -(state["z"] - state["z0"])
-        return heights.height(est, time.time())
+        return heights.height(estimate(), time.time())
 
     def enter(name):
         if name == cur["stage"]:
@@ -1546,7 +1548,7 @@ def cmd_offboard_flight(args) -> int:
                         msg.min_distance < msg.current_distance < msg.max_distance:
                     heights.range(msg.current_distance / 100.0, time.time())
                 elif kind == "ATTITUDE":
-                    state["yaw"] = msg.yaw
+                    state.update(yaw=msg.yaw, roll=msg.roll, pitch=msg.pitch)
                     state["tilt"] = math.degrees(math.acos(max(-1.0, min(1.0, math.cos(msg.roll)
                                                                           * math.cos(msg.pitch)))))
                 elif kind == "STATUSTEXT":
@@ -1663,8 +1665,16 @@ def cmd_offboard_flight(args) -> int:
         lim = oc.Limits(target_height_m=prof["target_height_m"], ceiling_m=ceiling,
                         hover_thrust=hover, descent_rate_ms=prof["descent_rate_ms"],
                         final_descent_rate_ms=prof["final_descent_rate_ms"],
-                        height_timeout_s=args.height_timeout_s or (0.5 if sim else 1.0))
+                        height_timeout_s=args.height_timeout_s or (0.5 if sim else 1.0),
+                        lift_by_climb=args.lift_by_climb,
+                        **({} if args.spool_fast_frac is None
+                           else dict(spool_fast_frac=args.spool_fast_frac)))
         ctl = oc.HeightHold(lim, yaw_rad=state["yaw"] or 0.0, hold_s=prof["hold_s"])
+        # Fix 3 (T3 run 1, 29 Oct): ARTEX113 sits 1.3 deg nose-down on the floor, and PX4's land
+        # detector calls it airborne from the first spool, so its attitude integrators wound up
+        # against the floor for 3 s (front-rear motors +0.15) and let go at lift-off. Commanding
+        # the attitude it is sitting at leaves nothing to wind up; it eases to level over 1 s.
+        floor_att = (state["roll"] or 0.0, state["pitch"] or 0.0)
         result["profile"] = prof
         ctl.start(time.time(), 0.0)
         t_prev = time.time()
@@ -1684,10 +1694,16 @@ def cmd_offboard_flight(args) -> int:
             if state["mode"] != OFFBOARD_MAIN_MODE:
                 result["outcome"] = f"left_offboard_to_mode_{state['mode']}"
                 break
+            if args.lift_by_climb and not ctl.airborne:
+                heights.floor(estimate(), now)      # on the floor, the estimate's drift is not height
             h = height()
             valid = state["t_lp"] is not None and now - state["t_lp"] < lim.height_timeout_s
             vz_up = None if state["vz"] is None else -state["vz"]
             cmd = ctl.step(now, dt, h, valid, vz_up, state["tilt"])
+            if args.ground_attitude and cmd.phase != oc.ABORT:
+                k = 1.0 if not ctl.airborne else max(0.0, 1.0 - (now - ctl.airborne_at) / 1.0)
+                if k > 0.0:
+                    cmd.q = oc.attitude_quaternion(k * floor_att[0], k * floor_att[1], ctl.yaw_rad)
             cur["cmd"] = cmd
             # The agent's own intent stands in for the throttle stick: the guard's "climbing
             # with the stick at centre" rule must not fire on a climb the agent asked for.
@@ -1935,6 +1951,14 @@ def main() -> int:
                     help="offboard-flight: how long the stage under test waits for a takeover")
     ap.add_argument("--height", type=float, default=1.0, help="offboard-flight: hover height (m)")
     ap.add_argument("--takeoff-pause-m", type=float, default=0.3)
+    ap.add_argument("--lift-by-climb", action="store_true",
+                    help="offboard-flight: lift-off also from a sustained climb rate; the height "
+                         "estimate is re-zeroed while on the floor (fix 1, 29 Oct)")
+    ap.add_argument("--spool-fast-frac", type=float, default=None,
+                    help="offboard-flight: quick spool to this fraction of hover (fix 2; default 0.8)")
+    ap.add_argument("--ground-attitude", action="store_true",
+                    help="offboard-flight: command the floor attitude until lift-off, then ease to "
+                         "level over 1 s (fix 3, 29 Oct)")
     ap.add_argument("--test-descent-rate", type=float, default=0.08,
                     help="offboard-flight --stage descent: m/s, slow so the stage lasts")
     ap.add_argument("--final-descent-rate", type=float, default=0.05,

@@ -1,0 +1,9 @@
+[link] udpin:0.0.0.0:14540 -- waiting for heartbeat
+[link] connected, vehicle is sysid 1
+[ladder] stage: prearm
+[ladder] stage: arm
+[vehicle] Armed by external command
+[ladder] stage: takeoff
+[vehicle] Takeoff detected
+[ladder] stage: hold <- the stage under test
+[ladder] stage: landing
