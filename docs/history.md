@@ -359,6 +359,75 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-10-29 (night) — Ladder campaign 2 (40 runs) + ground truth: the guard was right, the agent's height is wrong
+
+Campaign 2 used the same harness and seed as the evening campaign, cut to 5 runs per scenario,
+so it replays those runs 1–5 including the radio dropouts. Results and the correction are in
+`FlightPlanner/sim/results/2026-10-29-takeover-ladder-run2/README.md`, and the truth data is in
+`…-truth/`.
+
+**Fixes flown** (commit 47b9574):
+- the guard measures height from the agent's zero, and the agent re-zeroes at arming;
+- the take-off pause reports as take-off, and the harness kills at 0.1 m;
+- the spool freezes at the first sign of lift.
+
+**Result: 34/40 PASS** (27/40 for the same runs before).
+
+| Stage | PASS | VOID | NOT REACHED | FAIL |
+|---|---|---|---|---|
+| prearm | 5 | | | |
+| arm | 5 | | | |
+| takeoff | 5 | | | |
+| hold | 5 | | | |
+| descent | 2 | 1 | 2 | |
+| landing | 4 | | 1 | |
+| disarm | 4 | | 1 | |
+| no takeover | 4 | | | 1 |
+
+- Take-off went 5/5, with kills at 0.10–0.15 m.
+- Attribution was 100 % again: 11/11 ch7 flips, every kill, 1/1 link loss, no claims without a
+  flip. ch7 → ALTCTL took a median 0.42 s.
+
+**Correction: the evening entry's "guard ceiling vs agent height use different zeros" was wrong.**
+- gz_artex has a 0.4–12 m downward lidar, and the guard reads it.
+- I added Gazebo truth, rangefinder and estimator recording to the harness (`*.truth.csv`) and
+  re-flew the no-takeover control 4 times.
+- The rangefinder was within 3–7 cm of truth throughout.
+- In both guard landings the aircraft **truly reached 2.00–2.02 m**. The agent's height,
+  `LOCAL_POSITION_NED.z`, read up to **1.07 m low**.
+- In clean runs it was 0.26 m high to 0.21 m low.
+- The pattern:
+  - the estimate dips about 0.2 m on the floor as thrust rises;
+  - it lags lift-off by about 0.4 m;
+  - the gap widens to about 0.9 m;
+  - after touchdown it still reads −0.64 m.
+- The airframe has `EKF2_HGT_REF` 0 (baro) and `EKF2_RNG_A_HMAX` 1.0, so range aiding ends exactly
+  at the 1 m hover height.
+- **The guard's landings were real 2 m excursions, not false alarms.** The controller's
+  ceiling aborts are the same error, with the true height higher still.
+- The z0 change stays: it is correct for the guard's fallback below 0.4 m. But it did not fix
+  this, and its comment was corrected.
+
+**Spool freeze reverted.**
+- In `landing_241914807`, an estimator still settling at arming (−1.5 m drift on the floor, "heading
+  estimate not stable") read as lift at 0.134 thrust. The aircraft sat on the floor until the
+  take-off timeout aborted it to LAND. Safe, but a regression.
+- Gating the sign (0.15 s, above half the hover guess) left no benefit in the 1-D model: lift-off
+  climb went from 1.21 to 1.19 m/s.
+- It never addressed the overshoot.
+
+**Gate still not met. The blocker is now the agent's height source, not takeover recognition**
+(solid over 120 runs). Decision for the operator:
+- (a) the agent flies on the rangefinder when valid (≥ 0.4 m), like the guard, with the estimator
+  below that (recommended: code only, no vehicle change);
+- or (b) raise `EKF2_RNG_A_HMAX` above the ceiling so PX4 fuses it. That is a parameter change on
+  ARTEX: back up, ask, restore.
+
+To check before any real flight stage: whether ARTEX113 carries the same `EKF2_RNG_A_HMAX` 1.0,
+and what its 19 Oct ulogs show for estimator vs TFmini.
+
+elrs-link.service on jetson-2 was stopped for both runs and restarted (active).
+
 ## 2026-10-29 (eve) — Takeover ladder SITL campaign: recognition 100 %, gate NOT met
 
 `sim/takeover_tests.py --instances 10 --outage 10,0.5,1.5 --seed 2910`, jetson-2, 11:43–12:57.
@@ -388,7 +457,8 @@ bursts. Full write-up and logs: `FlightPlanner/sim/results/2026-10-29-takeover-l
 disarmed from 0.20–0.33 m.
 
 **Two real problems, both found from the logs:**
-1. **The guard's ceiling and the agent use different height zeros.**
+1. **The guard's ceiling and the agent use different height zeros.** *(WRONG: corrected in
+   the (night) entry above. The sim has a rangefinder, and the excursions were real.)*
    - The guard falls back to raw `-LOCAL_POSITION_NED.z` when there is no rangefinder; the agent
      measures from `z0` at flight start.
    - EKF z had drifted about 0.9 m by take-off: the agent read 1.11 m when the guard read 2.01 m

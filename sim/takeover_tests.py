@@ -64,11 +64,13 @@ class Pilot:
         self.texts = []
         self.pvals, self.rc = {}, None
         self.max_tilt = 0.0
+        # truth beside what the aircraft believes: (t, Gazebo height, rangefinder, estimator -z)
+        self.track, self.max_alt, self.rng, self.est = [], 0.0, None, None
         self._stop = False
         self.lock = threading.Lock()
         threading.Thread(target=self._tx, daemon=True).start()
         threading.Thread(target=self._rx, daemon=True).start()
-        for msg_id, us in ((115, 40000), (245, 200000), (32, 50000)):
+        for msg_id, us in ((115, 40000), (245, 200000), (32, 50000), (132, 50000)):
             with self.lock:
                 self.c.mav.command_long_send(self.c.target_system, 1, 511, 0, msg_id, us, 0, 0, 0, 0, 0)
 
@@ -108,6 +110,13 @@ class Pilot:
                 self.s.update(alt=(m.alt - self.alt0) / 1000.0, tilt=tilt)
                 if self.s["armed"]:
                     self.max_tilt = max(self.max_tilt, tilt)
+                    self.max_alt = max(self.max_alt, self.s["alt"])
+                    self.track.append((round(now, 3), round(self.s["alt"], 3), self.rng, self.est))
+            elif k == "DISTANCE_SENSOR":
+                d = m.current_distance / 100.0
+                self.rng = round(d, 3) if m.min_distance < m.current_distance < m.max_distance else None
+            elif k == "LOCAL_POSITION_NED":
+                self.est = round(-m.z, 3)
             elif k == "PARAM_VALUE":
                 self.pvals[m.param_id] = m.param_value
             elif k == "RC_CHANNELS":
@@ -254,7 +263,8 @@ def run_case(scn, seed, outage, wait_s, extra=()):
                guard_actions=[a.get("action") for a in r.get("safety", [])],
                passed_by_agent=r.get("passed"), abort_reason=r.get("abort_reason"),
                setpoints=r.get("setpoints"), max_height_m=r.get("max_height_m"),
-               true_max_tilt=round(pilot.max_tilt, 1), crashed=crashed,
+               true_max_tilt=round(pilot.max_tilt, 1), true_max_height_m=round(pilot.max_alt, 2),
+               crashed=crashed,
                disarmed=not pilot.s["armed"], error=r.get("error"),
                classified=[e.get("source") for e in agent.events if e.get("event") == "takeover_classified"],
                stages=[e["stage"] for e in agent.events if e.get("event") == "stage"],
@@ -262,6 +272,8 @@ def run_case(scn, seed, outage, wait_s, extra=()):
                duration_s=round(time.time() - t0, 1))
     res["verdict"] = judge(scn, res)
     pilot.close()
+    (LOGS / f"{tag}.truth.csv").write_text("t,true_height_m,rangefinder_m,estimator_m\n" + "".join(
+        ",".join("" if v is None else str(v) for v in r) + "\n" for r in pilot.track))
     try:
         (LOGS / f"{tag}.sitl.log").write_bytes((T.GZB_DIR / "sitl.log").read_bytes())
     except OSError:

@@ -838,8 +838,8 @@ class Guard:
         self.motor_lo, self.motor_hi = parse_motor_range(getattr(args, "motor_range", None))
         self.throttle_chan = getattr(args, "throttle_chan", 3) or 3
         self._range_at = 0.0                 # last valid rangefinder reading
-        # Estimator z at the flying verb's height zero. The EKF origin is set at boot and drifts
-        # (0.9 m by take-off in SITL, 29 Oct), so raw -z is not height above the floor.
+        # Estimator z at the flying verb's height zero, for the fallback below the rangefinder's
+        # 0.4 m: the EKF origin is set at boot and drifts, so raw -z is not height above the floor.
         self.z0: float | None = None
         # Takeover classification (29 Oct 2026): which way the aircraft left OFFBOARD.
         self.mode_chan = getattr(args, "mode_chan", 7) or 7

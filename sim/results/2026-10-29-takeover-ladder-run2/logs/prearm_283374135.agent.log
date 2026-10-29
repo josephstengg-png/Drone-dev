@@ -1,0 +1,5 @@
+[link] udpin:0.0.0.0:14540 -- waiting for heartbeat
+[link] connected, vehicle is sysid 1
+[ladder] stage: prearm <- the stage under test
+[vehicle] Preflight Fail: Kill switch engaged
+[safety] PILOT KILLED IT (Preflight Fail: Kill switch engaged). Standing down -- no setpoints, no mode changes, no commands.

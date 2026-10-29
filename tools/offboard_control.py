@@ -57,11 +57,6 @@ class Limits:
     spool_margin: float = 0.2         # how far above the assumed hover thrust the ground spool
                                       # may go. 0.1 left a heavier aircraft stuck on the floor
                                       # (true hover 0.6 vs assumed 0.5) in the 19 Oct tests.
-    lift_vz_ms: float = 0.15          # first sign of lift: climbing this fast, or risen
-    lift_rise_m: float = 0.05         # this far above the lowest height seen on the floor.
-                                      # The spool freezes there (29 Oct: it ramped on while the
-                                      # estimate dipped 0.1 m under prop wash, lifted off at
-                                      # 2.5 m/s and hit the 1.5 m ceiling in 5 of 80 SITL runs).
     takeoff_timeout_s: float = 6.0    # must be airborne by then, or abort
     airborne_height_m: float = 0.15
     land_height_m: float = 0.10
@@ -102,8 +97,6 @@ class HeightHold:
     _last_valid: float | None = None
     _sat_since: float | None = None
     _landed_since: float | None = None
-    _floor_min: float | None = None
-    _lift_thrust: float | None = None
     airborne: bool = False
     reason: str = ""
 
@@ -150,10 +143,7 @@ class HeightHold:
             self.airborne = True
 
         # ---- phase logic: move the height setpoint ---------------------------------------
-        if self.phase == TAKEOFF and not self.airborne:
-            # the setpoint waits on the floor: one that ran ahead is a climb demand at lift-off
-            self._height_sp = max(self._height_sp, height)
-        elif self.phase == TAKEOFF:
+        if self.phase == TAKEOFF:
             self._height_sp = min(L.target_height_m, self._height_sp + L.climb_rate_ms * dt)
             if self._height_sp >= L.target_height_m and \
                     abs(height - L.target_height_m) < 0.1:
@@ -186,16 +176,8 @@ class HeightHold:
             # heavier than the hover guess. So ramp thrust steadily from minimum to
             # hover + margin, bounded, until the aircraft leaves the floor; then the loop
             # takes over. With no lift at all it sits at that bound until the timeout aborts.
-            # At the first sign of lift the ramp stops where it is: that thrust already beats
-            # the weight. A false sign leaves it short of lift-off, and the timeout aborts.
             spool = clamp((now - self._t_phase) / L.spool_s, 0.0, 1.0)
             thrust = L.thrust_min + spool * (L.hover_thrust + L.spool_margin - L.thrust_min)
-            self._floor_min = height if self._floor_min is None else min(self._floor_min, height)
-            if self._lift_thrust is None and ((vz or 0.0) > L.lift_vz_ms
-                                              or height - self._floor_min > L.lift_rise_m):
-                self._lift_thrust = thrust
-            if self._lift_thrust is not None:
-                thrust = self._lift_thrust
         thrust = clamp(thrust, L.thrust_min, L.thrust_max)
 
         if self.airborne and thrust >= L.thrust_max:

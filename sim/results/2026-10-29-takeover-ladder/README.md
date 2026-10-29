@@ -1,5 +1,10 @@
 # Takeover ladder, SITL campaign — 29 Oct 2026
 
+> **Correction, same day:** finding 1 below is wrong. The sim *does* have a rangefinder, and the
+> guard read it. Ground truth (`../2026-10-29-takeover-ladder-truth/`) shows the aircraft really
+> reached 2 m. The agent's estimator height read up to 1.07 m low, so the guard's landings were
+> real, not false alarms. See `../2026-10-29-takeover-ladder-run2/README.md`.
+
 `sim/takeover_tests.py --instances 10 --outage 10,0.5,1.5 --seed 2910` on jetson-2
 (started 11:43, finished 12:57). 8 scenarios × 10 runs, each on a freshly booted PX4 SITL
 (gz_x500, indoor params, RC over `RC_CHANNELS_OVERRIDE`). The agent sent setpoints at 20 Hz,

@@ -1,0 +1,19 @@
+[link] udpin:0.0.0.0:14540 -- waiting for heartbeat
+[link] connected, vehicle is sysid 1
+[ladder] stage: prearm
+[ladder] stage: arm
+[vehicle] Armed by external command
+[ladder] stage: takeoff
+[vehicle] Takeoff detected
+[ladder] stage: hold <- the stage under test
+[safety] LEFT OUR MODE: main mode 6 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[safety] PILOT HAS IT (pilot switch).
+[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8).
+[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8).
+[vehicle] Landing detected
+[vehicle] Kill engaged
+[safety] PILOT KILLED IT (Kill engaged). Standing down -- no setpoints, no mode changes, no commands.
+[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8).
+[vehicle] Preflight Fail: Flight termination active
+[vehicle] Disarmed by landing
+[safety] aircraft disarmed (by the pilot or PX4) after 11.1 s
