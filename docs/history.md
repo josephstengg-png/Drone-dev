@@ -424,8 +424,11 @@ DISTANCE_SENSOR **0.2/s**.
 - The agent's height now comes from `oc.HeightSource`: the rangefinder while it has a fresh
   reading (< 0.5 s old), else the estimator carried on from the rangefinder's last offset, so
   the hand-over at 0.4 m doesn't step.
-- 4 tests added, suite 300.
-- SITL truth check below.
+- 4 tests added, suite 300 (commit 0c178e2).
+- SITL truth check, perfect link, 4 runs (`sim/results/2026-10-29-height-source/`): all held
+  0.99–1.00 m by the agent's reading. The 2 runs with truth peaked at a **true 0.98 m** (before:
+  1.08–1.11 m clean, 2.0 m in the excursions). The other 2 lost the harness's own GCS link, so
+  have no truth; the flights themselves were normal. A small sample.
 
 ## 2026-10-29 (night) — Ladder campaign 2 (40 runs) + ground truth: the guard was right, the agent's height is wrong
 
