@@ -838,6 +838,16 @@ class Guard:
         self.motor_lo, self.motor_hi = parse_motor_range(getattr(args, "motor_range", None))
         self.throttle_chan = getattr(args, "throttle_chan", 3) or 3
         self._range_at = 0.0                 # last valid rangefinder reading
+        # Takeover classification (29 Oct 2026): which way the aircraft left OFFBOARD.
+        self.mode_chan = getattr(args, "mode_chan", 7) or 7
+        self.kill_chan = getattr(args, "kill_chan", 8) or 8
+        self.kill_pwm_above = getattr(args, "kill_pwm_above", 1750) or 1750
+        self.classify_s = 1.0                # wait this long for an RC reading after the exit
+        self._mode_pwm: list[tuple[float, int]] = []
+        self._exit_at: float | None = None
+        self.takeover_source: str | None = None    # pilot_switch | kill_switch | link_loss | unknown
+        self.link_losses = 0
+        self.stick_override: float | None = None   # the agent's own climb intent, while it flies
         # A flag that predates the run is an abort nobody cleared. Refuse to fly rather
         # than guess which it was, and say which case this is -- the operator needs to
         # know whether the abort happened just now or last time.
@@ -880,8 +890,16 @@ class Guard:
             fallback = -msg.z if now - self._range_at > 1.0 else None
             self.wd.vertical(fallback, -msg.vz, now)
         elif kind == "RC_CHANNELS":
-            raw = getattr(msg, f"chan{self.throttle_chan}_raw", 0)
-            self.wd.stick((raw - 1000) / 1000.0 if 900 < raw < 2100 else None, now)
+            if self.stick_override is None:
+                raw = getattr(msg, f"chan{self.throttle_chan}_raw", 0)
+                self.wd.stick((raw - 1000) / 1000.0 if 900 < raw < 2100 else None, now)
+            mode_pwm = getattr(msg, f"chan{self.mode_chan}_raw", 0)
+            if 900 < mode_pwm < 2100:
+                self._mode_pwm = self._mode_pwm[-49:] + [(now, mode_pwm)]
+            kill_pwm = getattr(msg, f"chan{self.kill_chan}_raw", 0)
+            if 900 < kill_pwm < 2100 and kill_pwm > self.kill_pwm_above:
+                # STATUSTEXT can be lost on the radio; the switch position itself cannot lie
+                self._note_kill(f"kill switch on (channel {self.kill_chan} = {kill_pwm})")
         elif kind == "SERVO_OUTPUT_RAW":
             span = self.motor_hi - self.motor_lo
             outs = [getattr(msg, f"servo{i}_raw") for i in range(1, 5)]
@@ -899,6 +917,8 @@ class Guard:
             return
         self.killed_by_pilot = True
         self.pilot_has_it = True        # reuse every gate the mode takeover already has
+        if self.takeover_source in (None, "unknown"):
+            self.takeover_source = "kill_switch"
         self.stop_streaming = True
         log(f"[safety] PILOT KILLED IT ({text}). Standing down -- no setpoints, no mode "
             "changes, no commands.")
@@ -937,12 +957,36 @@ class Guard:
         if self.pilot_has_it or prev is None:
             return
         if prev in AUTOMATIC_MODES and mode in PILOT_MODES:
+            # Hands off at once, whatever the cause -- sending nothing is right whether the
+            # pilot flipped the switch or the link dropped the setpoints. WHICH it was is
+            # settled a moment later by _classify, from the mode switch's position.
             self.pilot_has_it = True
             self.stop_streaming = True      # stop arguing with the sticks
-            log(f"[safety] PILOT HAS IT: main mode {prev} -> {mode}. "
+            self._exit_at = time.time()
+            log(f"[safety] LEFT OUR MODE: main mode {prev} -> {mode}. "
                 "Standing down -- no setpoints, no mode changes, no disarm while airborne.")
             emit(dict(event="rc_takeover", slot=self.slot, from_mode=prev, to_mode=mode,
                       airborne=self.airborne, t_epoch=round(time.time(), 3)))
+
+    def _classify(self, now: float) -> None:
+        """Pilot switch or lost link? Decided from ch7 readings that arrived after the exit."""
+        if self._exit_at is None or self.takeover_source is not None:
+            return
+        after = [p for t, p in self._mode_pwm if t >= self._exit_at]
+        verdict = safety_rules.classify_mode_exit(after)
+        if verdict != "pilot_switch" and now - self._exit_at < self.classify_s:
+            return                      # a switch reading may still be on its way
+        self.takeover_source = verdict
+        if verdict == "link_loss":
+            self.link_losses += 1
+            log("[safety] *** OFFBOARD LOST ON THE LINK -- NOT A PILOT TAKEOVER *** the mode "
+                "switch is still in the middle. PX4 failed over to Altitude and the agent has "
+                "stood down for good. PILOT: you have the aircraft -- fly it and land it.")
+        else:
+            log(f"[safety] PILOT HAS IT ({verdict.replace('_', ' ')}).")
+        emit(dict(event="takeover_classified", slot=self.slot, source=verdict,
+                  after_s=round(now - self._exit_at, 2), airborne=self.airborne,
+                  t_epoch=round(now, 3)))
 
     def operator(self, word: str) -> bool:
         """A command from the ground. Returns False if it was not understood."""
@@ -966,6 +1010,7 @@ class Guard:
 
     def check(self) -> dict | None:
         """Evaluate, act if the ladder has climbed, and nurse a landing to its end."""
+        self._classify(time.time())
         if not self.enabled or self.pilot_has_it:
             # A human is flying it. Two aborts fighting each other is worse than either.
             return None
@@ -1369,6 +1414,336 @@ def cmd_offboard_arm(args) -> int:
             return 4
 
 
+def cmd_offboard_flight(args) -> int:
+    """The takeover ladder (29 Oct 2026, docs/takeover-ladder-plan.md): fly in OFFBOARD up to
+    --stage, hold that stage open for the pilot to take over, and report how it went.
+
+        prearm   OFFBOARD selected, streaming, disarmed       -> kill switch expected
+        arm      + armed at zero thrust                       -> kill switch expected
+        takeoff  + climb to a 0.3 m pause                      -> kill switch expected
+        hold     + 1 m for the wait window                    -> ch7 to Altitude expected
+        descent  + a slow descent                             -> ch7 to Altitude expected
+        landing  + a slow final 0.3 m, touchdown by PX4 LAND  -> ch7 to Altitude expected
+        disarm   + landed, before PX4's own auto-disarm       -> kill switch expected
+
+    The height loop is offboard_control.HeightHold. Indoors PX4 takes only attitude + thrust,
+    so the agent closes the height loop itself -- over ELRS that loop crosses the radio, with
+    gaps of over a second (19 Oct). A gap trips PX4's offboard-loss failsafe into Altitude;
+    the guard stands down for that exactly as for a pilot, and classifies which it was.
+
+    Real aircraft only with --real-aircraft, --expect-sysid and, for any stage that arms,
+    --gate (the operator types ARM after confirming props / tether / area). Never sends a
+    disarm the aircraft would accept in the air, and nothing at all after a takeover.
+    """
+    import offboard_control as oc
+    stage = args.stage
+    upto = oc.STAGES.index(stage)
+    conn = connect(args.link, args.expect_sysid)
+    result = dict(verb="offboard-flight", stage=stage, slot=args.slot, sysid=conn.target_system,
+                  outcome=None, takeover_source=None, takeover_stage=None)
+    sim = read_param(conn, "SIM_GZ_EN") is not None
+    result["simulator"] = sim
+    if not sim:
+        need = [("--real-aircraft", args.real_aircraft), ("--expect-sysid", args.expect_sysid)]
+        if upto >= oc.STAGES.index("arm"):
+            need.append(("--gate", args.gate))
+        missing = [flag for flag, ok in need if not ok]
+        # 29 Oct 2026: the thrust-only height loop cannot be closed across the radio. Offline,
+        # with ELRS's ~0.35 s delay at 5 Hz, no gain set survived a +/-0.05 hover-thrust error
+        # (through the ceiling or onto the floor); in SITL, 5 Hz alone oscillated to 1.54 m
+        # where 50 Hz held +/-1 cm. Flight stages need the companion WIRED to the FC.
+        wired = args.link.startswith(("serial:", "/dev/"))
+        if upto >= oc.STAGES.index("takeoff") and not wired:
+            missing.append("a wired link (--link serial:/dev/...) for flight stages: the "
+                           "height loop is unstable over ELRS (docs/history.md, 29 Oct 2026)")
+        if missing or args.sim_outage:
+            result["error"] = ("refusing a real aircraft: " +
+                               (f"needs {', '.join(missing)}" if missing else
+                                "--sim-outage is simulator-only"))
+            emit(result)
+            return 2
+    ceiling = 1.5 if sim else 1.2
+    if args.height > ceiling - 0.15:
+        result["error"] = f"--height {args.height} too close to the {ceiling} m ceiling"
+        emit(result)
+        return 2
+    if vehicle_armed(conn) is not False:
+        result["error"] = "refusing: vehicle is ARMED or silent"
+        emit(result)
+        return 2
+    hover = read_param(conn, "MPC_THR_HOVER")
+    result["hover_thrust"] = hover = float(hover) if hover else oc.Limits().hover_thrust
+    result["com_disarm_land_s"] = read_param(conn, "COM_DISARM_LAND")
+    if sim:     # the offboard port streams too little by default (20 Oct). Not asked of the
+        for msg_id, us in ((32, 50000), (30, 50000), (65, 100000), (245, 200000)):  # radio.
+            conn.mav.command_long_send(conn.target_system, 1,
+                                       mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
+                                       0, msg_id, us, 0, 0, 0, 0, 0)
+
+    import random
+    outage = None
+    if args.sim_outage:
+        every, lo, hi = (float(x) for x in args.sim_outage.split(","))
+        outage = oc.OutageModel(every, lo, hi, random.Random(args.seed))
+    state = dict(armed=False, mode=None, z=None, vz=None, t_lp=None, tilt=None, yaw=None,
+                 last_hb=None)
+    rx = {}
+    stdin = dict(pending=[], eof=False)
+    guard = Guard(conn, args)
+    guard.classify_s = args.classify_s
+    tx = dict(sent=0, dropped=0, last=0.0, on=True)
+    cur = dict(cmd=oc.Command(oc.IDLE, 0.0, oc.level_quaternion(0.0)), stage=None, t_stage=None)
+    trace = []
+
+    def transmit(now):
+        if not tx["on"] or guard.stop_streaming or now - tx["last"] < 1.0 / args.setpoint_hz:
+            return
+        tx["last"] = now
+        if outage is not None and outage.dropped(now):
+            tx["dropped"] += 1
+            return
+        c = cur["cmd"]
+        kw = dict(thrust_body=[0.0, 0.0, 0.0]) if _ATT_HAS_BODY_THRUST else {}
+        conn.mav.set_attitude_target_send(int(time.monotonic() * 1000) & 0xFFFFFFFF,
+                                          conn.target_system, 1, 0b00000111, list(c.q),
+                                          0.0, 0.0, 0.0, c.thrust, **kw)
+        tx["sent"] += 1
+
+    def height():
+        if state["z"] is None or state.get("z0") is None:
+            return None
+        return -(state["z"] - state["z0"])
+
+    def enter(name):
+        if name == cur["stage"]:
+            return
+        cur["stage"], cur["t_stage"] = name, time.time()
+        log(f"[ladder] stage: {name}" + (" <- the stage under test" if name == stage else ""))
+        emit(dict(event="stage", slot=args.slot, stage=name, under_test=name == stage,
+                  height_m=None if height() is None else round(height(), 2),
+                  t_epoch=round(time.time(), 3)))
+
+    def pump(seconds: float, until=None) -> bool:
+        end = time.time() + seconds
+        while True:
+            transmit(time.time())
+            msg = conn.recv_match(blocking=True, timeout=0.02)
+            while msg is not None:
+                kind = msg.get_type()
+                rx[kind] = rx.get(kind, 0) + 1
+                if kind == "HEARTBEAT" and msg.get_srcSystem() == conn.target_system \
+                        and msg.type != mavutil.mavlink.MAV_TYPE_GCS:
+                    state["armed"] = bool(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED)
+                    state["mode"] = vehicle_main_mode(msg)
+                    state["last_hb"] = time.time()
+                elif kind == "LOCAL_POSITION_NED":
+                    state.update(z=msg.z, vz=msg.vz, t_lp=time.time())
+                elif kind == "ATTITUDE":
+                    state["yaw"] = msg.yaw
+                    state["tilt"] = math.degrees(math.acos(max(-1.0, min(1.0, math.cos(msg.roll)
+                                                                          * math.cos(msg.pitch)))))
+                elif kind == "STATUSTEXT":
+                    text = statustext_of(msg).strip()
+                    log(f"[vehicle] {text}")
+                    result.setdefault("vehicle_text", []).append(text)
+                guard.observe(msg)
+                if guard.pilot_has_it and result["takeover_stage"] is None:
+                    result["takeover_stage"] = cur["stage"]
+                    result["takeover_after_s"] = round(time.time() - (cur["t_stage"] or time.time()), 2)
+                    h = height()
+                    result["takeover_height_m"] = None if h is None else round(h, 2)
+                    result["takeover_tilt_deg"] = None if state["tilt"] is None else round(state["tilt"], 1)
+                msg = conn.recv_match(blocking=False)
+            while select.select([sys.stdin], [], [], 0)[0]:
+                line = sys.stdin.readline()
+                if not line:
+                    stdin["eof"] = True
+                    break
+                word = line.strip().upper()
+                if word in EMERGENCY_WORDS:
+                    guard.operator(word)
+                    result.setdefault("operator", []).append(word)
+                elif word:
+                    stdin["pending"].append(word)
+            acted = guard.check()
+            if acted:
+                result.setdefault("safety", []).append(acted)
+            if until and until():
+                return True
+            if time.time() >= end:
+                return until is None
+
+    hands_off = lambda: guard.pilot_has_it or guard.stop_streaming  # noqa: E731
+    t_start = time.time()
+    try:
+        pump(2.0)
+        if state["z"] is None:
+            result["error"] = "no LOCAL_POSITION_NED (no height estimate)"
+            return 2
+        state["z0"] = state["z"]
+        rate_s = time.time() - t_start
+        result["rx_hz"] = {k: round(v / rate_s, 1) for k, v in rx.items()
+                           if k in ("LOCAL_POSITION_NED", "ATTITUDE", "RC_CHANNELS", "HEARTBEAT")}
+        cur["cmd"] = oc.Command(oc.IDLE, 0.0, oc.level_quaternion(state["yaw"] or 0.0))
+
+        enter("prearm")
+        last, deadline = 0.0, time.time() + 10
+        while time.time() < deadline and state["mode"] != OFFBOARD_MAIN_MODE and not hands_off():
+            if time.time() - last > 2.0:
+                conn.mav.command_long_send(conn.target_system, 1, mavutil.mavlink.MAV_CMD_DO_SET_MODE,
+                                           0, 1, OFFBOARD_MAIN_MODE, 0, 0, 0, 0, 0)
+                last = time.time()
+            pump(0.5, lambda: state["mode"] == OFFBOARD_MAIN_MODE or hands_off())
+        if hands_off():
+            result["outcome"] = "takeover"
+            return 0
+        if state["mode"] != OFFBOARD_MAIN_MODE:
+            result["error"] = f"vehicle did not enter OFFBOARD (main mode {state['mode']})"
+            return 2
+        if stage == "prearm":
+            took = pump(args.wait_s, hands_off)
+            result["outcome"] = "takeover" if took else "no_takeover"
+            return 0
+
+        if args.gate:
+            emit(dict(event="ready", slot=args.slot, sysid=conn.target_system, stage=stage))
+            log(f"[ladder] READY for test '{stage}' -- type ARM once props/tether/area are confirmed")
+            end, verdict = time.time() + args.gate_timeout_s, None
+            while time.time() < end and verdict is None:
+                pump(0.3)
+                if stdin["pending"]:
+                    verdict = stdin["pending"].pop(0)
+                elif stdin["eof"]:
+                    verdict = "EOF"
+                elif hands_off():
+                    verdict = "TAKEOVER"
+            if verdict != "ARM":
+                result["error"] = f"not authorised to arm ({verdict or 'timeout'})"
+                return 2
+
+        enter("arm")
+        last, deadline = 0.0, time.time() + 20
+        while time.time() < deadline and not state["armed"] and not hands_off():
+            if time.time() - last > 3.0:
+                conn.mav.command_long_send(conn.target_system, 1,
+                                           mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                                           0, 1, 0, 0, 0, 0, 0, 0)
+                last = time.time()
+            pump(0.5, lambda: state["armed"] or hands_off())
+        if hands_off():
+            result["outcome"] = "takeover"
+            return 0
+        if not state["armed"]:
+            result["error"] = "vehicle did not arm"
+            return 2
+        emit(dict(event="armed", slot=args.slot, sysid=conn.target_system,
+                  armed_epoch=round(time.time(), 3)))
+        if stage == "arm":
+            took = pump(args.wait_s, lambda: hands_off() or not state["armed"])
+            result["outcome"] = "takeover" if guard.pilot_has_it else \
+                ("disarmed" if not state["armed"] else "no_takeover")
+            return 0
+
+        prof = oc.stage_profile(stage, height_m=args.height, wait_s=args.wait_s,
+                                hold_s=args.hold_s, takeoff_pause_m=args.takeoff_pause_m,
+                                test_descent_rate_ms=args.test_descent_rate,
+                                final_descent_rate_ms=args.final_descent_rate)
+        lim = oc.Limits(target_height_m=prof["target_height_m"], ceiling_m=ceiling,
+                        hover_thrust=hover, descent_rate_ms=prof["descent_rate_ms"],
+                        final_descent_rate_ms=prof["final_descent_rate_ms"],
+                        height_timeout_s=args.height_timeout_s or (0.5 if sim else 1.0))
+        ctl = oc.HeightHold(lim, yaw_rad=state["yaw"] or 0.0, hold_s=prof["hold_s"])
+        result["profile"] = prof
+        ctl.start(time.time(), 0.0)
+        t_prev = time.time()
+        while True:
+            pump(0.05)
+            now = time.time()
+            dt, t_prev = now - t_prev, now
+            if guard.pilot_has_it:
+                result["outcome"] = "takeover"
+                break
+            if guard.stop_streaming:
+                result["outcome"] = "guard_acted"
+                break
+            if not state["armed"]:
+                result["outcome"] = "disarmed_in_flight"
+                break
+            if state["mode"] != OFFBOARD_MAIN_MODE:
+                result["outcome"] = f"left_offboard_to_mode_{state['mode']}"
+                break
+            h = height()
+            valid = state["t_lp"] is not None and now - state["t_lp"] < lim.height_timeout_s
+            vz_up = None if state["vz"] is None else -state["vz"]
+            cmd = ctl.step(now, dt, h, valid, vz_up, state["tilt"])
+            cur["cmd"] = cmd
+            # The agent's own intent stands in for the throttle stick: the guard's "climbing
+            # with the stick at centre" rule must not fire on a climb the agent asked for.
+            guard.stick_override = max(0.0, min(1.0, 0.5 + (cmd.vz_sp or 0.0)))
+            guard.wd.stick(guard.stick_override, now)
+            enter(oc.stage_of(cmd.phase, cmd.height_sp, lim.final_zone_m))
+            trace.append((round(now - t_start, 2), cmd.phase, None if h is None else round(h, 3),
+                          None if cmd.height_sp is None else round(cmd.height_sp, 3),
+                          round(cmd.thrust, 3), state["mode"]))
+            if cmd.request == "land":
+                log(f"[ladder] controller abort: {cmd.reason} -> PX4 LAND")
+                result.update(outcome="controller_abort", abort_reason=cmd.reason)
+                tx["on"] = False
+                conn.mav.command_long_send(conn.target_system, 1, mavutil.mavlink.MAV_CMD_NAV_LAND,
+                                           0, 0, 0, 0, 0, 0, 0, 0)
+                break
+            if cmd.request == "disarm":
+                # touchdown is PX4 LAND's: its land detector confirms contact and disarms
+                # (COM_DISARM_LAND). Disarming at our own 'landed' was refused in SITL, 20 Oct.
+                log("[ladder] near the ground; touchdown handed to PX4 LAND")
+                tx["on"] = False
+                conn.mav.command_long_send(conn.target_system, 1, mavutil.mavlink.MAV_CMD_NAV_LAND,
+                                           0, 0, 0, 0, 0, 0, 0, 0)
+                pump(20.0, lambda: guard.airborne is False or guard.pilot_has_it or not state["armed"])
+                if state["armed"] and not guard.pilot_has_it:
+                    enter("disarm")
+                pump(20.0, lambda: guard.pilot_has_it or not state["armed"])
+                result["outcome"] = "takeover" if guard.pilot_has_it else \
+                    ("landed_px4_disarmed" if not state["armed"] else "landed_still_armed")
+                break
+        return 0
+    finally:
+        tx["on"] = False
+        result["takeover_source"] = guard.takeover_source if guard.pilot_has_it else None
+        result["link_losses"] = guard.link_losses
+        result["setpoints"] = dict(sent=tx["sent"], dropped_sim=tx["dropped"],
+                                   hz=args.setpoint_hz)
+        result["max_height_m"] = max((r[2] for r in trace if r[2] is not None), default=None)
+        if guard.pilot_has_it:
+            pump(guard.classify_s + 0.5, lambda: guard.takeover_source is not None)
+            result["takeover_source"] = guard.takeover_source
+            w = await_pilot_disarm(pump, state, killed=guard.killed_by_pilot,
+                                   slot=args.slot, window_s=args.pilot_disarm_window_s)
+            result["disarmed"] = w["disarmed"]
+        elif state["armed"]:
+            # PX4 LAND (controller abort or the guard's) finishes on its own; wait for it,
+            # and only then disarm what is confirmed on the ground.
+            pump(30.0, lambda: not state["armed"] or guard.pilot_has_it or guard.airborne is False)
+            send_disarm = lambda: conn.mav.command_long_send(  # noqa: E731
+                conn.target_system, 1, mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                0, 0, 0, 0, 0, 0, 0, 0)
+            disarm_unless_pilot(send_disarm, pump, state, guard)
+            if state["armed"] and not guard.pilot_has_it:
+                h = hold_until_disarmed(send_disarm, pump, state, guard,
+                                        window_s=args.armed_exit_window_s, slot=args.slot)
+                result["left_armed"] = h["outcome"] == "left_armed"
+            result["disarmed"] = confirmed_disarmed(state, time.time())
+        else:
+            result["disarmed"] = confirmed_disarmed(state, time.time())
+        result["passed"] = (result["outcome"] == "takeover" and result["takeover_stage"] == stage
+                            and result["takeover_source"] in ("pilot_switch", "kill_switch")
+                            and not result.get("safety"))
+        if args.trace:
+            Path(args.trace).write_text("t_s,phase,height_m,height_sp_m,thrust,mode\n" + "".join(
+                ",".join("" if v is None else str(v) for v in r) + "\n" for r in trace))
+        emit(result)
+
+
 # COM_FLTMODE<n> values, from PX4 1.16's own parameter metadata
 # (build/px4_sitl_default/parameters.json), not from memory.
 FLTMODE_NAMES = {-1: "Unassigned", 0: "Manual", 1: "Altitude", 2: "Position", 3: "Mission",
@@ -1488,7 +1863,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("verb", choices=["prepare", "upload", "start", "status", "abort",
-                                        "offboard-arm", "rc-check"])
+                                        "offboard-arm", "offboard-flight", "rc-check"])
     ap.add_argument("--hold-s", type=float, default=10.0, help="offboard-arm: seconds to stay armed")
     ap.add_argument("--gate", action="store_true",
                     help="offboard-arm: enter OFFBOARD, print a ready event, arm only on 'ARM' from stdin")
@@ -1538,15 +1913,50 @@ def main() -> int:
     ap.add_argument("--motor-range", default="0,1999",
                     help="SERVO_OUTPUT_RAW min,max for motor saturation (DShot 0,1999)")
     ap.add_argument("--throttle-chan", type=int, default=3)
+    # -- offboard-flight: the takeover ladder (29 Oct 2026, docs/takeover-ladder-plan.md)
+    ap.add_argument("--stage", choices=["prearm", "arm", "takeoff", "hold", "descent",
+                                        "landing", "disarm"],
+                    help="offboard-flight: fly up to this stage and hold it open for the pilot")
+    ap.add_argument("--wait-s", type=float, default=15.0,
+                    help="offboard-flight: how long the stage under test waits for a takeover")
+    ap.add_argument("--height", type=float, default=1.0, help="offboard-flight: hover height (m)")
+    ap.add_argument("--takeoff-pause-m", type=float, default=0.3)
+    ap.add_argument("--test-descent-rate", type=float, default=0.08,
+                    help="offboard-flight --stage descent: m/s, slow so the stage lasts")
+    ap.add_argument("--final-descent-rate", type=float, default=0.05,
+                    help="offboard-flight --stage landing: m/s over the last 0.3 m")
+    ap.add_argument("--setpoint-hz", type=float, default=20.0,
+                    help="offboard-flight: setpoint rate. 5 Hz made the loop oscillate in SITL "
+                         "(29 Oct); 50 Hz held +/-1 cm")
+    ap.add_argument("--height-timeout-s", type=float, default=None,
+                    help="offboard-flight: abort if no height estimate this long "
+                         "(default 0.5 s sim, 1.0 s real)")
+    ap.add_argument("--real-aircraft", action="store_true",
+                    help="offboard-flight: required, with --expect-sysid and --gate, to fly a real one")
+    ap.add_argument("--sim-outage", default=None, metavar="EVERY,MIN,MAX",
+                    help="offboard-flight, SIMULATOR ONLY: drop setpoints in bursts like ELRS "
+                         "(mean seconds between outages, outage length range)")
+    ap.add_argument("--seed", type=int, default=None)
+    ap.add_argument("--trace", default=None, help="offboard-flight: write a CSV of the flight")
+    ap.add_argument("--mode-chan", type=int, default=7, help="RC channel of the mode switch")
+    ap.add_argument("--kill-chan", type=int, default=8, help="RC channel of the kill switch")
+    ap.add_argument("--kill-pwm-above", type=int, default=1750,
+                    help="kill switch counts as ON above this PWM (check with rc-check first)")
+    ap.add_argument("--classify-s", type=float, default=1.5,
+                    help="after leaving OFFBOARD, wait this long for a mode-switch reading "
+                         "before calling it a lost link")
     args = ap.parse_args()
 
     if args.verb in ("prepare", "upload") and not args.plan:
         ap.error(f"{args.verb} needs --plan")
+    if args.verb == "offboard-flight" and not args.stage:
+        ap.error("offboard-flight needs --stage")
 
     try:
         return {"prepare": cmd_prepare, "upload": cmd_upload, "start": cmd_start,
                 "status": cmd_status, "abort": cmd_abort,
                 "offboard-arm": cmd_offboard_arm,
+                "offboard-flight": cmd_offboard_flight,
                 "rc-check": cmd_rc_check}[args.verb](args)
     except Exception as exc:
         log(f"[error] {type(exc).__name__}: {exc}")

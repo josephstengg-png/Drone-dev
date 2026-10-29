@@ -349,3 +349,26 @@ def on_ground_action(action: str, airborne: bool | None) -> str:
     if action == DISARM and airborne is not False:
         return LAND
     return action                 # CUT is deliberate: it stays CUT wherever the aircraft is
+
+
+# The mode switch's centre position is OFFBOARD (channel 7, since 14 Oct 2026). PWM band
+# taken as centre; the ends are -100 Altitude and +100 Position.
+MODE_SWITCH_CENTRE = (1400, 1600)
+
+
+def classify_mode_exit(mode_pwm_after: list[float], centre=MODE_SWITCH_CENTRE) -> str:
+    """Why did the aircraft leave OFFBOARD for a hand-flown mode?
+
+    `mode_pwm_after` = the mode-switch channel as RC_CHANNELS reported it SINCE the mode
+    change. A pilot takeover moves the switch off centre; PX4's offboard-loss failsafe
+    (a > COM_OF_LOSS_T gap in setpoints, 19 Oct 2026) changes the mode with the switch still
+    in the middle. Both look the same in HEARTBEAT, which is why the guard used to call
+    every such exit "PILOT HAS IT".
+
+    "pilot_switch" | "link_loss" | "unknown" (no RC reading arrived: the caller treats
+    that as a takeover, because standing down is safe in both cases).
+    """
+    lo, hi = centre
+    if any(not lo <= p <= hi for p in mode_pwm_after):
+        return "pilot_switch"
+    return "link_loss" if mode_pwm_after else "unknown"

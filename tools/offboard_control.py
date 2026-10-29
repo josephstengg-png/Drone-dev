@@ -41,6 +41,8 @@ class Limits:
     ceiling_m: float = 1.5            # above this the run aborts; the PX4 fence is 3 m
     climb_rate_ms: float = 0.4
     descent_rate_ms: float = 0.3
+    final_zone_m: float = 0.3         # below this height setpoint the descent slows to...
+    final_descent_rate_ms: float = 0.3   # ...this (the takeover ladder's landing test, 29 Oct)
     kp_height: float = 1.0            # height error (m) -> climb-rate setpoint (m/s)
     kp_vz: float = 0.25               # climb-rate error (m/s) -> thrust
     ki_vz: float = 0.30              # 0.10 took over 20 s to absorb a 0.08 hover-guess error
@@ -151,7 +153,8 @@ class HeightHold:
             if now - self._t_phase >= self.hold_s:
                 self._enter(LAND, now)
         elif self.phase == LAND:
-            self._height_sp = max(0.0, self._height_sp - L.descent_rate_ms * dt)
+            rate = L.descent_rate_ms if self._height_sp > L.final_zone_m else L.final_descent_rate_ms
+            self._height_sp = max(0.0, self._height_sp - rate * dt)
             if height <= L.land_height_m:
                 self._landed_since = self._landed_since or now
                 if now - self._landed_since >= L.landed_dwell_s:
@@ -195,6 +198,77 @@ class HeightHold:
         self._enter(ABORT, now)
         return Command(ABORT, self.limits.thrust_min, level_quaternion(self.yaw_rad),
                        request="land", reason=reason)
+
+
+# ======================================================================================
+# The takeover ladder (29 Oct 2026, docs/takeover-ladder-plan.md)
+# ======================================================================================
+
+STAGES = ("prearm", "arm", "takeoff", "hold", "descent", "landing", "disarm")
+FLIGHT_STAGES = STAGES[2:]
+
+
+def stage_profile(stage: str, *, height_m: float, wait_s: float, hold_s: float = 3.0,
+                  takeoff_pause_m: float = 0.3, test_descent_rate_ms: float = 0.08,
+                  final_descent_rate_ms: float = 0.05) -> dict:
+    """How to fly so that the stage under test lasts long enough for a pilot to act in it.
+
+    take-off: climb to a low pause height and stay there for the wait window
+    hold:     the whole wait window at full height
+    descent:  a slow descent (1 m at 0.08 m/s is about 10 s)
+    landing:  normal descent, then a slow final 0.3 m
+    disarm:   a normal flight; the window is PX4's own COM_DISARM_LAND after touchdown
+    When the window passes with no takeover the controller simply carries on and lands.
+    """
+    if stage not in FLIGHT_STAGES:
+        raise ValueError(f"{stage!r} does not fly")
+    p = dict(target_height_m=height_m, hold_s=hold_s, descent_rate_ms=0.3,
+             final_descent_rate_ms=0.3)
+    if stage == "takeoff":
+        p.update(target_height_m=takeoff_pause_m, hold_s=wait_s)
+    elif stage == "hold":
+        p.update(hold_s=wait_s)
+    elif stage == "descent":
+        p.update(descent_rate_ms=test_descent_rate_ms, final_descent_rate_ms=test_descent_rate_ms)
+    elif stage == "landing":
+        p.update(final_descent_rate_ms=final_descent_rate_ms)
+    return p
+
+
+def stage_of(phase: str, height_sp: float | None, final_zone_m: float) -> str:
+    """The ladder's name for where the controller is."""
+    if phase == TAKEOFF:
+        return "takeoff"
+    if phase == HOLD:
+        return "hold"
+    if phase == LAND:
+        return "descent" if (height_sp or 0.0) > final_zone_m else "landing"
+    if phase == DONE:
+        return "landing"
+    return phase
+
+
+@dataclass
+class OutageModel:
+    """SIMULATOR ONLY: drop setpoints the way the ELRS uplink does, in bursts.
+
+    Measured 19 Oct 2026: gaps over 1 s several times per run. Outages start at random
+    (exponential, mean every_s apart) and last a uniform min_s..max_s.
+    """
+    every_s: float
+    min_s: float
+    max_s: float
+    rng: object
+    _start: float | None = None
+    _end: float = 0.0
+
+    def dropped(self, now: float) -> bool:
+        if self._start is None:
+            self._start = now + self.rng.expovariate(1.0 / self.every_s)
+        if now >= self._start:
+            self._end = self._start + self.rng.uniform(self.min_s, self.max_s)
+            self._start = self._end + self.rng.expovariate(1.0 / self.every_s)
+        return now < self._end
 
 
 # ======================================================================================
