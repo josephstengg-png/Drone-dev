@@ -38,7 +38,10 @@ import sim_tests as T            # noqa: E402
 from staged_tests import INDOOR  # noqa: E402
 
 AGENT = Path.home() / "FlightPlanner" / "tools" / "drone_agent.py"
-PILOT_LINK = "udpin:0.0.0.0:14550"
+# Loopback only. On 2 Nov 2026 this bound 0.0.0.0 with the relay stopped and a real aircraft powered:
+# the backpack's downlink also lands on 14550, so the "pilot" latched onto ARTEX113 over ELRS.
+PILOT_LINK = "udpin:127.0.0.1:14550"
+SITL_SYSID = 1
 LOGS = Path("/tmp/ladder_logs")
 SCENARIOS = ["prearm", "arm", "takeoff", "hold", "descent", "landing", "disarm", "no_takeover"]
 KILL = {"prearm", "arm", "takeoff", "disarm"}       # the rest: ch7 to Altitude, then fly it
@@ -57,6 +60,8 @@ class Pilot:
     def __init__(self):
         self.c = mavutil.mavlink_connection(PILOT_LINK, source_system=255, source_component=190)
         self.c.wait_heartbeat(timeout=30)
+        if self.c.target_system != SITL_SYSID:
+            raise RuntimeError(f"pilot link answered as sysid {self.c.target_system}, not the simulator")
         self.ch = {3: MID, 7: MID, 8: LO}
         self.s = dict(armed=False, mode=None, z=None, landed=None, tilt=0.0, alt=None, t_hb=time.time())
         self.alt0, self.z0 = None, None

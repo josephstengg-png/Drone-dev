@@ -1,0 +1,275 @@
+{
+ "pos_gps_elrs_kill": {
+  "action": "kill",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "start": [
+   0.02040974795818329,
+   0.008504980243742466,
+   0.09269178658723831
+  ],
+  "offboard": true,
+  "armed": true,
+  "height_armed_idle_m": 0.0,
+  "reached": true,
+  "reached_after_s": 9.6,
+  "hold_true": {
+   "n": 201,
+   "min_m": 0.477,
+   "max_m": 0.498,
+   "last_m": 0.498
+  },
+  "peak_m": 0.5,
+  "mode_at_action": 6,
+  "height_1s_after_kill_m": -0.0,
+  "kill_disarm_s": 5.36,
+  "modes": [
+   [
+    -28.7,
+    6,
+    false
+   ],
+   [
+    -12.7,
+    6,
+    true
+   ],
+   [
+    15.3,
+    6,
+    false
+   ]
+  ],
+  "sent": 133,
+  "dropped": 23,
+  "max_tilt": 1.4,
+  "true_max_drift_m": 0.08,
+  "disarmed": true,
+  "texts": [
+   "Failsafe activated",
+   "Kill engaged",
+   "Failsafe activated",
+   "Preflight Fail: ESC failure detected",
+   "Preflight Fail: Flight termination active",
+   "Disarmed by kill-switch",
+   "Preflight Fail: Kill switch engaged",
+   "Preflight Fail: Flight termination active"
+  ]
+ },
+ "pos_gps_elrs_altitude": {
+  "action": "altitude",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "start": [
+   0.0614251047372818,
+   -0.03125448152422905,
+   0.03453109413385391
+  ],
+  "offboard": true,
+  "armed": true,
+  "height_armed_idle_m": 0.0,
+  "reached": true,
+  "reached_after_s": 14.8,
+  "hold_true": {
+   "n": 200,
+   "min_m": 0.452,
+   "max_m": 0.474,
+   "last_m": 0.461
+  },
+  "peak_m": 0.47,
+  "mode_at_action": 6,
+  "altitude_latency_s": 0.2,
+  "height_after_takeover_m": 0.46,
+  "modes": [
+   [
+    -33.8,
+    6,
+    false
+   ],
+   [
+    -17.8,
+    6,
+    true
+   ],
+   [
+    10.2,
+    2,
+    true
+   ],
+   [
+    23.2,
+    2,
+    false
+   ]
+  ],
+  "sent": 133,
+  "dropped": 23,
+  "max_tilt": 1.0,
+  "true_max_drift_m": 0.09,
+  "disarmed": true,
+  "texts": [
+   "Armed by external command",
+   "Takeoff detected",
+   "Failsafe activated",
+   "Failsafe activated",
+   "Landing detected",
+   "Kill engaged",
+   "Preflight Fail: Flight termination active",
+   "Disarmed by landing"
+  ]
+ },
+ "pos_gps_elrs_land": {
+  "action": "land",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "start": [
+   -0.03133643418550491,
+   -0.004730185028165579,
+   -0.12318427860736847
+  ],
+  "offboard": true,
+  "armed": true,
+  "height_armed_idle_m": 0.0,
+  "reached": true,
+  "reached_after_s": 9.8,
+  "hold_true": {
+   "n": 201,
+   "min_m": 0.479,
+   "max_m": 0.519,
+   "last_m": 0.519
+  },
+  "peak_m": 0.52,
+  "mode_at_action": 6,
+  "landed_and_disarmed": true,
+  "modes": [
+   [
+    -28.8,
+    6,
+    false
+   ],
+   [
+    -12.8,
+    6,
+    true
+   ],
+   [
+    10.2,
+    4,
+    true
+   ],
+   [
+    18.2,
+    6,
+    false
+   ]
+  ],
+  "sent": 115,
+  "dropped": 17,
+  "max_tilt": 1.5,
+  "true_max_drift_m": 0.08,
+  "disarmed": true,
+  "texts": [
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "Armed by external command",
+   "Takeoff detected",
+   "Failsafe activated",
+   "Landing at current position",
+   "Landing detected",
+   "Disarmed by landing"
+  ]
+ },
+ "pos_gps_elrs_land2": {
+  "action": "land",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "start": [
+   -0.003971415106207132,
+   -0.0035338038578629494,
+   0.0018868446350097656
+  ],
+  "offboard": true,
+  "armed": true,
+  "height_armed_idle_m": 0.0,
+  "reached": true,
+  "reached_after_s": 8.8,
+  "hold_true": {
+   "n": 201,
+   "min_m": 0.488,
+   "max_m": 0.592,
+   "last_m": 0.581
+  },
+  "peak_m": 0.59,
+  "mode_at_action": 6,
+  "landed_and_disarmed": true,
+  "modes": [
+   [
+    -27.9,
+    6,
+    false
+   ],
+   [
+    -11.9,
+    6,
+    true
+   ],
+   [
+    10.2,
+    4,
+    true
+   ],
+   [
+    18.2,
+    6,
+    false
+   ]
+  ],
+  "sent": 119,
+  "dropped": 6,
+  "max_tilt": 1.4,
+  "true_max_drift_m": 0.06,
+  "disarmed": true,
+  "texts": [
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "Armed by external command",
+   "Takeoff detected",
+   "Failsafe activated",
+   "Landing at current position",
+   "Landing detected",
+   "Disarmed by landing"
+  ]
+ }
+}

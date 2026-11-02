@@ -1,0 +1,240 @@
+{
+ "vz_gps_clean_kill": {
+  "action": "kill",
+  "link": {
+   "hz": 20.0,
+   "delay_s": 0.0,
+   "outage": null,
+   "tele_s": 0.05
+  },
+  "offboard": true,
+  "armed": true,
+  "height_armed_idle_m": 0.0,
+  "climb_finished": true,
+  "hold_true": {
+   "n": 150,
+   "min_m": 0.399,
+   "max_m": 0.457,
+   "last_m": 0.399
+  },
+  "peak_m": 0.51,
+  "mode_at_action": 6,
+  "kill_latency_s": 5.66,
+  "sent": 672,
+  "dropped": 0,
+  "max_tilt": 0.2,
+  "modes": [
+   [
+    -23.3,
+    6,
+    false
+   ],
+   [
+    -17.3,
+    6,
+    true
+   ],
+   [
+    13.7,
+    6,
+    false
+   ]
+  ],
+  "texts": [
+   "Takeoff detected",
+   "Kill engaged",
+   "Preflight Fail: Flight termination active",
+   "Preflight Fail: ESC failure detected",
+   "Preflight Fail: Flight termination active",
+   "Disarmed by kill-switch",
+   "Preflight Fail: Kill switch engaged",
+   "Preflight Fail: Flight termination active"
+  ],
+  "disarmed": true,
+  "true_max_drift_m": 0.1
+ },
+ "vz_gps_elrs_kill": {
+  "action": "kill",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "offboard": true,
+  "armed": true,
+  "height_armed_idle_m": 0.0,
+  "climb_finished": true,
+  "hold_true": {
+   "n": 150,
+   "min_m": 0.0,
+   "max_m": 0.0,
+   "last_m": 0.0
+  },
+  "peak_m": 0.0,
+  "mode_at_action": 6,
+  "kill_latency_s": 5.97,
+  "sent": 105,
+  "dropped": 6,
+  "max_tilt": 0.0,
+  "modes": [
+   [
+    -11.0,
+    6,
+    false
+   ],
+   [
+    -5.0,
+    6,
+    true
+   ],
+   [
+    14.0,
+    6,
+    false
+   ]
+  ],
+  "texts": [
+   "Takeoff detected",
+   "Kill engaged",
+   "Preflight Fail: Flight termination active",
+   "Preflight Fail: ESC failure detected",
+   "Preflight Fail: Flight termination active",
+   "Disarmed by kill-switch",
+   "Preflight Fail: Kill switch engaged",
+   "Preflight Fail: Flight termination active"
+  ],
+  "disarmed": true,
+  "true_max_drift_m": 0.0
+ },
+ "vz_gps_elrs_altitude": {
+  "action": "altitude",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "offboard": true,
+  "armed": true,
+  "height_armed_idle_m": 0.0,
+  "climb_finished": true,
+  "hold_true": {
+   "n": 150,
+   "min_m": 0.0,
+   "max_m": 0.0,
+   "last_m": 0.0
+  },
+  "peak_m": 0.0,
+  "mode_at_action": 6,
+  "altitude_latency_s": 0.95,
+  "height_after_takeover_m": 0.0,
+  "sent": 80,
+  "dropped": 6,
+  "max_tilt": 0.0,
+  "modes": [
+   [
+    -11.1,
+    6,
+    false
+   ],
+   [
+    -5.0,
+    6,
+    true
+   ],
+   [
+    9.0,
+    2,
+    true
+   ],
+   [
+    19.0,
+    2,
+    false
+   ]
+  ],
+  "texts": [
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "Armed by external command",
+   "Takeoff detected",
+   "Landing detected",
+   "Kill engaged",
+   "Preflight Fail: Flight termination active",
+   "Disarmed by landing"
+  ],
+  "disarmed": true,
+  "true_max_drift_m": 0.0
+ },
+ "vz_gps_elrs_land": {
+  "action": "land",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "offboard": true,
+  "armed": true,
+  "height_armed_idle_m": 0.0,
+  "climb_finished": true,
+  "hold_true": {
+   "n": 150,
+   "min_m": 0.0,
+   "max_m": 0.0,
+   "last_m": 0.0
+  },
+  "peak_m": 0.0,
+  "mode_at_action": 6,
+  "landed_and_disarmed": true,
+  "sent": 76,
+  "dropped": 6,
+  "max_tilt": 0.0,
+  "modes": [
+   [
+    -11.0,
+    6,
+    false
+   ],
+   [
+    -5.1,
+    6,
+    true
+   ],
+   [
+    8.9,
+    4,
+    true
+   ],
+   [
+    13.9,
+    6,
+    false
+   ]
+  ],
+  "texts": [
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "Armed by external command",
+   "Takeoff detected",
+   "Landing at current position",
+   "Landing detected",
+   "Disarmed by landing"
+  ],
+  "disarmed": true,
+  "true_max_drift_m": 0.0
+ }
+}
