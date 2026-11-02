@@ -1,0 +1,98 @@
+{
+ "rc_first": {
+  "first": "rc",
+  "altitude_mode": true,
+  "armed": true,
+  "height_after_stick_up_m": 0.0,
+  "killed_by_ch8": true,
+  "kill_latency_s": 2.96,
+  "texts": [
+   "Armed by external command",
+   "Kill engaged",
+   "Preflight Fail: Flight termination active",
+   "Disarmed by auto preflight disarming",
+   "Preflight Fail: Kill switch engaged",
+   "Preflight Fail: Flight termination active"
+  ]
+ },
+ "vz_clean_kill": {
+  "action": "kill",
+  "link": {
+   "hz": 20.0,
+   "delay_s": 0.0,
+   "outage": null,
+   "tele_s": 0.05
+  },
+  "offboard": true,
+  "armed": false,
+  "texts": [
+   "GCS connection regained"
+  ]
+ },
+ "vz_elrs_kill": {
+  "action": "kill",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "offboard": true,
+  "armed": false,
+  "texts": [
+   "GCS connection regained"
+  ]
+ },
+ "vz_elrs_altitude": {
+  "action": "altitude",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "offboard": true,
+  "armed": false,
+  "texts": [
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t"
+  ]
+ },
+ "vz_elrs_land": {
+  "action": "land",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "offboard": true,
+  "armed": false,
+  "texts": [
+   "GCS connection regained",
+   "Preflight Fail: Kill switch engaged",
+   "Kill engaged",
+   "Preflight Fail: Kill switch engaged",
+   "Preflight Fail: Flight termination active",
+   "Kill disengaged"
+  ]
+ }
+}

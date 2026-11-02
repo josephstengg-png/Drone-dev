@@ -359,6 +359,34 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-02 (end of day) — shutdown state; ELRS direction still to decide
+
+Saved for shutdown at about 18:00. No aircraft was armed today, so the flight controller has no new
+flight log; its logs 43-48 are all in `fc-backups/2026-10-29/artex113-logs/`.
+
+**State at shutdown.** ARTEX113: disarmed, in Offboard, on USB power to jetson-2. Battery reads unknown
+(65535 mV, -1 %) in both `SYS_STATUS` and `BATTERY_STATUS`, which is what the board reports with no
+battery connected. It read 14.5 V earlier; the battery state is inferred from that reading, not seen.
+jetson-1 and jetson-2: up, `elrs-link` active, no px4 or agent running. jetson-2's `drone_agent.py`,
+`safety_rules.py`, `takeover_tests.py` and `elrs_height_probe.py` match the repo. 311 tests pass.
+
+**Open decision.** Recommended to the operator, not yet answered: keep USB for the indoor ladder and
+aim ELRS at outdoor flight with GPS. Asked whether to add position setpoints to the agent as an
+off-by-default option and run T1-T7 in the sim; no answer yet, so nothing was built.
+
+**To resume:**
+1. Answer the decision above.
+2. T3 run 2 over USB: tether tied to something fixed, power cord unplugged, clean boot, touch nothing,
+   check the bias, `preflight.py`, fresh per-run confirmation naming the aircraft.
+3. 2 clean T3 runs before T4. Before T4, settle how the aircraft holds position indoors.
+4. Still open: the settled-estimator interlock (hand check stands in), the sim LAND stall, whether
+   harness GCS dropouts stop now the harness is on loopback, "Failsafe activated" during gaps, the
+   spark source.
+
+Superseded probe runs moved from jetson-2 `/tmp` to `sim/results/2026-11-02-elrs-height/superseded/`.
+Plan doc updated (bias correction, 2 Nov section, next steps): https://claude.ai/artifact/KUyHNY69uLx4aAoPXdpyBW
+`FlightPlanner` branch `indoor-ekf` is committed but not pushed.
+
 ## 2026-11-02 — ELRS height control: joystick locks out the handset; position setpoints need GPS
 
 Goal: move the height loop onto the flight controller so ELRS can fly. Operator asked for the virtual

@@ -1,6 +1,7 @@
 # Manual-takeover tests: agent flies offboard, pilot takes over at stage N
 
-_Plan agreed with the operator 29 Oct 2026. Not yet built or flown._
+_Plan agreed with the operator 29 Oct 2026; kept as first written. Since then flight stages moved
+to USB. Status 2 Nov: T1, T2 and T3 run 1 passed on ARTEX113. Current state: `docs/history.md`._
 
 ## Context
 Goal: prove that the RC pilot can take the aircraft from the agent at **every** stage of a minimal

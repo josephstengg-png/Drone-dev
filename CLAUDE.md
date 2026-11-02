@@ -200,6 +200,9 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
   backpack on 19 Oct (dropped off; then -91 dBm with the handset moved away).
 - **Offboard over ELRS loses most setpoints** (5-7 of about 20 per second arrive, gaps over 1 s
   trigger offboard-loss failsafe). Fine for bench arming, not for offboard flight.
+- **Never fly with `MANUAL_CONTROL` from the agent.** In SITL (2 Nov 2026) it silenced ch7 and ch8 in
+  flight: PX4 reads those switches only while RC is the selected source. Position setpoints passed over
+  simulated ELRS but need GPS or another horizontal source, so indoor ELRS flight stays unsolved.
 - **Flight logs: pull over USB, not over the radio** (about 1 s vs 2.5 h). Needs
   `/dev/ttyACM0` access (joseph is not in `dialout`) and MAVLink 2 on that port.
 - No Tuas obstacle data exists in the repo; the planner only knows the OpsArea polygon and
