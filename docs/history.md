@@ -359,6 +359,42 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-02 — Accelerometer bias is a long-powered estimator drift, cleared by a clean boot
+
+**Corrects the 29 Oct end-of-day reading.** I called the bias "the estimate wandering" at random. The
+same y value came back in a later boot, so it isn't random wander.
+
+Measured on ARTEX113 (not moved between the two readings, per the operator):
+
+| | Up about 2 h, USB power only | Clean boot on battery, 0.7 min | 3.9 min |
+|---|---|---|---|
+| EKF accel bias, IMU 0 | x +0.18, y −0.24 | x 0.00, y 0.00 | x +0.009, y −0.003 |
+| EKF accel bias, IMU 1 | x +0.18, y −0.21 | x +0.01, y 0.00 | x +0.017, y +0.003 |
+| Bias stable | False | True | True |
+| Attitude reading | roll −1.7°, pitch −2.3° | roll −0.3°, pitch −1.3° | roll −0.3°, pitch −1.3° |
+
+- The attitude change (1.4° roll, 1.0° pitch) matches the bias values as tilt: 0.24 and 0.18 m/s²
+  are 1.4° and 1.05° of gravity. So over hours the estimator's level drifted, and the bias is the
+  same error. The aircraft didn't physically tilt.
+- Bias x grew about 0.002 m/s² per minute after the boot, which would reach the 29 Oct values in
+  roughly 1.5 h. That is one slope measured over 2.4 min, so an estimate only.
+- **Working rule: arm soon after a clean boot, not after hours powered on.** A drifted estimate
+  also means "level" is really tilted, which adds sideways drift. T3 run 1's floor attitude was
+  roll −0.4°, pitch −1.3°, the same as a clean boot, so this probably didn't cause run 1's drift.
+- No calibration needed for now. Cause of the drift itself is not established.
+
+**Height estimate after boot:** ramps down about 4 mm/s for the first minutes, tracking the raw
+barometer (about −0.1 m in 24 s), climb rate zero. Most likely baro warm-up. One 8 s sample showed
+0.16 m, faster than that ramp, and is unexplained. At the slower rate it's within the 3 cm in 5 s limit.
+
+**Done:**
+- Logs 43–47 pulled complete with `tools/pull_fc_logs.py`, saved in
+  `fc-backups/2026-10-29/artex113-logs/` as T2-run1/2/3 and T3-dry1/2-usb.
+- jetson-2's clock set from the workstation (it read 29 Oct).
+- Operator's physical inspection after the drops: all OK, tether in place.
+
+**Not done:** the settled-estimator interlock is still unbuilt; pre-arm steadiness is a hand check.
+
 ## 2026-10-29 (end of day) — T3 run 2 set up; ARTEX113 now refuses to arm (High Accelerometer Bias); inspection over USB
 
 **Run-2 setup (agreed with the operator):**
