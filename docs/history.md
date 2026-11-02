@@ -359,6 +359,37 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-02 — Rangefinder passes hand-lift; handling the aircraft is what disturbs the bias
+
+**Corrects the entry below.** Time powered on is not what grows the bias: 67 minutes untouched left
+it at x +0.009 / +0.017 (limit 0.40), against the 0.002 m/s² per minute I extrapolated from a
+3-minute sample. About 9.5 minutes later, after two hand lifts and nothing else, it read:
+
+| ARTEX113, disarmed, kill on | Up 67 min, untouched | After hand lifts, back on the floor |
+|---|---|---|
+| EKF accel bias, IMU 0 | x +0.009, y −0.003 | x −0.156, y −0.127 |
+| EKF accel bias, IMU 1 | x +0.017, y +0.002 | x −0.235, y −0.108 |
+| Height estimate rate | 0.07 cm/s | 4.1 cm/s (limit is 3 cm per 5 s) |
+
+Reading, from this one event: with no horizontal aiding, moving the aircraft by hand pushes the EKF's
+accel bias. That would also fit the 29 Oct values if the aircraft was handled while powered, which
+is unverified. New working rule: finish all setup, boot, then touch nothing until the run.
+
+**Rangefinder (TFmini) against the operator's tape, hand-held:** 0.5 m read 48 cm (sometimes 50),
+0.8 m read 81-82 cm for 30 s with roll varying −2 to −8°. Readings are flagged invalid below about
+40 cm and valid above; on the floor it reads 2-4 cm. Lens is 6 mm above the floor, so no height
+offset is needed. Traces: `fc-backups/2026-11-02/artex113-range-hand-lift-*.csv`.
+
+- In MAVLink `signal_quality`, 1 means invalid and 0 means unknown. Good readings here report 0.
+- On the ground the EKF's range observation is exactly 0.10 m (`EKF2_MIN_RNG`) with the sensor at
+  0.02 m, so "fused: true" there says nothing about the sensor.
+- While landed the height estimate is no use for checking range: it sagged 21 cm during the 0.5 m
+  hold and moved about 15 cm during the 0.8 m hold, range steady both times.
+- Not tested: how the EKF uses range in flight. The agent reads range directly when it is in range.
+
+Tether: the floor anchor was a power cord, which is not a safe anchor. It must be unplugged and the
+tether tied to something fixed or far heavier than full thrust (hover is 42 %). T3 run 2 not flown.
+
 ## 2026-11-02 — Accelerometer bias is a long-powered estimator drift, cleared by a clean boot
 
 **Corrects the 29 Oct end-of-day reading.** I called the bias "the estimate wandering" at random. The
