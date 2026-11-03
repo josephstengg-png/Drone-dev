@@ -359,6 +359,33 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-03 — T0 added: the handset alone must arm, disarm and kill the aircraft
+
+Operator: "the drone must be able to listen to the controller at all times... I start up the drone
+and I can't even arm it without you." Jetsons were off when this was reported, so the refusal message
+was not read. **Cause not confirmed.** The candidates, from upstream PX4 1.16 (`Commander.cpp:562-594`,
+`manualControlCheck.cpp:60`), are what a switch arm needs:
+- a manual mode. With ch7 centred (Offboard) a switch arm is refused ("switch to manual mode
+  first", seen 14 Oct). The handset arms only at ch7 -100 (Altitude);
+- throttle at or below centre in Altitude;
+- kill switch off. It was on (ch8 2000) when last read on 2 Nov;
+- health checks, including accelerometer bias.
+
+`COM_RC_IN_MODE` is 3 on ARTEX113 (last dump 26 Oct): "RC or joystick, keep first", held until
+reboot. A MAVLink `MANUAL_CONTROL` heard before the handset would lock out the switches. No
+real-aircraft tool sends it. `sim/sim_tests.py` does, and writes parameters; it now refuses any
+sysid but the simulator's, as `takeover_tests.py` has done since 2 Nov. It bound 14540, which the relay
+owns, so it was not exposed the way 2 Nov's harness was. **Operator decision pending:** set
+`COM_RC_IN_MODE` 0 (RC only); this is a parameter change, so back up, ask and restore.
+
+**T0, now the first test of every session** (`docs/takeover-ladder-plan.md`, plan doc): props off,
+handset only. Boot at ch7 -100 with kill off and throttle down, wait 30 s, then arm, disarm, and arm
+then kill. Also check the expected refusals (ch7 centre, kill on, throttle high). Variants: T0a with
+the Jetson off, 3 of 3, gates the day; T0b handset on after the battery; T0c relay only; T0d agent
+streaming, pilot flips to Altitude. If the handset cannot arm, disarm and kill alone, nothing else runs.
+
+Next: run T0a. If it refuses, power jetson-2 and read STATUSTEXT over USB before anything else.
+
 ## 2026-11-02 (end of day) — shutdown state; ELRS direction still to decide
 
 Saved for shutdown at about 18:00. No aircraft was armed today, so the flight controller has no new

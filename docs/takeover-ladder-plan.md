@@ -21,6 +21,55 @@ pre-arm, arm, take-off, hold, descent and landing in OFFBOARD.
 | T6 | … → descent → **landing** (≤ 0.15 m / touchdown) | ch7 → Altitude, pilot flies or settles | same; no bounce or re-take-off |
 | T7 | … → landing → **disarm** stage | **kill ch8** before the agent's disarm | motors stop; agent stands down |
 
+## T0 — the handset alone (added 3 Nov 2026; first test of every session)
+
+The aircraft must obey the handset at all times, with or without our software. On 3 Nov the
+operator powered up ARTEX113 and could not arm it from the handset. T1–T7 test the pilot taking
+the aircraft back from the agent. T0 tests that the pilot never needed the agent in the first place.
+
+**Conditions for a handset arm** (upstream PX4 1.16 `Commander.cpp:562-594` and
+`manualControlCheck.cpp:60`; the firmware is a fork, so T0 is what confirms them):
+- **a manual mode.** ch7 at −100 (Altitude). In Offboard (ch7 centre) the switch is refused:
+  "Arming denied: switch to manual mode first" (seen 14 Oct). So arming from the handset at ch7
+  centre fails by design;
+- **throttle at or below centre** in Altitude, otherwise "Arming denied: throttle above center";
+- **kill switch off** (ch8 1000), otherwise "Preflight Fail: Kill switch engaged";
+- **health checks pass**, including accelerometer bias. These apply to every arm, the agent's too.
+
+`COM_RC_IN_MODE` is 3 on ARTEX113 ("RC or joystick, keep first"). PX4 keeps whichever stick source
+it hears first until reboot. If anything sent MAVLink `MANUAL_CONTROL` before the handset was heard,
+the switches would be ignored until a reboot. None of our real-aircraft tools send it. The sim
+harnesses that do now refuse any aircraft but the simulator. **Operator decision (parameter change:
+back up, ask, restore):** set `COM_RC_IN_MODE` 0, RC only, so no other source can ever take the sticks.
+
+**Procedure, props off, area clear.** Each step is done by the pilot on the handset. Nobody on a
+computer touches the aircraft.
+1. Before the battery goes in: ch7 −100 (Altitude), ch8 kill off, ch6 disarmed, throttle down.
+2. Battery in. The ESCs are quiet; beeping means the aircraft booted in Offboard. Then wait 30 s and
+   touch nothing, which keeps the accelerometer bias down.
+3. ch6 to arm: the motors spin at idle within 1 s.
+4. ch6 to disarm: the motors stop.
+5. Arm again, then kill on ch8: the motors stop. Kill off, ch6 back to disarm.
+6. Expected refusals, once per session, to prove the rules: ch7 centre then ch6 (refused), kill on
+   then ch6 (refused), throttle above centre then ch6 (refused). Return all switches to step 1.
+
+| Variant | Companion state | Pass |
+|---|---|---|
+| T0a | **Jetson off**: no software anywhere | steps 3–5 work 3 of 3, step 6 refuses as listed |
+| T0b | handset switched on **after** the battery | steps 3–5 work once |
+| T0c | Jetson on, relay running, no agent | steps 3–5 work once |
+| T0d | agent streaming in the T1 pre-arm state; pilot flips ch7 to −100, then steps 3–5 | agent stands down; steps 3–5 work once |
+
+**Gate:** T0a before anything else, every session. If the handset cannot arm, disarm and kill the
+aircraft alone, nothing else runs that day. Run T0b–T0d once now, and again after any firmware,
+parameter or companion-software change.
+
+**Reading a refusal without a computer:** a refusal plays PX4's error tune if the board has a buzzer.
+The reason is only readable over USB or telemetry. If a step fails unexpectedly, stop and read
+STATUSTEXT over USB before trying anything else.
+
+**Props on is the pilot's own flight** and is not part of this procedure.
+
 If the pilot does **not** act within the wait window, the agent ends the test safely by itself:
 - T1/T2: stay or go disarmed.
 - T3–T5: PX4 LAND (Descend), then disarm.
@@ -75,6 +124,7 @@ OFFBOARD when setpoints return.
    ≥ 2 clean runs each before moving on. Stop the ladder at the first unexplained event.
 
 Every real run, no carry-over:
+- T0a passed this session (handset alone arms, disarms, kills)
 - `preflight.py` GO (< 10 % loss, < 150 ms)
 - fresh props-off/props-on-tethered + area-clear confirmation
 - guard on **without `--allow-kill`** (DShot scaling unconfirmed)

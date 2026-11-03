@@ -36,6 +36,7 @@ import safety_rules as sr  # noqa: E402
 PX4_DIR = Path.home() / "PX4-Autopilot"
 GZB_DIR = PX4_DIR / "build/px4_sitl_default/src/modules/simulation/gz_bridge"
 LINK = "udpin:0.0.0.0:14540"
+SITL_SYSID = 1
 MODE = {"MANUAL": (1, 0), "ALTCTL": (2, 0), "POSCTL": (3, 0), "LOITER": (4, 3), "MISSION": (4, 4),
         "RTL": (4, 5), "LAND": (4, 6), "OFFBOARD": (6, 0), "TAKEOFF": (4, 2)}
 NAMES = {v: k for k, v in MODE.items()}
@@ -110,6 +111,10 @@ class Sim:
         self.lock = threading.Lock()
         self.c = mavutil.mavlink_connection(LINK, source_system=255, source_component=190)
         self.c.wait_heartbeat(timeout=30)
+        # This harness sends MANUAL_CONTROL and writes parameters. On a real aircraft with
+        # COM_RC_IN_MODE 3 that could lock out the handset until reboot (3 Nov 2026).
+        if self.c.target_system != SITL_SYSID:
+            raise RuntimeError(f"link answered as sysid {self.c.target_system}, not the simulator")
         self.s = dict(armed=False, mode=None, x=0.0, y=0.0, z=0.0, vz=0.0, roll=0.0, pitch=0.0,
                       lat=None, lon=None, landed=None, bat=None, t_hb=time.time())
         self.texts = []

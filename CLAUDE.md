@@ -123,6 +123,9 @@ display here. Use the agent for anything that must work, and USB for parameter w
    then says STILL ARMED every 5 s and waits up to 60 s for the pilot. Disarming is the
    pilot's: arm switch (channel 6, proven 14 Oct: disarmed an agent-armed aircraft in
    Offboard) or kill switch (channel 8). The arm switch cannot START arming in Offboard.
+   **T0** (`docs/takeover-ladder-plan.md`) proves the handset alone can arm, disarm and kill the
+   aircraft, as the first test of every session. To arm from the handset: ch7 -100, kill off,
+   throttle at or below centre.
 3. **The operator**: `a` + ENTER in the pair-test console, or `tools/takeover.py --now`
    out-of-band over ssh, which survives the orchestrator dying.
 
@@ -186,8 +189,8 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
 - **ESCs beep from battery insertion when the aircraft boots in Offboard (ch7 centre)**, on
   both aircraft. Measured 15 Oct 2026: no motor command is published after the first 0.5 s
   of boot; flipping ch7 to Position and back produces a command burst and the beeping stops
-  for good. Cause is a reading, not proven. Never arm with the ESCs beeping; boot with ch7
-  at -100 is untried. See history.md.
+  for good. Cause is a reading, not proven. Never arm with the ESCs beeping. Booting with ch7
+  at -100 gives quiet ESCs (operator, both aircraft). See history.md.
 - **Channel 7 centre is Offboard**, and the agent's offboard stream is zero thrust. With
   the agent streaming, centre in flight is a fall; the agent refuses to resume after a
   takeover. PX4 does NOT deny Offboard when nothing streams (measured: nav mode Offboard,
