@@ -1455,8 +1455,11 @@ def cmd_offboard_flight(args) -> int:
         # with ELRS's ~0.35 s delay at 5 Hz, no gain set survived a +/-0.05 hover-thrust error
         # (through the ceiling or onto the floor); in SITL, 5 Hz alone oscillated to 1.54 m
         # where 50 Hz held +/-1 cm. Flight stages need the companion WIRED to the FC.
+        # 3 Nov 2026: --allow-radio-flight lifts this, by name, for props-off tests of the plumbing
+        # over the radio (authorised by the lab manager through the operator). It proves nothing
+        # about the loop: with props off nothing lifts, so the height feedback is never exercised.
         wired = args.link.startswith(("serial:", "/dev/"))
-        if upto >= oc.STAGES.index("takeoff") and not wired:
+        if upto >= oc.STAGES.index("takeoff") and not wired and not args.allow_radio_flight:
             missing.append("a wired link (--link serial:/dev/...) for flight stages: the "
                            "height loop is unstable over ELRS (docs/history.md, 29 Oct 2026)")
         if missing or args.sim_outage:
@@ -1588,6 +1591,8 @@ def cmd_offboard_flight(args) -> int:
         pump(2.0)
         # Only flight stages need height. ARTEX113's ELRS link carries LOCAL_POSITION_NED at
         # 0.5 Hz (29 Oct), so a 2 s window can miss it, and pre-arm and arm never use it.
+        if state["z"] is None and upto >= oc.STAGES.index("takeoff") and args.allow_radio_flight:
+            pump(5.0, until=lambda: state["z"] is not None)
         if state["z"] is None and upto >= oc.STAGES.index("takeoff"):
             result["error"] = "no LOCAL_POSITION_NED (no height estimate)"
             return 2
@@ -1973,6 +1978,10 @@ def main() -> int:
                          "(default 0.5 s sim, 1.0 s real)")
     ap.add_argument("--real-aircraft", action="store_true",
                     help="offboard-flight: required, with --expect-sysid and --gate, to fly a real one")
+    ap.add_argument("--allow-radio-flight", action="store_true",
+                    help="offboard-flight, real aircraft: allow flight stages over ELRS. PROPS OFF "
+                         "ONLY -- the thrust-only height loop is unstable across the radio (29 Oct); "
+                         "pass --height-timeout-s 3 too, height arrives at 0.5 Hz")
     ap.add_argument("--sim-outage", default=None, metavar="EVERY,MIN,MAX",
                     help="offboard-flight, SIMULATOR ONLY: drop setpoints in bursts like ELRS "
                          "(mean seconds between outages, outage length range)")

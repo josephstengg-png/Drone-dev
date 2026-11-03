@@ -258,6 +258,9 @@ def test_elrs_delay_drives_the_height_loop_through_the_ceiling():
 def test_flight_stages_are_refused_on_a_real_aircraft_over_the_radio():
     src = (Path(agent.__file__)).read_text()
     assert 'wired = args.link.startswith(("serial:", "/dev/"))' in src
+    # lifted only by name (3 Nov 2026, props-off radio tests); the default still refuses
+    assert "and not wired and not args.allow_radio_flight:" in src
+    assert 'ap.add_argument("--allow-radio-flight", action="store_true",' in src
 
 
 # ---- fixes after the 29 Oct SITL campaign ---------------------------------------------------
