@@ -362,8 +362,9 @@ bench run wants the agent to stop at READY and never arm.
 ## 2026-11-03 — T0 added: the handset alone must arm, disarm and kill the aircraft
 
 Operator: "the drone must be able to listen to the controller at all times... I start up the drone
-and I can't even arm it without you." Jetsons were off when this was reported, so the refusal message
-was not read. **Cause not confirmed.** The candidates, from upstream PX4 1.16 (`Commander.cpp:562-594`,
+and I can't even arm it without you." The refusal message was not read: the workstation's wired port
+to the drone LAN had no link (`enp131s0` no carrier, laptop on hangar Wi-Fi only), so ssh to both Jetsons
+timed out. I first misreported that as the Jetsons being off; the operator corrected it. **Cause not confirmed.** The candidates, from upstream PX4 1.16 (`Commander.cpp:562-594`,
 `manualControlCheck.cpp:60`), are what a switch arm needs:
 - a manual mode. With ch7 centred (Offboard) a switch arm is refused ("switch to manual mode
   first", seen 14 Oct). The handset arms only at ch7 -100 (Altitude);
