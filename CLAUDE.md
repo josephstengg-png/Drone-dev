@@ -125,7 +125,11 @@ display here. Use the agent for anything that must work, and USB for parameter w
    Offboard) or kill switch (channel 8). The arm switch cannot START arming in Offboard.
    **T0** (`docs/takeover-ladder-plan.md`) proves the handset alone can arm, disarm and kill the
    aircraft, as the first test of every session. To arm from the handset: ch7 -100, kill off,
-   throttle at or below centre.
+   throttle at or below centre. The handset reaches PX4 as MAVLink RC overrides from the ELRS
+   receiver on TELEM1. **Keep `RC_CRSF_PRT_CFG` and `RC_SBUS_PRT_CFG` at 0.** The vendor set both to
+   the empty RC port, and a dead CRSF input then took `input_rc` instance 0, the only one PX4 reads,
+   whenever the handset was off at boot. The handset was then ignored until a reboot. Set to 0 on
+   113, 3 Nov 2026; 112 and 115 still carry 300.
 3. **The operator**: `a` + ENTER in the pair-test console, or `tools/takeover.py --now`
    out-of-band over ssh, which survives the orchestrator dying.
 

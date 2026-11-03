@@ -359,6 +359,27 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-03 (evening, later) — Fixed: RC-port drivers off; the handset owns input 0 even when switched on late
+
+**Parameter change** (operator: "go"). Backup before the change: `fc-backups/2026-11-03/artex113-params-live.json`.
+`RC_CRSF_PRT_CFG` 300 → 0 and `RC_SBUS_PRT_CFG` 300 → 0 over USB, read back 0/0, reboot only if
+disarmed (`fc-backups/2026-11-03/rc_port_fix.py`). After the reboot both still read 0. One read
+timed out on the first attempt, and the script wrote nothing then.
+- **Handset on at boot:** `input_rc` instance 0 = MAVLink (`input_source` 6, rssi 100). Instance 1
+  was never published. `crsf_rc` and `sbus_rc` are "not running". `rc_channels` is live and
+  `manual_control_setpoint` is valid.
+- **Repeat of the failing test:** handset off for 9 s, reboot, then all of `input_rc` 0 and 1 and
+  `rc_channels` read "never published". After the handset was switched on, instance 0 = MAVLink,
+  `rc_channels` was live and `manual_control_setpoint` was `valid: True`. **Pass:** the late
+  handset is no longer locked out.
+- **Still to do:**
+  - The same change on **ARTEX112 and 115**, which carry the same vendor 300s.
+  - A T0a with the handset only (arm, disarm, kill, plus the expected refusals) on the fixed
+    aircraft; today's arms were before the fix.
+  - Add the check "`input_rc` 0 is `input_source` 6 and live" to `preflight.py` and T0.
+- **Tool note:** `mav_shell.py` over USB sometimes connects to a forwarded ground-station heartbeat
+  (255/190) and refuses as "sysid 0". Retrying works.
+
 ## 2026-11-03 (evening) — Boot race confirmed: handset off at boot → CRSF takes input 0 → handset ignored
 
 **Test** (operator: "props off reboot OK"). Before the reboot: instance 0 = MAVLink, last update 76 s
