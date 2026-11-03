@@ -396,6 +396,29 @@ loop cannot be closed across the radio (29 Oct). So the arm stage was run over t
   Mode-change detection rides on the 1 Hz heartbeat.
 - Evidence: `fc-backups/2026-11-03/artex113-t2-elrs-modeswitch-*`.
 
+**Take-off stage over ELRS, props off** (operator: the lab manager OKs removing the radio lock and wants props-on
+flight over ELRS; "just to test the concept ... props off over the radio").
+- **Code** (a3c364c, 0a7effb; 312 tests; agent + guard deployed together):
+  - `--allow-radio-flight` lifts the take-off lock by name only; the default still refuses.
+  - Over the radio, the agent waits up to 5 s more for the first 0.5 Hz LOCAL_POSITION_NED.
+  - The guard (offboard-flight only, `zero_required`) ignores the estimator height until the agent's zero
+    is taken. This fixes Run A's false alarm; raw −z read −2.59 m on the floor at this point.
+- **Try 1:** READY with the guard quiet, then **"Arming denied: Resolve system health failures first"**
+  for about 20 s, and the agent exited `vehicle did not arm`. Accel bias 0.09. `health_report` errors were
+  local/global position and system, the Offboard requirements. Preflight GO, 0 % loss, only 27 new RF
+  drops since T2, but the agent's rx rates were about half of T2's (ATTITUDE 2.8 vs 5.0 Hz). `dmesg` over
+  ELRS cut off after 13 lines, so the exact reason is unknown: a GCS-heartbeat gap or an uneven setpoint
+  stream at the arm.
+- **Try 2: PASS.** Fresh confirmation. "Armed by external command" 12 s after ARM. Kill on ch8 5.11 s into
+  take-off; the agent read ch8 = 2000 from RC_CHANNELS, stood down and sent nothing. PX4 disarmed after 4.6 s.
+  439 setpoints at 20 Hz, 0 link losses, no offboard-loss failsafe in the 5 s. rx: ATTITUDE 3.0,
+  RC_CHANNELS 1.0, LOCAL_POSITION_NED 0.5 Hz.
+- **What this does not show:** with props off nothing lifts, so the height loop was never exercised.
+  Height arrives once every 2 s over ELRS. A 0.05 hover-thrust error is about 1.2 m/s², or about 2.3 m of
+  travel between readings, whatever the climb rate. Told the operator the alternative: velocity or position
+  setpoints, or PX4's own take-off and land, with GPS or flow.
+- Evidence: `fc-backups/2026-11-03/artex113-t3-elrs-propsoff-*`.
+
 **Before any props-on run:** fix the guard's ceiling and unknown-arm defects, fix the connect race, and get
 the operator's decision on `NAV_DLL_ACT` (T0a). Arm soon after a clean boot.
 
