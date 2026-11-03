@@ -381,6 +381,23 @@ rebooted, so its clock was set from the workstation (`sudo -n date`). GPS here: 
 - **Not yet verified on the aircraft:** that ch5 +100 actually selects Offboard and ch5 off returns to
   Altitude, and the three ch7 positions. Needs a switch walk with a listener, props off.
 
+**Lab manager's takeover test, ELRS, props off** ("artex 113 props off area clear"; the lab manager on the
+handset). A listener over ELRS saw **ch5 2000 → mode OFFBOARD**, so ch5 does select Offboard, but **ch7 at 2000
+(Position)**. I asked twice for ch7 centre; the operator asked to arm, and ch7 was still at Position at launch.
+Props off, so I ran it, telling him to flip ch7 to centre if ch5 off did not take it.
+- `--allow-radio-flight --height-timeout-s 3 --stage takeoff ...`. Armed 9.5 s after ARM.
+- At 7.23 s into take-off: "Failsafe activated", mode 6 → 2. The agent classified `pilot_switch` 1.49 s later
+  (a ch5 drop seen in RC_CHANNELS) and stood down. PX4 also sent **"Switching to Position is currently not
+  available"**. Reading: ch5 off asked for ch7's Position, unavailable with no GPS, and PX4 fell back to
+  Altitude through a failsafe.
+- Then **"Connection to ground station lost" → "Failsafe activated" → "GCS connection regained"** while armed.
+  With `NAV_DLL_ACT` 3 that is a Land failsafe. **"Landing detected" → "Disarmed by landing"** 8.6 s after the
+  takeover, so **PX4 disarmed it, not the pilot's ch6.**
+- **Consequence for props-on over ELRS:** a GCS-heartbeat gap of more than `COM_DL_LOSS_T` (5 s) while the pilot
+  flies makes PX4 land the aircraft against his sticks. Not confirmed from the ulog
+  (`/fs/microsd/log/2026-11-03/08_43_21.ulg`, USB-only to pull).
+- 425 setpoints, 0 link losses, `passed: true`. Evidence: `fc-backups/2026-11-03/artex113-labmgr-elrs-takeover-*`.
+
 ## 2026-11-03 (night, later) — Props-off take-off stage, kill takeover: PASS after a clean boot
 
 Clean reboot (operator: "props off reboot OK"). At about 1.5 min: height −0.02 m, accel bias about 0.00, roll −0.2°,
