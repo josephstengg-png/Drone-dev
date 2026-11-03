@@ -359,6 +359,38 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-03 — Handset ignored: a dead CRSF input holds the slot PX4 reads
+
+**Found over USB, read-only (nothing armed, no parameter written):**
+- `listener input_rc` shows two RC inputs. **Instance 0** is CRSF (`input_source` 14, `crsf_rc` on
+  `/dev/ttyS5`): **0 bytes received since boot**, all channels 0, `rc_lost` true. **Instance 1** is
+  MAVLink (`input_source` 6, rssi 100): this is the handset, carried by the ELRS receiver in MAVLink
+  mode. It read ch6 1000, ch7 1000, ch8 1000 and sticks centred, which were the operator's positions.
+- PX4 reads **only instance 0** (`rc_update.h:162`, `rc_update.cpp:368-399`, upstream 1.16), so
+  `RC_CHANNELS` read all 0 and the RC receiver was flagged unhealthy. Every switch was ignored.
+- **On every day the handset worked, instance 0 was MAVLink.** ULogs log only instance 0
+  (`logged_topics.cpp:84`). It was MAVLink in all six 29 Oct logs and in the 15 and 19 Oct logs,
+  with the same stick values as today. So on those boots the CRSF driver never published.
+- **Parameters are unchanged since 29 Oct** (full 1080-parameter dump vs the T3 run 1 log: only
+  `COM_FLIGHT_UUID` and `LND_FLIGHT_T_LO` differ). `RC_CRSF_PRT_CFG` and `RC_SBUS_PRT_CFG` are both 300
+  (`/dev/ttyS5`), giving "Conflicting config for /dev/ttyS5" at boot; CRSF wins and opens the port.
+  Dump: `fc-backups/2026-11-03/artex113-params-live.json`; boot log and driver status alongside.
+- Upstream `crsf_rc` publishes from boot every cycle, so it should always take instance 0. Why it
+  did not on earlier boots is **not explained**. The fork may differ, or boot order or power-up order
+  may matter. The FC has stayed on USB power from jetson-2 since 29 Oct.
+- QGroundControl runs on jetson-2 (pid 10023) through the relay's `--mirror-control` port 14551. During
+  this diagnosis the FC logged "Calibration: Disabling RC input" then "Restoring RC input", which is
+  an RC calibration started and cancelled from QGC. No RC parameter changed. Who started it was not
+  yet asked.
+- jetson-2 was up the whole time. The workstation's wired port had no carrier, which looked like the
+  Jetsons being down.
+
+**Proposed, awaiting the operator:** (1) reboot the FC, disarmed with props off, and re-read the RC
+instances, to see whether the order changes from boot to boot. (2) The fix, a parameter change (back up,
+ask, restore): `RC_CRSF_PRT_CFG` 0 and `RC_SBUS_PRT_CFG` 0, so no driver listening on an empty port can
+take the slot from the handset. (3) T0 and preflight check that `input_rc` instance 0 is MAVLink and
+not lost. `tools/arm_diag.py` is the read-only diagnostic used today.
+
 ## 2026-11-03 — T0 added: the handset alone must arm, disarm and kill the aircraft
 
 Operator: "the drone must be able to listen to the controller at all times... I start up the drone
