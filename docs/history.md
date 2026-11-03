@@ -359,6 +359,19 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-03 (night, later) — Props-off take-off stage, kill takeover: PASS after a clean boot
+
+Clean reboot (operator: "props off reboot OK"). At about 1.5 min: height −0.02 m, accel bias about 0.00, roll −0.2°,
+pitch −1.7°, handset on input 0, Altitude, `commander check` OK. Operator: "artex113 props off area
+clear". Same flags as Run A. READY, then ARM; "Armed by external command".
+- Pilot kill on ch8 **4.57 s after arm**, at 0.0 m and 1.8° tilt. The agent logged "PILOT KILLED IT (Kill engaged).
+  Standing down -- no setpoints, no mode changes, no commands", `takeover_source: kill_switch`,
+  `takeover_stage: takeoff`. **The guard stayed silent.**
+- PX4: "Disarming denied: not landed" (its land detector again said "Takeoff detected" with props off),
+  then **"Disarmed by kill-switch" at 5.5 s** (`COM_KILL_DISARM`).
+- 277 setpoints at 20 Hz, 0 link losses. `passed: true`.
+- Evidence: `fc-backups/2026-11-03/artex113-t3-propsoff-runA2-*`.
+
 ## 2026-11-03 (night) — Handset needs a GCS heartbeat to arm; T0 passes with one; props-off Run A stopped by a guard false alarm
 
 **"It's not arming anymore."** After the fix, the operator closed QGC on jetson-2, because I had asked for it
