@@ -359,6 +359,40 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-03 (later) — Reboot puts the handset back on input 0; T0 passes; boot race
+
+**Reboot** (operator: "props off reboot ok"): `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN` over USB, disarmed,
+acknowledged. Handset on and linked throughout. Afterwards **instance 0 = MAVLink (the handset, rssi
+100), instance 1 = CRSF (lost)**, the reverse of before. RC receiver healthy, mode Altitude.
+`crsf_rc` again started first at boot ("Crsf serial opened sucessfully" before "Starting MAVLink on
+/dev/ttyS0") and has received 0 bytes.
+
+**T0, props off, handset only, read-only listener** (`fc-backups/2026-11-03/artex113-t0-handset-listen.txt`):
+5 arms, every one "Armed by RC switch" within 0.1-0.8 s of ch6, with throttle at 989. 5 disarms,
+every one "Disarmed by RC switch". One kill while armed: ch8 2000 gave "Flight termination
+active", then a switch disarm. The Jetson was on with the relay and QGC running and no agent,
+so this was the T0c variant. **Pass.** The expected refusals (ch7 centre, kill on, throttle
+high) were not tried.
+
+**Where the receiver is wired:** MAVLink instance 0 is `/dev/ttyS0` (TELEM1) at 460800, rx 6.3 kB/s,
+GCS heartbeat valid. That is the ELRS receiver in MAVLink mode, carrying telemetry and the
+handset's channels as RC overrides. Instance 1 is `/dev/ttyS7` (TELEM4) at 115200 with rx 0.
+`/dev/ttyS5`, the board's RC port (`CONFIG_BOARD_SERIAL_RC`), receives nothing.
+
+**History of the CRSF and SBUS drivers:** never set by us. Both are compiled into the vendor firmware and were
+already configured to port 300 (RC port) on ARTEX112, 113 and 115 in the first dumps, 24 Sep. Upstream:
+`sbus_rc` defaults to the RC port, while `crsf_rc`'s default is commented out (0).
+
+**Reading, not yet proven:** both RC publishers advertise on their first publish and take the
+lowest free instance. `crsf_rc` first publishes after one empty 100 ms read. MAVLink first
+publishes on the first RC override from the receiver. If the receiver is already linked when
+MAVLink starts, the handset can win (as after this reboot). If not, CRSF wins and the handset
+is dead until the next reboot. Examples: the FC powered by USB before the battery powers the
+receiver, or the handset switched on late. Upstream `crsf_rc` also gives up for good, without
+publishing, if it fails to open its port, which would explain the boots where it never
+appeared. Test: reboot with the handset OFF, then switch it on. The prediction is that CRSF
+takes input 0 and the handset is ignored.
+
 ## 2026-11-03 — Handset ignored: a dead CRSF input holds the slot PX4 reads
 
 **Found over USB, read-only (nothing armed, no parameter written):**
