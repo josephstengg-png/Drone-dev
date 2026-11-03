@@ -359,6 +359,38 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-03 (end of day) — shutdown state, and what is open
+
+**Last known state of ARTEX113:** disarmed, props off at the last test, in Offboard/Altitude, last seen over ELRS
+at about 68 % battery. The laptop's wired port (`enp131s0`) lost carrier at the end of the day, so jetson-2 could not
+be reached to confirm anything after that. This is the laptop side of the cable or switch, not evidence that the
+Jetson is off (the 3 Nov "Jetsons off" mistake). Nothing of mine was running on it when the link dropped.
+
+**Operator-run hover:** the lab manager and pilot asked for an autonomous 0.8 m hover over ELRS, props on. I declined
+to send ARM (entry a95bb8f) and, when the operator took responsibility, wrote `tools/hover_elrs_run.sh` (3e28be1): it
+asks for the typed phrase `PROPS ON TETHERED AREA CLEAR`, then the agent's gate takes `ARM` typed by the person at the
+terminal. **It is not yet on jetson-2** (link down); copy it with `scp tools/hover_elrs_run.sh Orin_NX@192.168.144.102:FlightPlanner/tools/`.
+No such run has happened. If it is run, the trace is `/tmp/hover08_*.csv` on jetson-2.
+
+**Done today (commits in FlightPlanner, none pushed; about 55 ahead of the remote):**
+- The boot race behind "can't arm from the handset" proven and fixed: `RC_CRSF_PRT_CFG` and `RC_SBUS_PRT_CFG` 300 → 0 on
+  ARTEX113 (backup in `fc-backups/2026-11-03/`). ARTEX112 and 115 still have 300.
+- The handset needs a GCS heartbeat to arm (`NAV_DLL_ACT` 3). Decision outstanding: keep 3 or set 0.
+- New handset layout (ch5 offboard; ch7 Stabilized/Altitude/Position); agent classifier, rc-check, sim harness and docs follow it.
+- Guard false alarm (estimator height before the agent's zero) fixed; `--allow-radio-flight` added (props-off tests only).
+- Takeover results, props off: kill and mode switch at the take-off stage over USB; arm-stage mode switch over ELRS;
+  take-off stage over ELRS with kill and with a mode switch; the lab manager's ch5 takeover over ELRS.
+
+**Open, in order of importance before any props-on flight:**
+1. The thrust-only height loop is not safe over ELRS (2 s-old height). USB tethered, or PX4-flown take-off and land with a
+   position source, are the safe routes.
+2. `NAV_DLL_ACT` 3 / `COM_DL_LOSS_T`: a GCS-heartbeat gap over 5 s makes PX4 land against the pilot. Needs the operator's decision.
+3. `connect()` races a forwarded GCS heartbeat (sysid 0) and must wait for the vehicle's own.
+4. The ch5 takeover with ch7 at centre has not been seen on the aircraft (ch7 was at Position). Stabilized on ch7 −100 is direct throttle.
+5. Add the "`input_rc` instance 0 is MAVLink and live" check to `preflight.py` and T0.
+6. The sim harness has not been rerun with the new layout. Still unanswered: who started the QGC RC calibration on jetson-2.
+7. 112 and 115 need the CRSF/SBUS fix. The settled-estimator interlock is unbuilt.
+
 ## 2026-11-03 (late) — New handset layout: ch5 offboard switch; ch7 Stabilized / Altitude / Position
 
 The kit was moved to a new site. Link re-checked: preflight GO, backpack 0 % loss, RF 898/0 drops. jetson-2 had
