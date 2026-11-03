@@ -382,6 +382,20 @@ clear". Same flags as Run A. READY, then ARM; "Armed by external command".
 - 207 setpoints at 20 Hz, 0 link losses, no false alarm. `passed: true`.
 - Evidence: `fc-backups/2026-11-03/artex113-t3-propsoff-runB-*`.
 
+**T2 with the mode switch over ELRS, props off: PASS** (operator asked to rerun without USB; fresh "artex113
+props off area clear"). The take-off stage stays USB-only: the agent refuses it over ELRS, because the height
+loop cannot be closed across the radio (29 Oct). So the arm stage was run over the radio.
+- Preflight GO: backpack 0 % loss, −48 dBm, RF down 26959 / drops 7123. QGC open again; the relay holds it
+  off while the agent talks.
+- `--link udpout://127.0.0.1:14540 --gate --stage arm --wait-s 45`. During the arm, "Connection to ground
+  station lost" → "No connection to the ground control station" → "GCS connection regained" (the known
+  start-of-run gap). "Armed by external command" **13 s** after ARM.
+- ch7 → −100: mode 6 → 2. The agent classified it `pilot_switch` 0.4 s after the armed event and stood down.
+  PX4 "Disarmed by RC switch" 4.5 s later. No link losses. `passed: true`.
+- Rates over ELRS: ATTITUDE 5.0 Hz, RC_CHANNELS 1.5 Hz, LOCAL_POSITION_NED 0.5 Hz, HEARTBEAT 1.0 Hz.
+  Mode-change detection rides on the 1 Hz heartbeat.
+- Evidence: `fc-backups/2026-11-03/artex113-t2-elrs-modeswitch-*`.
+
 **Before any props-on run:** fix the guard's ceiling and unknown-arm defects, fix the connect race, and get
 the operator's decision on `NAV_DLL_ACT` (T0a). Arm soon after a clean boot.
 
