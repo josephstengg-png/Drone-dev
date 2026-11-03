@@ -372,6 +372,19 @@ clear". Same flags as Run A. READY, then ARM; "Armed by external command".
 - 277 setpoints at 20 Hz, 0 link losses. `passed: true`.
 - Evidence: `fc-backups/2026-11-03/artex113-t3-propsoff-runA2-*`.
 
+**Run B: mode-switch takeover at the take-off stage, props off: PASS** (fresh "artex113 props off area clear").
+- The first two launches refused with "wrong vehicle: answers as sysid 0". A forwarded GCS heartbeat (255/190)
+  arrived first; pymavlink takes the target system only from non-GCS heartbeats, so `target_system` stayed 0.
+  This fails safe and nothing was sent. **To fix: `drone_agent.connect` must wait for the vehicle's own heartbeat**
+  (`mav_shell.py` and the preflight probe share it). The third launch connected.
+- ch7 → −100 **2.92 s after arm**: main mode 6 → 2. The agent classified it `pilot_switch` in 0.01 s, stood down
+  and repeated STILL ARMED. PX4 "Landing detected", then "Disarmed by RC switch" 5.0 s after the takeover.
+- 207 setpoints at 20 Hz, 0 link losses, no false alarm. `passed: true`.
+- Evidence: `fc-backups/2026-11-03/artex113-t3-propsoff-runB-*`.
+
+**Before any props-on run:** fix the guard's ceiling and unknown-arm defects, fix the connect race, and get
+the operator's decision on `NAV_DLL_ACT` (T0a). Arm soon after a clean boot.
+
 ## 2026-11-03 (night) — Handset needs a GCS heartbeat to arm; T0 passes with one; props-off Run A stopped by a guard false alarm
 
 **"It's not arming anymore."** After the fix, the operator closed QGC on jetson-2, because I had asked for it
