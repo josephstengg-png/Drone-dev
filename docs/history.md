@@ -359,6 +359,31 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-03 (evening) — Boot race confirmed: handset off at boot → CRSF takes input 0 → handset ignored
+
+**Test** (operator: "props off reboot OK"). Before the reboot: instance 0 = MAVLink, last update 76 s
+earlier (the handset was off), instance 1 = CRSF. ch6 1000 (disarmed). Rebooted over USB with a
+disarmed and sysid-113 check, acknowledged, board back in about 7 s.
+- **Handset off, after the boot:** instance 0 = **CRSF** (`input_source` 14, `rc_lost`, all 0).
+  Instance 1 was never published.
+- **Handset switched on** (about 4 min later): instance 1 = **MAVLink** (`input_source` 6, live,
+  ch7 1000, ch8 1000, throttle 1460). Instance 0 was still CRSF and still lost. `rc_channels`
+  was never published (`timestamp 0`, `signal_lost` true), and `manual_control_setpoint` was
+  `valid: False`. **The handset is ignored. This reproduces the morning's fault, as predicted.**
+
+**Cause, now shown:** both drivers publish `input_rc` with PublicationMulti, so instances are
+taken in the order of first publish. PX4 reads only instance 0. `crsf_rc` (on `RC_CRSF_PRT_CFG`
+300, the RC port, where nothing is wired) publishes "lost" about 100 ms after it starts. So it
+wins unless the ELRS receiver is already linked and sending RC overrides when MAVLink starts.
+Handset off or late, or the receiver unpowered at boot, means the handset is locked out until
+the next reboot. Nothing about this is specific to the Jetson.
+
+**Fix proposed, waiting for the operator:** `RC_CRSF_PRT_CFG` 0 and `RC_SBUS_PRT_CFG` 0. The backup is
+`fc-backups/2026-11-03/artex113-params-live.json`. Then reboot and repeat this test; the expected
+result is the handset on instance 0 even when it is switched on late. **ARTEX115 and 112 carry the same
+vendor values** and need the same fix. State left: disarmed, props off, handset on but **ignored
+until a reboot**.
+
 ## 2026-11-03 (later) — Reboot puts the handset back on input 0; T0 passes; boot race
 
 **Reboot** (operator: "props off reboot ok"): `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN` over USB, disarmed,
