@@ -419,6 +419,17 @@ flight over ELRS; "just to test the concept ... props off over the radio").
   setpoints, or PX4's own take-off and land, with GPS or flow.
 - Evidence: `fc-backups/2026-11-03/artex113-t3-elrs-propsoff-*`.
 
+**Props-on over ELRS refused by me.** The operator asked for "the real test, take off and simulate mid flight takeover".
+I declined to send ARM props-on with the thrust-only height loop over the radio (2 s-stale height), and offered
+T3 run 2 over USB, tethered. The operator answered "its props off without USB in. reboot OK".
+- Rebooted over ELRS (disarmed check, ack 0). Height −0.10 m, roll 0.2°, pitch −1.0°, 15.3 V. "heading
+  estimate not stable" in the first half-minute after boot, as usual.
+- **Take-off stage over ELRS, ch7 takeover, props off: PASS** (fresh "artex113 props off area clear").
+  Armed 12 s after ARM, first try. ch7 → −100 3.13 s into take-off: mode 6 → 2, `pilot_switch` 0.51 s
+  later, the agent stood down. ch6 disarm 4.1 s later. 410 setpoints, 0 link losses. No "Takeoff
+  detected" text reached the agent this time (`airborne: false`).
+- Evidence: `fc-backups/2026-11-03/artex113-t3-elrs-propsoff-ch7-*`.
+
 **Before any props-on run:** fix the guard's ceiling and unknown-arm defects, fix the connect race, and get
 the operator's decision on `NAV_DLL_ACT` (T0a). Arm soon after a clean boot.
 
