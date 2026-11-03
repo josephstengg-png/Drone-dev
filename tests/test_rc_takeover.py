@@ -125,6 +125,18 @@ def test_the_note_names_which_slot_holds_offboard():
     assert any("COM_FLTMODE4" in x for x in _notes(p))
 
 
+def test_artex113_as_configured_on_3_nov():
+    """Read off 113 over ELRS: ch5 offboard switch; ch7 -100 Stabilized, centre Altitude, +100 Position."""
+    real = {"COM_RC_IN_MODE": 3, "COM_RC_OVERRIDE": 1, "RC_MAP_FLTMODE": 7, "RC_MAP_KILL_SW": 8,
+            "RC_MAP_OFFB_SW": 5, "COM_FLTMODE1": 8, "COM_FLTMODE2": -1, "COM_FLTMODE3": -1,
+            "COM_FLTMODE4": 1, "COM_FLTMODE5": -1, "COM_FLTMODE6": 2}
+    assert _findings(real) == []
+    notes = _notes(real)
+    assert not any("ZERO thrust" in x for x in notes)           # no switch position is Offboard
+    assert any("RC_MAP_OFFB_SW=5" in x and "Altitude" in x for x in notes)
+    assert any("COM_FLTMODE1 = " in x and "climbs" in x for x in notes)   # Stabilized at -100
+
+
 def test_artex_pair_as_configured_on_14_oct():
     """Read live off both aircraft: ch7 -100 Altitude, centre Offboard, +100 Position."""
     real = {"COM_RC_IN_MODE": 3, "COM_RC_OVERRIDE": 1, "RC_MAP_FLTMODE": 7,

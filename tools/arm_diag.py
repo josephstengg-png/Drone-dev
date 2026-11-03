@@ -5,7 +5,7 @@
     python3 arm_diag.py [seconds] --gcs    # also send a 1 Hz GCS heartbeat
 
 Prints the arming-relevant parameters once, then every change in mode, armed state,
-ch3 (throttle) / ch6 (arm) / ch7 (mode) / ch8 (kill), RC rssi, and every STATUSTEXT.
+ch3 (throttle) / ch5 (offboard) / ch6 (arm) / ch7 (mode) / ch8 (kill), RC rssi, and every STATUSTEXT.
 
 Without --gcs, PX4 sent no STATUSTEXT to this link (3 Nov 2026), so refusals did not show;
 read them afterwards with `tools/mav_shell.py --link /dev/ttyACM0 --sysid 113 dmesg`.
@@ -22,7 +22,7 @@ from pymavlink import mavutil
 PARAMS = ["COM_RC_IN_MODE", "RC_MAP_ARM_SW", "RC_MAP_KILL_SW", "RC_MAP_FLTMODE", "RC_MAP_THROTTLE",
           "COM_ARM_SWISBTN", "RC_ARMSWITCH_TH", "RC_KILLSWITCH_TH", "RC6_MIN", "RC6_MAX", "RC6_REV",
           "RC8_MIN", "RC8_MAX", "RC3_MIN", "RC3_MAX", "RC3_TRIM", "COM_FLTMODE1", "COM_FLTMODE4",
-          "COM_FLTMODE6", "COM_RC_LOSS_T", "EKF2_ABL_LIM", "COM_ARM_IMU_ACC", "CBRK_USB_CHK"]
+          "COM_FLTMODE6", "RC_MAP_OFFB_SW", "COM_RC_LOSS_T", "EKF2_ABL_LIM", "COM_ARM_IMU_ACC", "CBRK_USB_CHK"]
 MODES = {1: "MANUAL", 2: "ALTCTL", 3: "POSCTL", 4: "AUTO", 5: "ACRO", 6: "OFFBOARD", 7: "STAB"}
 
 args = [a for a in sys.argv[1:] if a != "--gcs"]
@@ -58,7 +58,7 @@ def show(key, val, text):
         print(f"{time.time() - t0:7.1f}s  {text}", flush=True)
 
 
-print(f"listening {dur:.0f} s -- flip ch7/ch8/ch6 now" + ("  (sending GCS heartbeat)" if gcs else ""),
+print(f"listening {dur:.0f} s -- flip ch5/ch7/ch8/ch6 now" + ("  (sending GCS heartbeat)" if gcs else ""),
       flush=True)
 last_beat = 0.0
 while time.time() - t0 < dur:
@@ -75,8 +75,8 @@ while time.time() - t0 < dur:
         show("hb", (mode, armed), f"mode {mode}  {'ARMED' if armed else 'disarmed'}")
     elif t == "RC_CHANNELS":
         q = lambda v: round(v / 50) * 50  # ignore jitter
-        show("rc", (q(m.chan3_raw), q(m.chan6_raw), q(m.chan7_raw), q(m.chan8_raw), m.rssi),
-             f"thr ch3 {m.chan3_raw}  arm ch6 {m.chan6_raw}  mode ch7 {m.chan7_raw}  "
+        show("rc", (q(m.chan3_raw), q(m.chan5_raw), q(m.chan6_raw), q(m.chan7_raw), q(m.chan8_raw), m.rssi),
+             f"thr ch3 {m.chan3_raw}  offb ch5 {m.chan5_raw}  arm ch6 {m.chan6_raw}  mode ch7 {m.chan7_raw}  "
              f"kill ch8 {m.chan8_raw}  rssi {m.rssi}  n {m.chancount}")
     elif t == "STATUSTEXT":
         print(f"{time.time() - t0:7.1f}s  TEXT [{m.severity}] {m.text}", flush=True)

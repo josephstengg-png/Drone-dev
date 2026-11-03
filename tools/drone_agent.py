@@ -847,10 +847,12 @@ class Guard:
         self.zero_required = False
         # Takeover classification (29 Oct 2026): which way the aircraft left OFFBOARD.
         self.mode_chan = getattr(args, "mode_chan", 7) or 7
+        self.offboard_chan = getattr(args, "offboard_chan", 5) or 5      # since 3 Nov 2026
         self.kill_chan = getattr(args, "kill_chan", 8) or 8
         self.kill_pwm_above = getattr(args, "kill_pwm_above", 1750) or 1750
         self.classify_s = 1.0                # wait this long for an RC reading after the exit
         self._mode_pwm: list[tuple[float, int]] = []
+        self._offb_pwm: list[tuple[float, int]] = []
         self._exit_at: float | None = None
         self.takeover_source: str | None = None    # pilot_switch | kill_switch | link_loss | unknown
         self.link_losses = 0
@@ -905,6 +907,9 @@ class Guard:
             mode_pwm = getattr(msg, f"chan{self.mode_chan}_raw", 0)
             if 900 < mode_pwm < 2100:
                 self._mode_pwm = self._mode_pwm[-49:] + [(now, mode_pwm)]
+            offb_pwm = getattr(msg, f"chan{self.offboard_chan}_raw", 0)
+            if 900 < offb_pwm < 2100:
+                self._offb_pwm = self._offb_pwm[-49:] + [(now, offb_pwm)]
             kill_pwm = getattr(msg, f"chan{self.kill_chan}_raw", 0)
             if 900 < kill_pwm < 2100 and kill_pwm > self.kill_pwm_above:
                 # STATUSTEXT can be lost on the radio; the switch position itself cannot lie
@@ -943,8 +948,8 @@ class Guard:
         """
         prev, self._prev_mode = self._prev_mode, mode
 
-        # The pilot flipped from a hand-flown mode to a position mapped to OFFBOARD
-        # (channel 7 centre, since 14 Oct 2026). That is a request to hand the aircraft
+        # The pilot flipped from a hand-flown mode to OFFBOARD (channel 5 on since 3 Nov
+        # 2026; channel 7 centre from 14 Oct). That is a request to hand the aircraft
         # BACK to the agent. The agent refuses, deliberately and out loud: it streams
         # level attitude at ZERO thrust and has no height hold, so resuming on an airborne
         # aircraft would command a fall. NOTE PX4 does not deny the mode. Measured on
@@ -978,18 +983,20 @@ class Guard:
                       airborne=self.airborne, t_epoch=round(time.time(), 3)))
 
     def _classify(self, now: float) -> None:
-        """Pilot switch or lost link? Decided from ch7 readings that arrived after the exit."""
+        """Pilot switch or lost link? Decided from ch5/ch7 readings that arrived after the exit."""
         if self._exit_at is None or self.takeover_source is not None:
             return
-        after = [p for t, p in self._mode_pwm if t >= self._exit_at]
-        verdict = safety_rules.classify_mode_exit(after)
+        before = [p for t, p in self._mode_pwm if t < self._exit_at]
+        verdict = safety_rules.classify_mode_exit(
+            [p for t, p in self._offb_pwm if t >= self._exit_at], before[-1] if before else None,
+            [p for t, p in self._mode_pwm if t >= self._exit_at])
         if verdict != "pilot_switch" and now - self._exit_at < self.classify_s:
             return                      # a switch reading may still be on its way
         self.takeover_source = verdict
         if verdict == "link_loss":
             self.link_losses += 1
-            log("[safety] *** OFFBOARD LOST ON THE LINK -- NOT A PILOT TAKEOVER *** the mode "
-                "switch is still in the middle. PX4 failed over to Altitude and the agent has "
+            log("[safety] *** OFFBOARD LOST ON THE LINK -- NOT A PILOT TAKEOVER *** the offboard "
+                "switch (ch5) is still on and ch7 has not moved. PX4 failed over and the agent has "
                 "stood down for good. PILOT: you have the aircraft -- fly it and land it.")
         else:
             log(f"[safety] PILOT HAS IT ({verdict.replace('_', ' ')}).")
@@ -1798,7 +1805,7 @@ FLTMODE_NAMES = {-1: "Unassigned", 0: "Manual", 1: "Altitude", 2: "Position", 3:
 PILOT_FLTMODES = (0, 1, 2, 6, 8, 9)
 RC_PARAMS = ("COM_RC_IN_MODE", "COM_RC_OVERRIDE", "COM_RC_STICK_OV", "RC_MAP_FLTMODE",
              "RC_MAP_KILL_SW", "COM_RCL_EXCEPT", "COM_FLTMODE1", "COM_FLTMODE2",
-             "COM_FLTMODE3", "COM_FLTMODE4", "COM_FLTMODE5", "COM_FLTMODE6")
+             "COM_FLTMODE3", "COM_FLTMODE4", "COM_FLTMODE5", "COM_FLTMODE6", "RC_MAP_OFFB_SW")
 
 
 def rc_takeover_findings(p: dict, rc_seen: bool) -> list[str]:
@@ -1864,6 +1871,19 @@ def rc_takeover_notes(p: dict) -> list[str]:
                    f"ZERO thrust and cannot hold height, so on an airborne aircraft it is "
                    f"a fall, not a hand-back. Bench use only; map it to a hand-flown mode "
                    f"for flight")
+    # 3 Nov 2026 layout: OFFBOARD on its own switch; dropping it lands in the mode switch's mode.
+    offb = p.get("RC_MAP_OFFB_SW")
+    if offb:
+        out.append(f"RC_MAP_OFFB_SW={int(offb)}: channel {int(offb)} on asks for OFFBOARD; off "
+                   f"hands the aircraft to whatever channel {p.get('RC_MAP_FLTMODE')} selects. "
+                   f"Leave that on Altitude while the agent flies, so a takeover holds height")
+    direct = [n for n in range(1, 7)
+              if p.get(f"COM_FLTMODE{n}") is not None and int(p[f"COM_FLTMODE{n}"]) in (0, 6, 8)]
+    if direct:
+        out.append(f"COM_FLTMODE{'/'.join(str(n) for n in direct)} = Manual/Acro/Stabilized: the "
+                   f"throttle stick is thrust there, not climb rate. Taken over in flight with "
+                   f"the stick centred that is about 50% thrust, above hover (0.42 on ARTEX113), "
+                   f"so it climbs. Take over into Altitude; arm there with the stick at the bottom")
     return out
 
 
@@ -1995,6 +2015,8 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--trace", default=None, help="offboard-flight: write a CSV of the flight")
     ap.add_argument("--mode-chan", type=int, default=7, help="RC channel of the mode switch")
+    ap.add_argument("--offboard-chan", type=int, default=5,
+                    help="RC channel of PX4's offboard switch (RC_MAP_OFFB_SW; +100 = OFFBOARD)")
     ap.add_argument("--kill-chan", type=int, default=8, help="RC channel of the kill switch")
     ap.add_argument("--kill-pwm-above", type=int, default=1750,
                     help="kill switch counts as ON above this PWM (check with rc-check first)")

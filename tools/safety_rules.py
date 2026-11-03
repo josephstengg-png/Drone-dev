@@ -351,24 +351,31 @@ def on_ground_action(action: str, airborne: bool | None) -> str:
     return action                 # CUT is deliberate: it stays CUT wherever the aircraft is
 
 
-# The mode switch's centre position is OFFBOARD (channel 7, since 14 Oct 2026). PWM band
-# taken as centre; the ends are -100 Altitude and +100 Position.
-MODE_SWITCH_CENTRE = (1400, 1600)
+# Handset layout since 3 Nov 2026: channel 5 is PX4's offboard switch (RC_MAP_OFFB_SW 5,
+# +100 = OFFBOARD, RC_OFFB_TH 0.75); channel 7 picks the hand-flown mode (-100 Stabilized,
+# centre Altitude, +100 Position). Until then OFFBOARD was channel 7's centre.
+OFFBOARD_SWITCH_ON_ABOVE = 1750
+MODE_SWITCH_MOVED = 150          # PWM change on channel 7 that counts as a throw
 
 
-def classify_mode_exit(mode_pwm_after: list[float], centre=MODE_SWITCH_CENTRE) -> str:
+def classify_mode_exit(offb_pwm_after: list[float], mode_pwm_before: float | None,
+                       mode_pwm_after: list[float],
+                       on_above=OFFBOARD_SWITCH_ON_ABOVE, moved=MODE_SWITCH_MOVED) -> str:
     """Why did the aircraft leave OFFBOARD for a hand-flown mode?
 
-    `mode_pwm_after` = the mode-switch channel as RC_CHANNELS reported it SINCE the mode
-    change. A pilot takeover moves the switch off centre; PX4's offboard-loss failsafe
-    (a > COM_OF_LOSS_T gap in setpoints, 19 Oct 2026) changes the mode with the switch still
-    in the middle. Both look the same in HEARTBEAT, which is why the guard used to call
-    every such exit "PILOT HAS IT".
+    Readings are RC_CHANNELS SINCE the mode change: `offb_pwm_after` the offboard switch,
+    `mode_pwm_after` the mode switch, against `mode_pwm_before`, its last reading before.
+    A pilot takeover drops the offboard switch or throws the mode switch (PX4 acts on
+    either); PX4's offboard-loss failsafe (a > COM_OF_LOSS_T gap in setpoints, 19 Oct 2026)
+    changes the mode with both switches where they were. Both look the same in HEARTBEAT,
+    which is why the guard used to call every such exit "PILOT HAS IT".
 
     "pilot_switch" | "link_loss" | "unknown" (no RC reading arrived: the caller treats
     that as a takeover, because standing down is safe in both cases).
     """
-    lo, hi = centre
-    if any(not lo <= p <= hi for p in mode_pwm_after):
+    if any(p <= on_above for p in offb_pwm_after):
         return "pilot_switch"
-    return "link_loss" if mode_pwm_after else "unknown"
+    if mode_pwm_before is not None and any(abs(p - mode_pwm_before) > moved
+                                           for p in mode_pwm_after):
+        return "pilot_switch"
+    return "link_loss" if offb_pwm_after or mode_pwm_after else "unknown"

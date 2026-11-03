@@ -11,10 +11,11 @@ Each case boots a fresh simulator and runs the REAL agent as a subprocess --
 `drone_agent.py offboard-flight --stage <stage>` on the offboard port (14540), exactly the command
 line the aircraft will get, with ELRS-like setpoint outages injected (--sim-outage). This script
 is the PILOT, on the ground-station port (14550): it holds an RC transmitter through
-RC_CHANNELS_OVERRIDE at 20 Hz (sticks centred, ch7 centre = Offboard, ch8 = kill off), and at the
-stage under test flips ch7 to -100 (Altitude) or ch8 to kill, as the plan says. PX4 sees a real RC
-mode switch and kill switch (RC_MAP_FLTMODE 7, RC_MAP_KILL_SW 8), so the agent's guard sees the
-same RC_CHANNELS and mode changes it would on the aircraft.
+RC_CHANNELS_OVERRIDE at 20 Hz (sticks centred, ch5 +100 = Offboard, ch7 centre = Altitude, ch8 =
+kill off), and at the stage under test drops ch5 (back to ch7's Altitude) or puts ch8 to kill, as the
+plan says. PX4 sees a real offboard switch, mode switch and kill switch (RC_MAP_OFFB_SW 5,
+RC_MAP_FLTMODE 7, RC_MAP_KILL_SW 8), so the agent's guard sees the same RC_CHANNELS and mode changes
+it would on the aircraft. Handset layout since 3 Nov 2026; until then ch7 centre was Offboard.
 
 Scenarios: the seven stages, plus `no_takeover` (stage hold, the pilot does nothing): the agent
 must hold, land and disarm on its own, with no false alarm.
@@ -44,11 +45,11 @@ PILOT_LINK = "udpin:127.0.0.1:14550"
 SITL_SYSID = 1
 LOGS = Path("/tmp/ladder_logs")
 SCENARIOS = ["prearm", "arm", "takeoff", "hold", "descent", "landing", "disarm", "no_takeover"]
-KILL = {"prearm", "arm", "takeoff", "disarm"}       # the rest: ch7 to Altitude, then fly it
-# The real handset's layout (113's parameters, 9 Oct; ch7 positions since 14 Oct). RC in SITL is
+KILL = {"prearm", "arm", "takeoff", "disarm"}       # the rest: ch5 off to Altitude, then fly it
+# The real handset's layout (113's parameters, 9 Oct; ch5/ch7 as of 3 Nov). RC in SITL is
 # the pilot's RC_CHANNELS_OVERRIDE, so RC only (COM_RC_IN_MODE 0), and no MANUAL_CONTROL.
 RC = {"RC_MAP_ROLL": 1, "RC_MAP_PITCH": 2, "RC_MAP_THROTTLE": 3, "RC_MAP_YAW": 4,
-      "RC_MAP_FLTMODE": 7, "RC_MAP_KILL_SW": 8, "COM_FLTMODE1": 1, "COM_FLTMODE4": 7,
+      "RC_MAP_FLTMODE": 7, "RC_MAP_KILL_SW": 8, "RC_MAP_OFFB_SW": 5, "COM_FLTMODE1": 8, "COM_FLTMODE4": 1,
       "COM_FLTMODE6": 2, "COM_RC_IN_MODE": 0, "COM_OF_LOSS_T": 1.0, "COM_OBL_RC_ACT": 0,
       "RC_CHAN_CNT": 8}   # 0 = "RC not calibrated": PX4 then ignores the mode switch (29 Oct)
 LO, MID, HI = 1000, 1500, 2000
@@ -62,7 +63,7 @@ class Pilot:
         self.c.wait_heartbeat(timeout=30)
         if self.c.target_system != SITL_SYSID:
             raise RuntimeError(f"pilot link answered as sysid {self.c.target_system}, not the simulator")
-        self.ch = {3: MID, 7: MID, 8: LO}
+        self.ch = {3: MID, 5: HI, 7: MID, 8: LO}
         self.s = dict(armed=False, mode=None, z=None, landed=None, tilt=0.0, alt=None, t_hb=time.time())
         self.alt0, self.z0 = None, None
         self.modes = []                  # (t, main mode, armed)
@@ -83,7 +84,7 @@ class Pilot:
     def _tx(self):
         n = 0
         while not self._stop:
-            ch = [MID, MID, self.ch[3], MID, MID, MID, self.ch[7], self.ch[8]]
+            ch = [MID, MID, self.ch[3], MID, self.ch[5], MID, self.ch[7], self.ch[8]]
             with self.lock:
                 self.c.mav.rc_channels_override_send(self.c.target_system, 1, *ch)
                 if n % 20 == 0:
@@ -219,7 +220,7 @@ def run_case(scn, seed, outage, wait_s, extra=()):
         if what == "kill":
             pilot.ch[8] = HI
         else:
-            pilot.ch[7] = LO
+            pilot.ch[5] = LO            # offboard switch off: PX4 returns to ch7's Altitude
         flip = (time.time(), what, round(pilot.height(), 2))
 
     try:

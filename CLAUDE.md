@@ -109,10 +109,14 @@ display here. Use the agent for anything that must work, and USB for parameter w
 
 ## Safety architecture, in order of authority
 
-1. **The RC transmitter.** Mode switch on channel 7 (-100 Altitude, centre **Offboard --
-   bench only**, +100 Position; changed 14 Oct 2026), kill switch on channel 8 (right
-   bumper). Reaches the flight controller with none of our software in
-   the path. Nothing below is a substitute.
+1. **The RC transmitter.** Since 3 Nov 2026 on ARTEX113: **offboard switch on channel 5**
+   (`RC_MAP_OFFB_SW` 5, +100 = Offboard); **mode switch on channel 7** (-100 Stabilized,
+   centre Altitude, +100 Position: `COM_FLTMODE1/4/6` = 8/1/2); kill switch on channel 8 (right
+   bumper). Taking over = **ch5 off**, which returns to ch7's mode, so keep ch7 at centre
+   (Altitude) while the agent flies. Stabilized is direct throttle: a takeover into it with the
+   stick centred is ~50 % thrust against a 0.42 hover, and it climbs. (14 Oct–3 Nov: ch7 -100
+   Altitude, centre Offboard, +100 Position.) Reaches the flight controller with none of our
+   software in the path. Nothing below is a substitute.
 2. **The guard on the companion** (`safety_rules.py`): WARN → HOLD → LAND → DISARM, on a
    severity-weighted error rate over a sliding minute, battery, tilt, telemetry gap and
    estimator health. Climb-only — recovery is a human decision. **It does not disarm an
@@ -124,8 +128,9 @@ display here. Use the agent for anything that must work, and USB for parameter w
    pilot's: arm switch (channel 6, proven 14 Oct: disarmed an agent-armed aircraft in
    Offboard) or kill switch (channel 8). The arm switch cannot START arming in Offboard.
    **T0** (`docs/takeover-ladder-plan.md`) proves the handset alone can arm, disarm and kill the
-   aircraft, as the first test of every session. To arm from the handset: ch7 -100, kill off,
-   throttle at or below centre. The handset reaches PX4 as MAVLink RC overrides from the ELRS
+   aircraft, as the first test of every session. To arm from the handset: ch5 off, ch7 centre
+   (Altitude) with the throttle at or below centre, or ch7 -100 (Stabilized) with it at the
+   bottom; kill off; and a GCS heartbeat present (`NAV_DLL_ACT` 3). The handset reaches PX4 as MAVLink RC overrides from the ELRS
    receiver on TELEM1. **Keep `RC_CRSF_PRT_CFG` and `RC_SBUS_PRT_CFG` at 0.** The vendor set both to
    the empty RC port, and a dead CRSF input then took `input_rc` instance 0, the only one PX4 reads,
    whenever the handset was off at boot. The handset was then ignored until a reboot. Set to 0 on
@@ -190,14 +195,15 @@ break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knoc
 - **Runs sometimes start with a 15-20 s "No connection to the ground control station"
   gap** (seen in both of the last two B runs, absent in run A), delaying arming from ~7 s to
   ~27 s. Possibly the short-lived pre-check connections I make before a run; untested.
-- **ESCs beep from battery insertion when the aircraft boots in Offboard (ch7 centre)**, on
+- **ESCs beep from battery insertion when the aircraft boots in Offboard** (ch7 centre until
+  3 Nov 2026; ch5 on since; untested whether ch5 at boot does the same), on
   both aircraft. Measured 15 Oct 2026: no motor command is published after the first 0.5 s
   of boot; flipping ch7 to Position and back produces a command burst and the beeping stops
   for good. Cause is a reading, not proven. Never arm with the ESCs beeping. Booting with ch7
   at -100 gives quiet ESCs (operator, both aircraft). See history.md.
-- **Channel 7 centre is Offboard**, and the agent's offboard stream is zero thrust. With
-  the agent streaming, centre in flight is a fall; the agent refuses to resume after a
-  takeover. PX4 does NOT deny Offboard when nothing streams (measured: nav mode Offboard,
+- **The offboard switch (ch5 on; ch7 centre before 3 Nov) hands back to the agent**, and the
+  agent's offboard stream is zero thrust. With the agent streaming, ch5 on in flight after a
+  takeover is a fall; the agent refuses to resume after a takeover. PX4 does NOT deny Offboard when nothing streams (measured: nav mode Offboard,
   no failsafe, disarmed). Armed, the offboard-loss failsafe acts after 1 s
   (`COM_OBL_RC_ACT=0`, Position). What it does indoors, where Position is unavailable, is
   unobserved.

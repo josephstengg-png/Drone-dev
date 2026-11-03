@@ -16,17 +16,27 @@ G = 9.81
 
 # ---- pilot or link? -------------------------------------------------------------------
 
-def test_switch_off_centre_is_the_pilot():
-    assert sr.classify_mode_exit([1500, 1010]) == "pilot_switch"
-    assert sr.classify_mode_exit([1990]) == "pilot_switch"
+# Handset since 3 Nov 2026: ch5 +100 = OFFBOARD; ch7 -100 Stabilized / centre Altitude / +100 Position.
+
+def test_dropping_the_offboard_switch_is_the_pilot():
+    assert sr.classify_mode_exit([1990, 1010], 1500, [1500]) == "pilot_switch"
+    assert sr.classify_mode_exit([1010], None, []) == "pilot_switch"
 
 
-def test_switch_still_centred_is_the_link():
-    assert sr.classify_mode_exit([1500, 1495, 1503]) == "link_loss"
+def test_throwing_the_mode_switch_is_the_pilot_too():
+    assert sr.classify_mode_exit([1990], 1500, [1500, 1990]) == "pilot_switch"
+    assert sr.classify_mode_exit([1990], 1500, [1010]) == "pilot_switch"
+
+
+def test_both_switches_where_they_were_is_the_link():
+    assert sr.classify_mode_exit([1990, 1985], 1500, [1500, 1495, 1503]) == "link_loss"
+    # ch7 centre is Altitude now, a perfectly normal place for it to sit -- not a throw
+    assert sr.classify_mode_exit([1990], 1500, [1500]) == "link_loss"
 
 
 def test_no_reading_is_unknown_not_a_guess():
-    assert sr.classify_mode_exit([]) == "unknown"
+    assert sr.classify_mode_exit([], None, []) == "unknown"
+    assert sr.classify_mode_exit([], 1500, []) == "unknown"
 
 
 class FakeMav:
@@ -56,8 +66,8 @@ def _hb(mode):
     return _msg("HEARTBEAT", type=2, base_mode=128, custom_mode=mode << 16)
 
 
-def _rc(ch7=1500, ch8=1000, thr=1500):
-    return _msg("RC_CHANNELS", chan3_raw=thr, chan7_raw=ch7, chan8_raw=ch8)
+def _rc(ch5=2000, ch7=1500, ch8=1000, thr=1500):
+    return _msg("RC_CHANNELS", chan3_raw=thr, chan5_raw=ch5, chan7_raw=ch7, chan8_raw=ch8)
 
 
 def _guard(tmp_path, monkeypatch):
@@ -84,11 +94,21 @@ def test_guard_calls_a_switch_flip_a_pilot_takeover_at_once(tmp_path, monkeypatc
     g.observe(_hb(2))                     # -> ALTCTL
     assert g.pilot_has_it and g.stop_streaming
     clock.t += 0.2
-    g.observe(_rc(ch7=1000))
+    g.observe(_rc(ch5=1000))              # offboard switch off; ch7 stays on Altitude
     g.check()
     assert g.takeover_source == "pilot_switch"
     assert _classified(events) == ["pilot_switch"]
     assert conn.mav.sent == []            # hands off: nothing sent
+
+
+def test_guard_calls_a_mode_switch_throw_a_pilot_takeover(tmp_path, monkeypatch):
+    g, clock, events, conn = _guard(tmp_path, monkeypatch)
+    clock.t += 1
+    g.observe(_hb(3))                     # -> POSCTL, ch5 still on
+    clock.t += 0.2
+    g.observe(_rc(ch7=2000))
+    g.check()
+    assert g.takeover_source == "pilot_switch"
 
 
 def test_guard_calls_a_mode_drop_with_the_switch_centred_a_lost_link(tmp_path, monkeypatch):
@@ -112,10 +132,10 @@ def test_a_late_switch_reading_still_counts_as_the_pilot(tmp_path, monkeypatch):
     clock.t += 1
     g.observe(_hb(2))
     clock.t += 0.4
-    g.observe(_rc(ch7=1500))              # sampled before the flip, delivered after
+    g.observe(_rc(ch5=2000))              # sampled before the flip, delivered after
     g.check()
     clock.t += 0.5
-    g.observe(_rc(ch7=1000))
+    g.observe(_rc(ch5=1000))
     g.check()
     assert g.takeover_source == "pilot_switch"
 
