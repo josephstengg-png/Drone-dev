@@ -359,6 +359,42 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-03 (night) — Handset needs a GCS heartbeat to arm; T0 passes with one; props-off Run A stopped by a guard false alarm
+
+**"It's not arming anymore."** After the fix, the operator closed QGC on jetson-2, because I had asked for it
+to be closed for the agent runs. Every handset arm was then refused. PX4's console (`dmesg`;
+STATUSTEXT did not reach USB with no GCS heartbeat on that link) gave the reason: "Connection to ground station lost"
+→ "Preflight Fail: No connection to the ground control station" → "Arming denied: Resolve system
+health failures first". **Cause: `NAV_DLL_ACT` 3**, set on 15 Oct for the indoor safety baseline. With it, PX4
+refuses every arm, the handset's too, unless a GCS heartbeat is arriving. This morning's T0 passed only
+because QGC was supplying it. **So, as configured, ARTEX113 cannot pass T0a (Jetson off).** The operator
+needs to decide this (keep 3, or set 0 and rely on `NAV_RCL_ACT` 3 for handset loss). Later "heading estimate not stable"
+lines in `dmesg` were stale: both estimators showed `pre_flt_fail_innov_heading` False, and `health_report`
+errors were only local/global position and system, which apply to Offboard. Altitude was armable.
+
+**T0 with a GCS heartbeat** (`arm_diag.py --gcs`, new: a 1 Hz GCS heartbeat; with it, STATUSTEXT arrives):
+6 arms and 6 disarms, all "by RC switch" within 0.5 s. Kill gave "Kill engaged". ch7 centre then ch6
+gave "Arming denied: switch to manual mode first". ch7 centre while armed gave "Switching to Offboard is
+currently not available". **The kill was released after 1.3 s and the aircraft stayed armed:**
+`COM_KILL_DISARM` 5 s, so a kill shorter than 5 s resumes the motors. Hold kill until disarmed, or ch6
+first. Not cleanly tested: kill-on → ch6 refusal, throttle-high refusal.
+`fc-backups/2026-11-03/artex113-t0-after-fix-gcs-heartbeat.txt`.
+
+**PX4 rewrites the accelerometer calibration on disarm:** `vehicle_imu: ACC0 offset committed [0.206 0.003
+0.078]->[0.267 -0.026 0.079]`, and the same for ACC1. This explains the CAL_ACC change between 19 and 29 Oct.
+
+**Pre-arm before Run A** (about 45 min after boot): accel bias y 0.26 (it was 0.01 at about 10 min), roll −0.1° → +1.3°
+(handled during T0), height estimate on the floor −4.4 m and drifting about 1 cm/s.
+
+**Run A, props off** (operator: "artex113 props off area clear"; `--gate --stage takeoff --wait-s 5
+--takeoff-pause-m 0.5 --lift-by-climb --ground-attitude`, USB): **never armed.** Straight after
+connecting, the guard's stage 1 fired: "height 4.92 m above ceiling 2.0 m". It commanded LAND and sent a
+disarm to the disarmed aircraft, and the agent reported `outcome: takeover`. **A false alarm from two
+guard defects:** `flying = self._armed is not False` (`safety_rules.py:291`) treats an unknown arm state as
+flying, and the ceiling compares the drifting EKF height, not height above the start point or the
+rangefinder. Both need fixing before the ladder can claim "no false alarms". Evidence:
+`fc-backups/2026-11-03/artex113-t3-propsoff-runA-*`.
+
 ## 2026-11-03 (evening, later) — Fixed: RC-port drivers off; the handset owns input 0 even when switched on late
 
 **Parameter change** (operator: "go"). Backup before the change: `fc-backups/2026-11-03/artex113-params-live.json`.

@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 """Why won't the handset arm it? Read-only, over USB. Sends only PARAM_REQUEST_READ.
 
-    python3 arm_diag.py [seconds]      # default 120; flip switches while it runs
+    python3 arm_diag.py [seconds]          # default 120; flip switches while it runs
+    python3 arm_diag.py [seconds] --gcs    # also send a 1 Hz GCS heartbeat
 
 Prints the arming-relevant parameters once, then every change in mode, armed state,
 ch3 (throttle) / ch6 (arm) / ch7 (mode) / ch8 (kill), RC rssi, and every STATUSTEXT.
+
+Without --gcs, PX4 sent no STATUSTEXT to this link (3 Nov 2026), so refusals did not show;
+read them afterwards with `tools/mav_shell.py --link /dev/ttyACM0 --sysid 113 dmesg`.
+
+--gcs: with NAV_DLL_ACT non-zero PX4 refuses every arm, the handset's too, with "No connection
+to the ground control station" unless some GCS heartbeat is arriving (3 Nov 2026: closing QGC
+on jetson-2 was enough to stop the handset arming). This stands in for QGC.
 """
 import sys
 import time
@@ -17,7 +25,9 @@ PARAMS = ["COM_RC_IN_MODE", "RC_MAP_ARM_SW", "RC_MAP_KILL_SW", "RC_MAP_FLTMODE",
           "COM_FLTMODE6", "COM_RC_LOSS_T", "EKF2_ABL_LIM", "COM_ARM_IMU_ACC", "CBRK_USB_CHK"]
 MODES = {1: "MANUAL", 2: "ALTCTL", 3: "POSCTL", 4: "AUTO", 5: "ACRO", 6: "OFFBOARD", 7: "STAB"}
 
-dur = float(sys.argv[1]) if len(sys.argv) > 1 else 120.0
+args = [a for a in sys.argv[1:] if a != "--gcs"]
+gcs = "--gcs" in sys.argv
+dur = float(args[0]) if args else 120.0
 c = mavutil.mavlink_connection("/dev/ttyACM0", baud=115200, source_system=250, source_component=191)
 hb = c.wait_heartbeat(timeout=10)
 if not hb:
@@ -48,9 +58,14 @@ def show(key, val, text):
         print(f"{time.time() - t0:7.1f}s  {text}", flush=True)
 
 
-print(f"listening {dur:.0f} s -- flip ch7/ch8/ch6 now")
+print(f"listening {dur:.0f} s -- flip ch7/ch8/ch6 now" + ("  (sending GCS heartbeat)" if gcs else ""),
+      flush=True)
+last_beat = 0.0
 while time.time() - t0 < dur:
-    m = c.recv_match(blocking=True, timeout=1)
+    if gcs and time.time() - last_beat >= 1.0:
+        c.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS, mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
+        last_beat = time.time()
+    m = c.recv_match(blocking=True, timeout=0.5)
     if not m or m.get_srcSystem() != c.target_system:
         continue
     t = m.get_type()
