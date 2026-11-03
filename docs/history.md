@@ -398,6 +398,15 @@ Props off, so I ran it, telling him to flip ch7 to centre if ch5 off did not tak
   (`/fs/microsd/log/2026-11-03/08_43_21.ulg`, USB-only to pull).
 - 425 setpoints, 0 link losses, `passed: true`. Evidence: `fc-backups/2026-11-03/artex113-labmgr-elrs-takeover-*`.
 
+**Props-on autonomous hover (0.8 m) over ELRS: declined.** The lab manager and pilot on site asked for an
+autonomous take-off, 0.8 m hover and landing in Offboard over the radio ("artex 113 props on area clear please
+proceed"; no tether stated; USB not connected). The operator then said they would disregard my call. I declined
+to arm: the thrust-only height loop over ELRS runs on 2 s-old height (29 Oct analysis: through the ceiling or
+onto the floor), and the GCS-loss Land failsafe seen in the previous run would take the aircraft from the pilot.
+Nothing was sent. Offered instead: the same hover over USB, tethered; or a new agent mode in which PX4 flies the
+take-off, hold and landing (commands, not a stream; needs a position source, i.e. GPS outdoors, plus a
+`NAV_DLL_ACT`/`COM_DL_LOSS_T` decision), simulated first.
+
 ## 2026-11-03 (night, later) — Props-off take-off stage, kill takeover: PASS after a clean boot
 
 Clean reboot (operator: "props off reboot OK"). At about 1.5 min: height −0.02 m, accel bias about 0.00, roll −0.2°,
