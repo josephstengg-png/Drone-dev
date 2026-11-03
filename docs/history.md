@@ -359,6 +359,28 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-03 (late) — New handset layout: ch5 offboard switch; ch7 Stabilized / Altitude / Position
+
+The kit was moved to a new site. Link re-checked: preflight GO, backpack 0 % loss, RF 898/0 drops. jetson-2 had
+rebooted, so its clock was set from the workstation (`sudo -n date`). GPS here: 0 satellites. QGC was not running.
+
+**Operator's new layout:** ch5 +100 = Offboard; ch7 +100 Position, centre Altitude, −100 Stabilized.
+- **On the aircraft** (read over ELRS, `fc-backups/2026-11-03/modeswitch_params.py`): `RC_MAP_OFFB_SW` 5,
+  `COM_FLTMODE1/4/6` = 8 (Stabilized) / 1 (Altitude) / 2 (Position), `RC_OFFB_TH` 0.75. **These were already
+  set when read, so nothing was written.** This morning's dump (`artex113-params-live.json`) had 0 and 1/7/2.
+  `rc-check`: "the RC switch can take this aircraft".
+- PX4 1.16 `ManualControl.cpp:221-228`: ch5 on asks for OFFBOARD; ch5 off runs `evaluateModeSlot`, back to
+  ch7's mode. A ch7 throw also changes mode while ch5 is on.
+- **Agent** (847ab39, 315 tests, agent + guard + sim harness deployed): the takeover classifier used "ch7 off
+  centre = pilot", which under the new layout (ch7 centre = Altitude) would have called every ch5 takeover a
+  lost link. It now records ch5 (`--offboard-chan 5`) as well as ch7. A dropped ch5 or a ch7 throw of more
+  than 150 µs is the pilot; both unmoved is the link. `rc-check` now notes the offboard switch and warns that
+  Stabilized is direct throttle (stick centred is about 50 % against a 0.42 hover, so it climbs).
+- **Sim harness** (`sim/takeover_tests.py`): ch5 high, ch7 centre; the mode-switch takeover is ch5 off.
+  Not yet re-run in SITL.
+- **Not yet verified on the aircraft:** that ch5 +100 actually selects Offboard and ch5 off returns to
+  Altitude, and the three ch7 positions. Needs a switch walk with a listener, props off.
+
 ## 2026-11-03 (night, later) — Props-off take-off stage, kill takeover: PASS after a clean boot
 
 Clean reboot (operator: "props off reboot OK"). At about 1.5 min: height −0.02 m, accel bias about 0.00, roll −0.2°,
