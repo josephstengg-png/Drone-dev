@@ -841,6 +841,10 @@ class Guard:
         # Estimator z at the flying verb's height zero, for the fallback below the rangefinder's
         # 0.4 m: the EKF origin is set at boot and drifts, so raw -z is not height above the floor.
         self.z0: float | None = None
+        # offboard-flight sets this: until its zero is taken, the estimator is not a height at all.
+        # 3 Nov 2026: 45 min after boot raw -z read 4.92 m on the floor, and the ceiling rule
+        # commanded LAND the moment the agent connected (props-off Run A, never armed).
+        self.zero_required = False
         # Takeover classification (29 Oct 2026): which way the aircraft left OFFBOARD.
         self.mode_chan = getattr(args, "mode_chan", 7) or 7
         self.kill_chan = getattr(args, "kill_chan", 8) or 8
@@ -891,6 +895,8 @@ class Guard:
         elif kind == "LOCAL_POSITION_NED":
             # height from the estimator only while the rangefinder is silent (below 0.4 m)
             fallback = -(msg.z - (self.z0 or 0.0)) if now - self._range_at > 1.0 else None
+            if self.zero_required and self.z0 is None:
+                fallback = None
             self.wd.vertical(fallback, -msg.vz, now)
         elif kind == "RC_CHANNELS":
             if self.stick_override is None:
@@ -1497,6 +1503,7 @@ def cmd_offboard_flight(args) -> int:
     rx = {}
     stdin = dict(pending=[], eof=False)
     guard = Guard(conn, args)
+    guard.zero_required = True
     guard.classify_s = args.classify_s
     tx = dict(sent=0, dropped=0, last=0.0, on=True)
     cur = dict(cmd=oc.Command(oc.IDLE, 0.0, oc.level_quaternion(0.0)), stage=None, t_stage=None)

@@ -272,6 +272,16 @@ def test_guard_height_is_measured_from_the_agents_zero(tmp_path, monkeypatch):
     assert abs(g.wd._height - 1.1) < 1e-9   # 1.1 m above the floor, not 2.0 over the ceiling
 
 
+def test_guard_ignores_the_estimator_until_the_zero_is_taken(tmp_path, monkeypatch):
+    g, clock, events, _ = _guard(tmp_path, monkeypatch)
+    g.zero_required = True                # offboard-flight, before its zero (3 Nov 2026)
+    g.observe(_msg("LOCAL_POSITION_NED", z=-4.92, vz=0.0))
+    assert g.wd._height is None           # 4.92 m of drift on the floor is not a height
+    g.z0 = -4.92
+    g.observe(_msg("LOCAL_POSITION_NED", z=-5.42, vz=0.0))
+    assert abs(g.wd._height - 0.5) < 1e-9
+
+
 def test_the_takeoff_pause_counts_as_takeoff():
     src = (Path(agent.__file__)).read_text()
     assert 'enter("takeoff" if stage == "takeoff" and name == "hold" else name)' in src
