@@ -59,7 +59,7 @@ DEFAULTS = dict(name="", description="", sysid=113, link="radio", flight_type="b
                 height_m=0.8, hold_s=5.0, wait_s=15.0, takeoff_pause_m=0.5,
                 test_descent_rate=0.08, final_descent_rate=0.05,
                 lift_by_climb=True, ground_attitude=True, height_timeout_s=None,
-                battery_hold_pct=None, battery_land_pct=None)
+                battery_hold_pct=None, battery_land_pct=None, setpoint_hz=None)
 FLIGHT_TYPES = ("bench", "tether", "free")
 
 
@@ -89,7 +89,7 @@ def normalise(raw: dict) -> dict:
             p["height_timeout_s"] = float(p["height_timeout_s"])
         except (TypeError, ValueError):
             p["height_timeout_s"] = float("nan")
-    for k in ("battery_hold_pct", "battery_land_pct"):
+    for k in ("battery_hold_pct", "battery_land_pct", "setpoint_hz"):
         if p[k] is not None:
             try:
                 p[k] = float(p[k])
@@ -127,6 +127,8 @@ def validate(p: dict) -> list[str]:
                      f"{' m' if k.endswith('_m') else ' s' if k.endswith('_s') else ' m/s'}.")
     if p["height_timeout_s"] is not None and not (0.3 <= p["height_timeout_s"] <= 10):
         e.append("Height timeout must be 0.3 to 10 s, or blank for automatic.")
+    if p["setpoint_hz"] is not None and not (p["setpoint_hz"] == p["setpoint_hz"] and 1 <= p["setpoint_hz"] <= 50):
+        e.append("Setpoint rate must be 1 to 50 Hz, or blank for the agent's default (20).")
     bh, bl = p["battery_hold_pct"], p["battery_land_pct"]
     for v, label in ((bh, "Guard battery hold"), (bl, "Guard battery land")):
         if v is not None and not (v == v and 0 <= v <= 60):
@@ -219,6 +221,8 @@ def agent_argv(p: dict, trace: str) -> list[str]:
     a = ["python3", "tools/drone_agent.py", "offboard-flight", "--link", ac[p["link"]],
          "--expect-sysid", str(p["sysid"]), "--real-aircraft", "--gate", "--stage", p["stage"],
          "--wait-s", f"{p['wait_s']:g}", "--gate-timeout-s", "150"]
+    if p["setpoint_hz"] is not None:
+        a += ["--setpoint-hz", f"{p['setpoint_hz']:g}"]
     if flies:
         a += ["--height", f"{p['height_m']:g}", "--hold-s", f"{p['hold_s']:g}",
               "--takeoff-pause-m", f"{p['takeoff_pause_m']:g}",

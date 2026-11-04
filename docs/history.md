@@ -359,6 +359,30 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (afternoon, later) — GUI run 131928: "did not arm", then the aircraft armed after the agent had gone
+
+Operator's live run, props off, bench / radio / until stage arm, `runs/20261104-131928.json`. The GUI reported "vehicle did not
+arm"; **the aircraft armed right after the run ended.** It is disarmed now (read over ELRS: armed False, mode Offboard,
+ch5 2000, ch7 1000).
+- **Timeline** (seconds from the run start): connected 0.3; READY 14.5 (the 14 s is the agent waiting for height and
+  OFFBOARD over the radio); ARM sent 17.4; "stage: arm" 17.6; "Connection to ground station lost" 29.2, "Preflight Fail:
+  No connection to the ground control station", regained 29.8; the agent's 20 s arm window ended and it exited 37.9 with
+  "vehicle did not arm". The agent re-sends ARM every 3 s, so about 7 commands went out.
+- **What is proven:** the agent gave up with ARM commands possibly still in flight, and on that path it **sent nothing**, so a late
+  ARM armed an aircraft that nobody was supervising. **What is a hypothesis:** why it was so late. The brief GCS-heartbeat
+  loss mid-window says the uplink was starved; the agent offers 20 setpoints/s into a link that delivers 5 to 7 (29 Oct),
+  so ARM and the heartbeats may queue behind them. Earlier radio arms took 9.5 to 13 s. Not measured; the log on the SD card
+  (USB only) would show when PX4 received the ARM.
+- **Fix** (`drone_agent.py`, `withdraw_arm`, deployed to jetson-2 with the guard and controller, md5-verified): when the arm
+  window ends, the agent sends DISARM every second for 10 s behind any queued ARM, keeps listening, and reports
+  `armed_late`. If it did arm late the normal armed-exit handling takes it from there. It never forces a disarm (no kill).
+  The GUI result card now says to check the aircraft and whether it armed late. `cmd_offboard_arm` (the pair test) has the
+  same arm-loop give-up and was not changed.
+- **A/B knob added:** `setpoint_hz` is now a profile field and `--setpoint-hz` reaches the agent from the GUI (blank = 20). The
+  untested idea: 5 Hz over the radio for the arm stage, to see whether the arm becomes faster and steadier. 5 Hz oscillated
+  the height loop in SITL (29 Oct), so it is for stages that do not fly.
+- Tests: 362 pass (4 new). Not flown, nothing armed by me.
+
 ## 2026-11-04 (afternoon) — Endurance hover: 2.0 m, holds past 30 min, battery log; first live GUI run found
 
 The operator asked for the code to allow a hover up to 2 m held for more than 30 minutes, to measure ARTEX113's endurance

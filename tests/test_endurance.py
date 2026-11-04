@@ -144,3 +144,46 @@ def test_a_long_deep_battery_hover_lists_what_is_being_accepted():
 def test_the_chart_covers_a_forty_minute_hold():
     tl = core.timeline(prof())
     assert tl["total_s"] > 2400 and max(h for _, h in tl["points"]) == 2.0
+
+
+# ---- a late ARM must not be left behind (4 Nov 2026) ----
+
+def test_a_late_arm_is_met_with_disarm_and_reported():
+    state = dict(armed=False)
+    sent = []
+
+    def pump(_s):
+        if len(sent) == 2:           # the ARM that was queued in the radio finally lands
+            state["armed"] = True
+        elif len(sent) == 4:         # and the DISARM sent behind it lands after
+            state["armed"] = False
+
+    r = agent.withdraw_arm(lambda: sent.append("DISARM"), pump, state, seconds=30)
+    assert r == dict(armed_late=True, armed_now=False) and len(sent) >= 4
+
+
+def test_a_quiet_link_sends_disarm_for_the_whole_window_and_reports_not_late(monkeypatch):
+    clock = [0.0]
+    monkeypatch.setattr(agent.time, "time", lambda: clock[0])
+    sent = []
+
+    def pump(s):
+        clock[0] += s
+
+    r = agent.withdraw_arm(lambda: sent.append(1), pump, dict(armed=False), seconds=10)
+    assert r == dict(armed_late=False, armed_now=False) and 9 <= len(sent) <= 11
+
+
+def test_the_agent_withdraws_before_giving_up_and_never_forces():
+    src = Path(agent.__file__).read_text()
+    assert "withdraw_arm(lambda: conn.mav.command_long_send(conn.target_system, 1," in src
+    assert "21196" not in src.split("def withdraw_arm")[1].split("def do_disarm")[0]    # no force-disarm
+
+
+def test_setpoint_rate_is_a_profile_field_that_reaches_the_command():
+    p = core.normalise(dict(name="Rate test", flight_type="bench", link="radio", stage="arm", setpoint_hz=5))
+    assert core.validate(p) == []
+    a = core.agent_argv(p, "/tmp/t.csv")
+    assert a[a.index("--setpoint-hz") + 1] == "5"
+    assert "--setpoint-hz" not in core.agent_argv(core.normalise(dict(name="x1", stage="arm")), "/tmp/t.csv")
+    assert core.validate(core.normalise(dict(name="x1", setpoint_hz=80)))

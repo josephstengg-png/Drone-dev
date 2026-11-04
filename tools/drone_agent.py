@@ -690,6 +690,23 @@ def do_arm(conn, at: float | None = None) -> dict:
     return dict(armed=False, error="vehicle did not arm" + (f" ({reason})" if reason else ""))
 
 
+def withdraw_arm(send_disarm, pump, state, seconds: float = 10.0) -> dict:
+    """The arm loop gave up -- but its ARM commands may still be queued in a slow radio link (4 Nov 2026: ARM sent at
+    +17 s, the agent gave up at +38 s, and the aircraft armed after the agent had exited, unsupervised). Send DISARM
+    behind them, in order, and keep listening, so a late arm is seen and undone rather than left behind.
+
+    Returns armed_late (an armed heartbeat showed up after giving up) and armed_now. If armed_now is still true the
+    caller's normal armed-exit handling takes over; this never forces a disarm (no kill)."""
+    end, late = time.time() + seconds, False
+    while time.time() < end:
+        send_disarm()
+        pump(1.0)
+        late = late or bool(state["armed"])
+        if late and not state["armed"]:
+            break
+    return dict(armed_late=late, armed_now=bool(state["armed"]))
+
+
 def do_disarm(conn) -> dict:
     """Disarm and wait to SEE the disarmed heartbeat."""
     deadline, last_try = time.time() + 15, 0.0
@@ -1704,7 +1721,12 @@ def cmd_offboard_flight(args) -> int:
             result["outcome"] = "takeover"
             return 0
         if not state["armed"]:
-            result["error"] = "vehicle did not arm"
+            log("[ladder] gave up waiting for the arm; sending DISARM behind any ARM still queued in the link")
+            w = withdraw_arm(lambda: conn.mav.command_long_send(conn.target_system, 1,
+                             mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0, 0, 0, 0, 0, 0, 0, 0), pump, state)
+            result.update(arm_withdrawn=True, armed_late=w["armed_late"])
+            result["error"] = "vehicle did not arm" + (" in time: it armed late, after the agent gave up"
+                                                       if w["armed_late"] else "")
             return 2
         emit(dict(event="armed", slot=args.slot, sysid=conn.target_system,
                   armed_epoch=round(time.time(), 3)))

@@ -130,6 +130,7 @@ pre.cmd{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,M
      <label class="f">Test descent (m/s)<input id="f-tdr" type="number" step="0.01"></label>
      <label class="f">Final descent (m/s)<input id="f-fdr" type="number" step="0.01"></label>
      <label class="f">Height timeout (s, blank = auto)<input id="f-hto" type="number" step="0.5"></label>
+     <label class="f"><span>Setpoint rate (Hz, blank = 20)</span><input id="f-sphz" type="number" step="1"></label>
     </div>
     <div class="row">
      <label class="f"><span>Guard: battery HOLD at (%, blank = 25)</span><input id="f-bhold" type="number" step="1"></label>
@@ -317,7 +318,7 @@ function edLoad(p) {
   $('f-name').value = p.name; $('f-desc').value = p.description; $('f-sysid').value = p.sysid; $('f-stage').value = p.stage;
   ['height_m', 'hold_s', 'wait_s', 'takeoff_pause_m', 'test_descent_rate', 'final_descent_rate'].forEach(k => $(F[k]).value = p[k]);
   $('f-hto').value = p.height_timeout_s == null ? '' : p.height_timeout_s;
-  $('f-bhold').value = p.battery_hold_pct == null ? '' : p.battery_hold_pct; $('f-bland').value = p.battery_land_pct == null ? '' : p.battery_land_pct;
+  $('f-sphz').value = p.setpoint_hz == null ? '' : p.setpoint_hz; $('f-bhold').value = p.battery_hold_pct == null ? '' : p.battery_hold_pct; $('f-bland').value = p.battery_land_pct == null ? '' : p.battery_land_pct;
   $('f-lift').checked = !!p.lift_by_climb; $('f-gatt').checked = !!p.ground_attitude;
   document.querySelectorAll('input[name=f-link]').forEach(i => i.checked = i.value === p.link);
   document.querySelectorAll('input[name=f-type]').forEach(i => i.checked = i.value === p.flight_type);
@@ -328,7 +329,7 @@ function edRead() {
   const num = id => $(id).value === '' ? null : +$(id).value;
   return {name: $('f-name').value, description: $('f-desc').value, sysid: +$('f-sysid').value, stage: $('f-stage').value,
     link: (document.querySelector('input[name=f-link]:checked') || {}).value, flight_type: (document.querySelector('input[name=f-type]:checked') || {}).value,
-    battery_hold_pct: num('f-bhold'), battery_land_pct: num('f-bland'),
+    setpoint_hz: num('f-sphz'), battery_hold_pct: num('f-bhold'), battery_land_pct: num('f-bland'),
     height_m: num('f-height'), hold_s: num('f-hold'), wait_s: num('f-wait'), takeoff_pause_m: num('f-pause'),
     test_descent_rate: num('f-tdr'), final_descent_rate: num('f-fdr'), height_timeout_s: num('f-hto'),
     lift_by_climb: $('f-lift').checked, ground_attitude: $('f-gatt').checked};
@@ -471,6 +472,7 @@ function showResult(s) {
   const r = s.result || {}, ok = r.passed, b = $('resultBox'); b.hidden = false;
   b.innerHTML = `<h2>Result</h2><div class="verdict"><span class="big">${esc(r.outcome || (r.error ? 'did not run' : '?'))}</span><span class="pill ${ok ? 'GO' : 'NOGO'}">${ok ? 'AGENT PASSED' : 'NOT PASSED'}</span></div>
    <dl class="kv"><dt>Takeover</dt><dd>${esc(r.takeover_source || 'none')}${r.takeover_after_s ? ' after ' + esc(r.takeover_after_s) + ' s' : ''}</dd><dt>Setpoints</dt><dd>${r.setpoints ? esc(r.setpoints.sent) + ' sent, ' + esc(r.link_losses) + ' link losses' : '–'}</dd><dt>Max height</dt><dd>${esc(r.max_height_m)}</dd>${r.error ? `<dt>Error</dt><dd class="err">${esc(r.error)}</dd>` : ''}</dl>
+   ${r.error && /did not arm/.test(r.error) ? `<div class="blockbox"><b>Check the aircraft.</b> An ARM command can arrive late over the radio. The agent sent DISARM behind it and listened for ${r.armed_late ? 'a late arm: it DID arm after the agent gave up' : '10 s: it did not arm in that time'}. If the aircraft is armed, disarm with ch6 or hold kill 5 s.</div>` : ''}
    <div class="e">The agent's pass is about the takeover or flight sequence, not that the aircraft is safe to fly. Props off, nothing lifts.</div>
    <div class="bar"><button class="btn solid" id="seeRec" type="button">Open the record</button></div>`;
   $('seeRec').onclick = async () => { go('rec'); await loadRecs(); showRec(s.id); };

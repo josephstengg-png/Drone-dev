@@ -1,0 +1,225 @@
+{
+ "id": "20261104-131928",
+ "started": "2026-11-04 13:19:28",
+ "mode": "live",
+ "profile": {
+  "name": "artex113 GUI test",
+  "description": "Props OFF, to arm only over radio test GUI pipeline",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "arm",
+  "height_m": 0.8,
+  "hold_s": 5.0,
+  "wait_s": 20.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.08,
+  "final_descent_rate": 0.05,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null
+ },
+ "operator": "Joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-04 13:19:27",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage arm --wait-s 20 --gate-timeout-s 150 --trace /tmp/gs_20261104-131928.csv"
+ ],
+ "arm_requested": "2026-11-04 13:19:46",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "arm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": null,
+  "takeover_source": null,
+  "takeover_stage": null,
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "rx_hz": {
+   "RC_CHANNELS": 1.5,
+   "ATTITUDE": 4.5,
+   "HEARTBEAT": 1.0,
+   "LOCAL_POSITION_NED": 0.5
+  },
+  "vehicle_text": [
+   "Connection to ground station lost",
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "GCS connection regained"
+  ],
+  "error": "vehicle did not arm",
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 417,
+   "dropped_sim": 0,
+   "hz": 20.0
+  },
+  "max_height_m": null,
+  "disarmed": true,
+  "passed": false
+ },
+ "finished": "2026-11-04 13:20:07",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793769569.28,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793769569.59,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793769583.81,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 3,
+   "t": 1793769583.81,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 12022.308
+   }
+  },
+  {
+   "n": 4,
+   "t": 1793769583.81,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "arm"
+   }
+  },
+  {
+   "n": 5,
+   "t": 1793769583.81,
+   "kind": "log",
+   "text": "[ladder] READY for test 'arm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 6,
+   "t": 1793769586.66,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 7,
+   "t": 1793769586.85,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": true,
+    "height_m": 0.0,
+    "t_epoch": 12025.343
+   }
+  },
+  {
+   "n": 8,
+   "t": 1793769586.85,
+   "kind": "log",
+   "text": "[ladder] stage: arm <- the stage under test"
+  },
+  {
+   "n": 9,
+   "t": 1793769598.47,
+   "kind": "log",
+   "text": "[vehicle] Connection to ground station lost"
+  },
+  {
+   "n": 10,
+   "t": 1793769598.57,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: No connection to the ground contro"
+  },
+  {
+   "n": 11,
+   "t": 1793769598.57,
+   "kind": "log",
+   "text": "[vehicle] l station"
+  },
+  {
+   "n": 12,
+   "t": 1793769599.08,
+   "kind": "log",
+   "text": "[vehicle] GCS connection regained"
+  },
+  {
+   "n": 13,
+   "t": 1793769607.15,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "arm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": null,
+    "takeover_source": null,
+    "takeover_stage": null,
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "rx_hz": {
+     "RC_CHANNELS": 1.5,
+     "ATTITUDE": 4.5,
+     "HEARTBEAT": 1.0,
+     "LOCAL_POSITION_NED": 0.5
+    },
+    "vehicle_text": [
+     "Connection to ground station lost",
+     "Preflight Fail: No connection to the ground contro",
+     "l station",
+     "GCS connection regained"
+    ],
+    "error": "vehicle did not arm",
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 417,
+     "dropped_sim": 0,
+     "hz": 20.0
+    },
+    "max_height_m": null,
+    "disarmed": true,
+    "passed": false
+   }
+  }
+ ]
+}
