@@ -359,6 +359,21 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (night, last) — after Experiment 2: stale-ARM fixes in the agent, Experiment 3 prepared, flight logs waiting for the USB cable
+
+- **Agent** (`drone_agent.py`, deployed with guard and controller, md5-verified, 385 tests):
+  - ARM retry is **8 s over a radio** (was 3 s; USB and SITL keep 3 s), `arm_retry_s`: a 3 s retry queued copies when round trips exceeded 3 s.
+  - The result now carries `arm_commands_sent` and `arm_retry_s`.
+  - **Stale-ARM guard** (`stale_arm_guard`): for 20 s after the aircraft has been disarmed under this agent, if it arms again and PX4 says **"Armed by external command"** the agent
+    sends DISARM; **"Armed by RC switch" (the pilot) is never fought**, a lost message or a quiet link means no action, and it never forces a disarm. Wrapped so a link failure cannot
+    cost the result. Result field `stale_arm`. Every run now ends about 20 s later because of the watch.
+  - The GUI result card shows both.
+- **Experiment 3 prepared** (`docs/experiments/2026-11-04-radio-uplink.md`, profiles `EXP3-A/B/C`: bench, radio, arm stage, 60 s window, hands off, 3 / 2 / 20 Hz; 12 runs in the
+  order `B A C C A A C B B C A B`; `tools/experiment_report.py exp3` reports survived or Offboard lost, with Fisher exact tests). It asks whether PX4 stays in Offboard during an armed
+  hold at each rate. **Not run: it needs the operator to arm, props off.**
+- **PX4 flight logs from Experiments 2 and the earlier runs**: not pulled. Needs the USB cable (`/dev/ttyACM0` absent on jetson-2 at the time); then
+  `pull_fc_logs.py --list` and the logs for 4 Nov. Pull them only with no run active.
+
 ## 2026-11-04 (night, later) — Experiment 2: the ARM arrives faster at 3 Hz than at 20 Hz (supported, n = 5 per arm)
 
 Protocol `docs/experiments/2026-11-04-radio-uplink.md`; analysis `python3 tools/experiment_report.py exp2`. Operator-run in the GUI, props OFF, bench / radio / arm

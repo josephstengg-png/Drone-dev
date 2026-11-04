@@ -742,6 +742,38 @@ def height_feed_ready(stamps: list[float], now: float, timeout_s: float, window_
     return (ok and len(recent) >= window_s * min_hz), worst, len(recent)
 
 
+ARM_RETRY_RADIO_S = 8.0
+ARM_RETRY_WIRED_S = 3.0
+STALE_ARM_WATCH_S = 20.0
+
+
+def arm_retry_s(link: str, sim: bool) -> float:
+    """Seconds between ARM commands. 4 Nov 2026: over ELRS a command can take 5 s or more (15 s lost at 20 Hz), so a 3 s retry
+    queued several copies, and the copies that arrive after the first has armed the aircraft arrive after the PILOT has disarmed
+    it: operator saw a re-arm after the disarm on 3 of 5 runs at 20 Hz, none at 3 Hz. Retry slowly over a radio."""
+    return ARM_RETRY_WIRED_S if (sim or link.startswith(("serial:", "/dev/"))) else ARM_RETRY_RADIO_S
+
+
+def stale_arm_guard(pump, state, texts, send_disarm, seconds: float = STALE_ARM_WATCH_S) -> dict:
+    """After the aircraft has been disarmed, watch for `seconds`. If it arms again and PX4 says "Armed by external command" (a
+    command from a MAVLink link, i.e. a stale ARM that was still queued), send DISARM. "Armed by RC switch" is the pilot and is
+    never fought; if the message was lost on the radio there is no action either. Never forces (no kill).
+    `texts` returns the live list of PX4 status messages."""
+    import re
+    start_n, end = len(texts()), time.time() + seconds
+    seen, sent = False, 0
+    while time.time() < end:
+        pump(1.0)
+        if not state["armed"]:
+            continue
+        who = re.findall(r"(?<!dis)armed by ([a-z ]+)", " ".join(texts()[start_n:]).lower())
+        if who and who[-1].startswith("external command"):
+            seen = True
+            send_disarm()
+            sent += 1
+    return dict(stale_arm_seen=seen, disarms_sent=sent, watched_s=seconds)
+
+
 def withdraw_arm(send_disarm, pump, state, seconds: float = 10.0) -> dict:
     """The arm loop gave up -- but its ARM commands may still be queued in a slow radio link (4 Nov 2026: ARM sent at
     +17 s, the agent gave up at +38 s, and the aircraft armed after the agent had exited, unsupervised). Send DISARM
@@ -1618,6 +1650,7 @@ def cmd_offboard_flight(args) -> int:
     state = dict(armed=False, mode=None, z=None, vz=None, t_lp=None, tilt=None, yaw=None,
                  roll=None, pitch=None, last_hb=None)
     feed_asked = dict(on=False)       # set once we have asked for a faster height feed, so we put the default back
+    armed_ever = dict(on=False)       # set when the aircraft armed under this agent, to start the stale-ARM watch
     rx = {}
     stdin = dict(pending=[], eof=False)
     guard = Guard(conn, args)
@@ -1794,14 +1827,17 @@ def cmd_offboard_flight(args) -> int:
                 return 2
 
         enter("arm")
-        last, deadline = 0.0, time.time() + 20
+        arm_gap = arm_retry_s(args.link, sim)
+        arms_sent, last, deadline = 0, 0.0, time.time() + 20
         while time.time() < deadline and not state["armed"] and not hands_off():
-            if time.time() - last > 3.0:
+            if time.time() - last > arm_gap:
                 conn.mav.command_long_send(conn.target_system, 1,
                                            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
                                            0, 1, 0, 0, 0, 0, 0, 0)
                 last = time.time()
+                arms_sent += 1
             pump(0.5, lambda: state["armed"] or hands_off())
+        result["arm_commands_sent"], result["arm_retry_s"] = arms_sent, arm_gap
         if hands_off():
             result["outcome"] = "takeover"
             return 0
@@ -1813,6 +1849,7 @@ def cmd_offboard_flight(args) -> int:
             result["error"] = "vehicle did not arm" + (" in time: it armed late, after the agent gave up"
                                                        if w["armed_late"] else "")
             return 2
+        armed_ever["on"] = True
         emit(dict(event="armed", slot=args.slot, sysid=conn.target_system,
                   armed_epoch=round(time.time(), 3)))
         # Re-zero on the floor at arming: the estimate drifted 0.24 m between the first zero and
@@ -1940,6 +1977,16 @@ def cmd_offboard_flight(args) -> int:
             result["disarmed"] = confirmed_disarmed(state, time.time())
         else:
             result["disarmed"] = confirmed_disarmed(state, time.time())
+        if armed_ever["on"] and result.get("disarmed") is True:
+            # a copy of the ARM can still be on its way over the radio: do not leave an unsupervised re-arm behind
+            log(f"[safety] disarmed; watching {STALE_ARM_WATCH_S:.0f} s for a stale ARM arriving late")
+            try:
+                result["stale_arm"] = stale_arm_guard(
+                    pump, state, lambda: result.setdefault("vehicle_text", []),
+                    lambda: conn.mav.command_long_send(conn.target_system, 1, mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                                                       0, 0, 0, 0, 0, 0, 0, 0))
+            except Exception as exc:       # a dead link here must never cost the result (29 Oct: trace lost that way)
+                result["stale_arm"] = dict(error=f"{type(exc).__name__}: {exc}")
         result["passed"] = (result["outcome"] == "takeover" and result["takeover_stage"] == stage
                             and result["takeover_source"] in ("pilot_switch", "kill_switch")
                             and not result.get("safety"))

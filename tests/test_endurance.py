@@ -278,3 +278,58 @@ def test_the_agent_applies_the_default_before_anything_transmits():
     src = Path(agent.__file__).read_text()
     assert "args.setpoint_hz = default_setpoint_hz(args.link, sim, args.setpoint_hz)" in src
     assert src.index("args.setpoint_hz = default_setpoint_hz(") < src.index("1.0 / args.setpoint_hz")
+
+
+# ---- stale ARM: retry slowly over a radio, and undo a late one (4 Nov 2026) ----
+
+def test_arm_is_retried_slowly_over_a_radio_and_quickly_on_a_wire():
+    assert agent.arm_retry_s("udpout://127.0.0.1:14540", False) == 8.0
+    assert agent.arm_retry_s("serial:/dev/ttyACM0", False) == 3.0
+    assert agent.arm_retry_s("udpin://:14540", True) == 3.0               # the simulator keeps its quick retry
+
+
+def _watch(monkeypatch, events, seconds=6):
+    """Run stale_arm_guard against a scripted timeline: events[k] = (armed, new_text or None) at the k-th pump."""
+    clock = [0.0]
+    monkeypatch.setattr(agent.time, "time", lambda: clock[0])
+    state, texts, sent, k = dict(armed=False), ["Disarmed by RC switch"], [], [0]
+
+    def pump(s):
+        clock[0] += s
+        if k[0] < len(events):
+            armed, text = events[k[0]]
+            state["armed"] = armed
+            if text:
+                texts.append(text)
+            k[0] += 1
+
+    r = agent.stale_arm_guard(pump, state, lambda: texts, lambda: sent.append(1), seconds=seconds)
+    return r, sent
+
+
+def test_a_late_external_arm_after_the_pilots_disarm_is_answered_with_disarm(monkeypatch):
+    r, sent = _watch(monkeypatch, [(False, None), (True, "Armed by external command"), (True, None), (False, None)])
+    assert r["stale_arm_seen"] and r["disarms_sent"] == 2 and len(sent) == 2
+
+
+def test_the_pilots_own_re_arm_by_switch_is_never_fought(monkeypatch):
+    r, sent = _watch(monkeypatch, [(False, None), (True, "Armed by RC switch"), (True, None)])
+    assert not r["stale_arm_seen"] and sent == []
+
+
+def test_an_arm_whose_message_was_lost_and_a_quiet_link_cause_no_action(monkeypatch):
+    assert _watch(monkeypatch, [(False, None)] * 4)[1] == []
+    assert _watch(monkeypatch, [(True, None), (True, None)])[1] == []      # armed, but no message: do not guess
+
+
+def test_the_disarm_message_itself_is_not_mistaken_for_an_arm(monkeypatch):
+    # "Disarmed by RC switch" contains "armed by": the regex must not match it
+    r, sent = _watch(monkeypatch, [(True, "Disarmed by external command")])
+    assert sent == []
+
+
+def test_the_agent_counts_its_arm_commands_and_guards_after_a_disarm_without_losing_the_result():
+    src = Path(agent.__file__).read_text()
+    assert 'result["arm_commands_sent"], result["arm_retry_s"] = arms_sent, arm_gap' in src
+    assert "if armed_ever[\"on\"] and result.get(\"disarmed\") is True:" in src
+    assert "except Exception as exc:       # a dead link here must never cost the result" in src

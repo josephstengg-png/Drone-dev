@@ -42,3 +42,26 @@ def test_exp2_groups_runs_by_setpoint_rate_and_times_the_arm(tmp_path, capsys):
     assert er.exp2(str(tmp_path)) == 0
     out = capsys.readouterr().out
     assert "20 Hz" in out and "3 Hz" in out and "Mann-Whitney" in out
+
+
+def test_fisher_exact_matches_a_known_table():
+    assert abs(er.fisher_exact(3, 1, 1, 3) - 0.4857142857) < 1e-6          # the textbook tea-tasting table
+    assert er.fisher_exact(4, 0, 0, 4) < 0.05 and abs(er.fisher_exact(2, 2, 2, 2) - 1.0) < 1e-9
+
+
+def test_exp3_separates_survivors_bounces_and_void_runs(tmp_path, capsys):
+    def run(rid, hz, source, outcome, armed=True):
+        feed = [dict(n=0, t=1.0, kind="log", text="[link]")]
+        if armed:
+            feed.append(dict(n=1, t=2.0, kind="event", data=dict(event="armed")))
+        (tmp_path / f"{rid}.json").write_text(json.dumps(dict(id=rid, profile=dict(name=f"EXP3-{hz}", setpoint_hz=hz), feed=feed,
+                                                              result=dict(outcome=outcome, takeover_source=source, takeover_after_s=3.7 if source else None))))
+    for i in range(4):
+        run(f"a{i}", 3, None, "no_takeover")
+    for i in range(4):
+        run(f"b{i}", 20, "link_loss" if i < 3 else None, "takeover" if i < 3 else "no_takeover")
+    run("v", 20, "pilot_switch", "takeover")
+    run("n", 3, None, None, armed=False)
+    assert er.exp3(str(tmp_path)) == 0
+    out = capsys.readouterr().out
+    assert "survived the hold  4" in out and "Offboard lost  3" in out and "void (pilot or kill)" in out and "Fisher exact" in out

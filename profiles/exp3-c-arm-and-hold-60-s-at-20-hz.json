@@ -1,0 +1,20 @@
+{
+ "name": "EXP3-C arm and hold 60 s at 20 Hz",
+ "description": "EXPERIMENT 3, props OFF. After arming, HANDS OFF for the 60 s window. 20 Hz. Do not edit between runs.",
+ "sysid": 113,
+ "link": "radio",
+ "flight_type": "bench",
+ "stage": "arm",
+ "height_m": 0.8,
+ "hold_s": 5.0,
+ "wait_s": 60.0,
+ "takeoff_pause_m": 0.5,
+ "test_descent_rate": 0.08,
+ "final_descent_rate": 0.05,
+ "lift_by_climb": true,
+ "ground_attitude": true,
+ "height_timeout_s": null,
+ "battery_hold_pct": null,
+ "battery_land_pct": null,
+ "setpoint_hz": 20.0
+}

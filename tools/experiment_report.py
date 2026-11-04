@@ -7,6 +7,7 @@
 exp1: command round trip against setpoint rate (tools-free experiment, aircraft disarmed). A command with no ack in 15 s counts as 15 s for
       ranking and as a loss. Each rate is tested against the two pooled idle blocks with a Mann-Whitney U test, and idle A is tested against
       idle B as the control for link drift.
+exp3: the GUI runs named "EXP3..." (arm stage, props off, window 60 s, hands off): does Offboard survive the hold at each setpoint rate?
 exp2: the GUI runs named "EXP2..." (arm stage, props off, setpoint rate 20 vs 3): seconds from ARM sent to "Armed by external command".
 """
 from __future__ import annotations
@@ -118,7 +119,53 @@ def exp2(runs_dir: str = "runs") -> int:
     return 0
 
 
+def fisher_exact(a: int, b: int, c: int, d: int) -> float:
+    """Two-sided Fisher exact p for [[a, b], [c, d]]."""
+    n1, n2, k = a + b, c + d, a + c
+    tot = math.comb(n1 + n2, k)
+    prob = lambda x: math.comb(n1, x) * math.comb(n2, k - x) / tot          # noqa: E731
+    p0 = prob(a)
+    return min(1.0, sum(prob(x) for x in range(max(0, k - n2), min(n1, k) + 1) if prob(x) <= p0 + 1e-12))
+
+
+def exp3(runs_dir: str = "runs") -> int:
+    groups: dict[str, list[dict]] = {}
+    for f in sorted(Path(runs_dir).glob("*.json")):
+        r = json.loads(f.read_text())
+        name = (r.get("profile") or {}).get("name", "")
+        if not name.upper().startswith("EXP3"):
+            continue
+        res, hz = r.get("result") or {}, (r.get("profile") or {}).get("setpoint_hz")
+        feed = r.get("feed") or []
+        armed = any(x["kind"] == "event" and x["data"].get("event") == "armed" for x in feed)
+        fs = sum("Failsafe activated" in x.get("text", "") for x in feed if x["kind"] == "log")
+        src = res.get("takeover_source")
+        kind = ("not armed" if not armed else "bounce" if src == "link_loss" else "void (pilot or kill)" if src
+                else "survived" if res.get("outcome") == "no_takeover" else f"other:{res.get('outcome')}")
+        groups.setdefault(f"{hz:g} Hz" if hz else "?", []).append(dict(run=r["id"], kind=kind, t=res.get("takeover_after_s"), fs=fs))
+    if not groups:
+        print("no runs named EXP3... found in", runs_dir)
+        return 1
+    counts = {}
+    for k, rs in sorted(groups.items(), key=lambda kv: float(kv[0].split()[0]) if kv[0] != "?" else 0):
+        valid = [x for x in rs if x["kind"] in ("survived", "bounce")]
+        surv = sum(x["kind"] == "survived" for x in valid)
+        counts[k] = (surv, len(valid) - surv)
+        print(f"{k:6s} runs {len(rs):2d}  valid {len(valid):2d}  survived the hold {surv:2d}  Offboard lost {len(valid) - surv:2d}"
+              f"  (bounce at {[x['t'] for x in valid if x['kind'] == 'bounce']} s after arming)  'Failsafe activated' per run "
+              f"{statistics.mean(x['fs'] for x in rs):.1f}   other: {[x['kind'] for x in rs if x['kind'] not in ('survived', 'bounce')]}")
+    ks = list(counts)
+    for i in range(len(ks)):
+        for j in range(i + 1, len(ks)):
+            (a, b), (c, d) = counts[ks[i]], counts[ks[j]]
+            if a + b and c + d:
+                print(f"{ks[i]} vs {ks[j]}: Fisher exact p = {fisher_exact(a, b, c, d):.3f}")
+    return 0
+
+
 if __name__ == "__main__":
+    if len(sys.argv) >= 2 and sys.argv[1] == "exp3":
+        raise SystemExit(exp3(sys.argv[2] if len(sys.argv) > 2 else "runs"))
     if len(sys.argv) >= 3 and sys.argv[1] == "exp1":
         raise SystemExit(exp1(sys.argv[2]))
     if len(sys.argv) >= 2 and sys.argv[1] == "exp2":

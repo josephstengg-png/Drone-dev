@@ -33,3 +33,14 @@ run 1 (B, 3 Hz). The run records cannot show it, because the agent exits within 
 the agent re-sends ARM every 3 s until it sees the aircraft armed, so a delayed stream leaves several copies queued in the radio, and the
 later ones arrive after the first has armed it and after the pilot's disarm. **A stale ARM re-arming an aircraft after its pilot disarmed it
 is a hazard with props on.** Nothing in the agent is changed during the experiment (it would confound it); fixes are listed in history.md after.
+
+## Experiment 3: does Offboard survive an armed hold at 3, 2 and 20 Hz? (the operator, props OFF)
+Why: Experiment 2 showed the ARM is quicker at 3 Hz; it does not show PX4 stays in Offboard. At 20 Hz run 142907 (4 Nov) lost Offboard 3.7 s after arming
+(classified `link_loss`). PX4's offboard-loss timeout is 1.0 s, so a slow stream might lose it more often, a fast one clogs the uplink.
+Profiles (bench, radio, **arm stage, window 60 s**): `EXP3-A ... 3 Hz`, `EXP3-B ... 2 Hz`, `EXP3-C ... 20 Hz`. **Order, 12 runs, random and fixed in advance:
+`B A C C A A C B B C A B`.** Per run: ch5 on, ch7 centre, kill off, props OFF; authorise and start as usual; at READY press ARM; then **HANDS OFF for the 60 s window**
+(touch nothing unless something looks wrong). The agent ends the run itself after the window and disarms; if it lost Offboard it stands down (`link_loss`) and you
+disarm with ch6. Outcome: "survived" (60 s in Offboard) or "bounce" (and when). A run where you used a switch is void. Analysis:
+`python3 tools/experiment_report.py exp3`. Prediction: 3 Hz and 2 Hz survive nearly always; 20 Hz loses Offboard in some runs.
+The agent now also retries ARM every 8 s over a radio (was 3 s), counts the ARMs it sent, and for 20 s after a disarm answers a stale "Armed by external
+command" with DISARM: these runs also show whether anything re-arms.
