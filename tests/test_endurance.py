@@ -187,3 +187,26 @@ def test_setpoint_rate_is_a_profile_field_that_reaches_the_command():
     assert a[a.index("--setpoint-hz") + 1] == "5"
     assert "--setpoint-hz" not in core.agent_argv(core.normalise(dict(name="x1", stage="arm")), "/tmp/t.csv")
     assert core.validate(core.normalise(dict(name="x1", setpoint_hz=80)))
+
+
+# ---- the height feed must be able to keep the controller alive (4 Nov 2026) ----
+
+def test_a_radio_height_feed_that_is_slower_than_the_timeout_is_refused():
+    # the 13:54 run: readings every 3.3 s against a 3 s timeout
+    stamps = [0.0, 3.3, 6.6, 9.9]
+    ok, worst = agent.height_feed_check(stamps, 10.0, 3.0)
+    assert not ok and worst == pytest.approx(3.3)
+
+
+def test_a_feed_faster_than_the_timeout_passes_and_the_open_gap_counts():
+    assert agent.height_feed_check([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 9.5, 3.0)[0]
+    ok, worst = agent.height_feed_check([0, 1, 2], 9.0, 3.0)         # then it went quiet
+    assert not ok and worst == pytest.approx(7.0)
+    assert agent.height_feed_check([], 9.0, 3.0) == (False, float("inf"))
+
+
+def test_the_check_runs_before_the_gate_for_real_flight_stages_only():
+    src = Path(agent.__file__).read_text()
+    i, j = src.index("height_feed_check(stamps, time.time(), timeout)"), src.index('emit(dict(event="ready", slot=args.slot, sysid=conn.target_system, stage=stage))')
+    assert i < j                                                    # before READY, so before any ARM
+    assert "if not sim and upto >= oc.STAGES.index(\"takeoff\"):" in src

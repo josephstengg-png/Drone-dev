@@ -1,0 +1,282 @@
+{
+ "id": "20261104-135442",
+ "started": "2026-11-04 13:54:42",
+ "mode": "live",
+ "profile": {
+  "name": "artex113 GUI test",
+  "description": "Props OFF, to arm only over radio test GUI pipeline",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "disarm",
+  "height_m": 1.0,
+  "hold_s": 30.0,
+  "wait_s": 20.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.06,
+  "final_descent_rate": 0.04,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": null
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-04 13:54:39",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage disarm --wait-s 20 --gate-timeout-s 150 --height 1 --hold-s 30 --takeoff-pause-m 0.5 --test-descent-rate 0.06 --final-descent-rate 0.04 --lift-by-climb --ground-attitude --allow-radio-flight --height-timeout-s 3 --trace /tmp/gs_20261104-135442.csv"
+ ],
+ "arm_requested": "2026-11-04 13:55:02",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "disarm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": "controller_abort",
+  "takeover_source": null,
+  "takeover_stage": null,
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "rx_hz": {
+   "ATTITUDE": 2.6,
+   "RC_CHANNELS": 1.0,
+   "HEARTBEAT": 1.0,
+   "LOCAL_POSITION_NED": 0.3
+  },
+  "vehicle_text": [
+   "Armed by external command",
+   "[logger] /fs/microsd/log/2026-11-04/05_55_09.ulg",
+   "Failsafe activated",
+   "Failsafe activated"
+  ],
+  "profile": {
+   "target_height_m": 1.0,
+   "hold_s": 30.0,
+   "descent_rate_ms": 0.3,
+   "final_descent_rate_ms": 0.3
+  },
+  "abort_reason": "height estimate lost",
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 234,
+   "dropped_sim": 0,
+   "hz": 20.0
+  },
+  "max_height_m": 0.0,
+  "disarmed": true,
+  "passed": false
+ },
+ "finished": "2026-11-04 13:55:17",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793771683.27,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793771683.71,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793771700.49,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 14139.007
+   }
+  },
+  {
+   "n": 3,
+   "t": 1793771700.49,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "disarm"
+   }
+  },
+  {
+   "n": 4,
+   "t": 1793771700.49,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 5,
+   "t": 1793771700.49,
+   "kind": "log",
+   "text": "[ladder] READY for test 'disarm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 6,
+   "t": 1793771702.77,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 7,
+   "t": 1793771702.92,
+   "kind": "log",
+   "text": "[ladder] stage: arm"
+  },
+  {
+   "n": 8,
+   "t": 1793771702.92,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 14141.437
+   }
+  },
+  {
+   "n": 9,
+   "t": 1793771710.94,
+   "kind": "log",
+   "text": "[vehicle] Armed by external command"
+  },
+  {
+   "n": 10,
+   "t": 1793771711.11,
+   "kind": "log",
+   "text": "[vehicle] [logger] /fs/microsd/log/2026-11-04/05_55_09.ulg"
+  },
+  {
+   "n": 11,
+   "t": 1793771711.51,
+   "kind": "event",
+   "data": {
+    "event": "armed",
+    "slot": null,
+    "sysid": 113,
+    "armed_epoch": 14150.033
+   }
+  },
+  {
+   "n": 12,
+   "t": 1793771711.58,
+   "kind": "log",
+   "text": "[ladder] stage: abort"
+  },
+  {
+   "n": 13,
+   "t": 1793771711.58,
+   "kind": "log",
+   "text": "[ladder] controller abort: height estimate lost -> PX4 LAND"
+  },
+  {
+   "n": 14,
+   "t": 1793771711.58,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "abort",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 14150.095
+   }
+  },
+  {
+   "n": 15,
+   "t": 1793771713.43,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 16,
+   "t": 1793771713.43,
+   "kind": "log",
+   "text": "[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)"
+  },
+  {
+   "n": 17,
+   "t": 1793771717.09,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 18,
+   "t": 1793771717.19,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "disarm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": "controller_abort",
+    "takeover_source": null,
+    "takeover_stage": null,
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "rx_hz": {
+     "ATTITUDE": 2.6,
+     "RC_CHANNELS": 1.0,
+     "HEARTBEAT": 1.0,
+     "LOCAL_POSITION_NED": 0.3
+    },
+    "vehicle_text": [
+     "Armed by external command",
+     "[logger] /fs/microsd/log/2026-11-04/05_55_09.ulg",
+     "Failsafe activated",
+     "Failsafe activated"
+    ],
+    "profile": {
+     "target_height_m": 1.0,
+     "hold_s": 30.0,
+     "descent_rate_ms": 0.3,
+     "final_descent_rate_ms": 0.3
+    },
+    "abort_reason": "height estimate lost",
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 234,
+     "dropped_sim": 0,
+     "hz": 20.0
+    },
+    "max_height_m": 0.0,
+    "disarmed": true,
+    "passed": false
+   }
+  }
+ ]
+}

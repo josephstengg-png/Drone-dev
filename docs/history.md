@@ -359,6 +359,25 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (evening) — GUI run 135442: take-off aborted at once, "height estimate lost"
+
+Operator's live run, bench / radio / until stage disarm, height 1 m, hold 30 s, `--allow-radio-flight --height-timeout-s 3`,
+`runs/20261104-135442.json`. READY +17.2 s, ARM sent +19.5, armed +27.7 (8 s over the radio), **controller abort +28.3 s:
+"height estimate lost -> PX4 LAND"**. Trace: one row, phase abort, thrust 0.12 (the minimum): **the motors never spooled and
+nothing lifted.** PX4 then logged "Failsafe activated" twice and disarmed on landing; the aircraft is disarmed.
+- **Cause:** `HeightHold.step` aborts at once if the newest `LOCAL_POSITION_NED` is older than `height_timeout_s`, and on its first
+  step it has no earlier valid reading to lean on. Over ELRS that message arrived at **0.3 Hz in the run (a gap of about 3.3 s),
+  0.45 Hz measured afterwards (9 in 20 s)**, against the GUI's 3 s timeout. The newest reading was older than 3 s, so it aborted.
+  This is the 29 Oct finding showing up as designed; the abort refused to climb blind. **Raising the timeout is not a fix**:
+  it lets the loop spool and climb on readings several seconds old.
+- **Changes** (`drone_agent.py`, deployed with the guard and controller, md5-verified; 366 tests): before READY on a real flight
+  stage the agent now watches the height feed for 10 s and **refuses before arming** if the longest gap exceeds the timeout
+  (`height_feed_check`, result field `height_feed`), instead of arming and then aborting. The GUI result card explains both
+  outcomes. No other behaviour changed.
+- **What would make a radio take-off possible:** height readings several times a second and the aircraft's data on the link
+  prioritised for them (FC stream rates, a parameter change, needs the operator's approval). The 0.35 s command delay and
+  the 29 Oct stability analysis remain, so this is not a recommendation to fly it.
+
 ## 2026-11-04 (afternoon, later still) — GUI showed the old limits: the server had not been restarted
 
 The operator's endurance profile (free flight, radio, 1.5 m, hold 1200 s, window 1500 s) showed three red errors: height

@@ -690,6 +690,18 @@ def do_arm(conn, at: float | None = None) -> dict:
     return dict(armed=False, error="vehicle did not arm" + (f" ({reason})" if reason else ""))
 
 
+def height_feed_check(stamps: list[float], now: float, timeout_s: float) -> tuple[bool, float]:
+    """Can the controller be fed? (ok, longest gap in s) from the arrival times of LOCAL_POSITION_NED, counting the
+    gap still open at `now`. The controller aborts the moment a reading is older than its timeout, so a feed whose
+    longest gap exceeds the timeout cannot fly. 4 Nov 2026: over ELRS the readings came every 2 to 3.3 s against a
+    3 s timeout, and the agent armed, then aborted 0.6 s later with "height estimate lost"."""
+    pts = sorted(stamps)
+    if not pts:
+        return False, float("inf")
+    worst = max([b - a for a, b in zip(pts, pts[1:])] + [now - pts[-1]])
+    return worst < timeout_s, worst
+
+
 def withdraw_arm(send_disarm, pump, state, seconds: float = 10.0) -> dict:
     """The arm loop gave up -- but its ARM commands may still be queued in a slow radio link (4 Nov 2026: ARM sent at
     +17 s, the agent gave up at +38 s, and the aircraft armed after the agent had exited, unsupervised). Send DISARM
@@ -1691,6 +1703,25 @@ def cmd_offboard_flight(args) -> int:
             took = pump(args.wait_s, hands_off)
             result["outcome"] = "takeover" if took else "no_takeover"
             return 0
+
+        if not sim and upto >= oc.STAGES.index("takeoff"):
+            # Refuse BEFORE arming if the height feed cannot keep the controller alive (see height_feed_check).
+            timeout = args.height_timeout_s or 1.0
+            log(f"[ladder] watching the height feed for 10 s (the controller needs a reading every {timeout:g} s)")
+            stamps, end = [], time.time() + 10.0
+            while time.time() < end and not hands_off():
+                pump(0.25)
+                if state["t_lp"] is not None and (not stamps or state["t_lp"] != stamps[-1]):
+                    stamps.append(state["t_lp"])
+            ok, worst = height_feed_check(stamps, time.time(), timeout)
+            result["height_feed"] = dict(readings=len(stamps), longest_gap_s=None if worst == float("inf") else round(worst, 1),
+                                         timeout_s=timeout)
+            if not ok:
+                result["error"] = (f"refusing to arm: height arrives too slowly to fly. Longest gap in 10 s was "
+                                   f"{'no reading at all' if worst == float('inf') else f'{worst:.1f} s'} against a "
+                                   f"{timeout:g} s timeout, so the controller would abort at once. Over the radio this is "
+                                   "expected; use the USB cable")
+                return 2
 
         if args.gate:
             emit(dict(event="ready", slot=args.slot, sysid=conn.target_system, stage=stage))
