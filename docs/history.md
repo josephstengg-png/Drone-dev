@@ -359,6 +359,20 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (evening, later still) — GUI run 142907: first take-off ramp over the radio; classified link loss
+
+Operator's live run, bench / radio / until stage disarm (1 m, hold 30 s), `runs/20261104-142907.json`. **The new pre-arm feed check worked**:
+asked for 10 Hz, passed after 8.1 s with 6 readings in 6 s, longest gap 1.4 s. ARM sent +27.0 s, armed +33.5 (6.5 s). The take-off ramp then ran
+for **3.7 s** (trace: thrust 0.127 to 0.409, height setpoint ramped to 1.0 m, measured height 0.0 as expected with props off).
+- At +37.6 s the agent saw main mode **6 to 2**, and +37.9 s **2 back to 6**; ch5 was on and ch7 unmoved in the RC readings that followed,
+  so it classified **`link_loss`** (the 19 Oct rule: PX4's offboard-loss failsafe changes the mode with the switches where they were) and
+  stood down for good. PX4 then logged "Failsafe activated" at +38.7 and +42.1 (it was no longer being sent setpoints), "Takeoff detected"
+  at +40.7 (the land detector, props off, as before), and the pilot disarmed by RC switch at +46.2. `passed` False, correctly: a link
+  loss is void, not a pass. 403 setpoints, no agent-side link loss.
+- **Not settled from the record:** whether the 6-2-6 was a >1 s setpoint gap (`COM_OF_LOSS_T` 1.0) or a quick ch5 off and on by the pilot.
+  RC_CHANNELS arrives at about 1 Hz and heartbeats in bursts, so a sub-second flip is invisible and the two transitions 0.3 s apart may
+  have been several seconds apart in reality. The ulog (`/fs/microsd/log/2026-11-04/06_29_40.ulg`, USB only) would settle it.
+
 ## 2026-11-04 (evening, later) — the radio height feed can be fixed; my pre-arm check broke the bench test; a corrupted agent file, caught and restored
 
 **What the operator hit.** Bench take-off-stage runs over the radio (props off) were refused at 14:08 and 14:10 with "height arrives too
