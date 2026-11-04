@@ -141,6 +141,15 @@ display here. Use the agent for anything that must work, and USB for parameter w
 `COM_RC_OVERRIDE` is deliberately left at PX4's default 1, so stick movement does **not**
 break OFFBOARD. Taking over is meant to be a deliberate switch throw, not a knocked stick.
 
+## Ground-station GUI (built 4 Nov 2026)
+
+`python3 tools/gs_server.py --demo` (simulated aircraft) or `python3 tools/gs_server.py` (LIVE: the real agent over ssh),
+then http://127.0.0.1:8787. Mission profiles live in `profiles/`, run records in `runs/`. It builds the same
+`drone_agent.py offboard-flight` command we type, stops the agent at READY, and sends `ARM` only after the operator's
+recorded authorisation and a press-and-hold. Never `--allow-kill`; KILL is not a button; the handset stays the override.
+Responsibility is the operator's to accept for risks (listed in `tools/gs_core.py`), never for BLOCKs (invalid profile;
+props-on over the radio without a fresh Preflight GO). LIVE mode has not yet been run against an aircraft.
+
 ## Known-unfinished, so nobody assumes otherwise
 
 **Blocks actual flight**

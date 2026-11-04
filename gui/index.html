@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ground Station</title>
+<style>
+:root{--bg:#eef1f4;--panel:#fff;--ink:#16202a;--mute:#5b6b7a;--line:#d5dce3;--go:#1c7a46;--gob:#dff3e6;--no:#b3261e;--nob:#fbe3e1;
+--stale:#8a5a00;--staleb:#fdf0d2;--idle:#4a5a69;--idleb:#e3e8ed;--abort:#c4121a;--accent:#0b5cab;--accb:#dbeafe;--view:#f7f9fb;--grid:#d9e0e7;--path:#0b5cab;--fence:#b3261e;--trail:#1c7a46;--field:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--panel:#161e26;--ink:#e6edf3;--mute:#93a4b4;--line:#2a3642;--go:#5fd08a;--gob:#12301f;--no:#ff8a80;--nob:#3a1513;
+--stale:#f0c05a;--staleb:#33270a;--idle:#a9b8c6;--idleb:#232d37;--abort:#e5333b;--accent:#7db7ff;--accb:#12294a;--view:#0b1117;--grid:#26323d;--path:#7db7ff;--fence:#ff8a80;--trail:#5fd08a;--field:#0f161d}}
+:root[data-theme="dark"]{--bg:#0e141a;--panel:#161e26;--ink:#e6edf3;--mute:#93a4b4;--line:#2a3642;--go:#5fd08a;--gob:#12301f;--no:#ff8a80;--nob:#3a1513;
+--stale:#f0c05a;--staleb:#33270a;--idle:#a9b8c6;--idleb:#232d37;--abort:#e5333b;--accent:#7db7ff;--accb:#12294a;--view:#0b1117;--grid:#26323d;--path:#7db7ff;--fence:#ff8a80;--trail:#5fd08a;--field:#0f161d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;padding-block:16px;padding-inline:16px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:14px}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1{font-size:18px;margin:0}.sub{color:var(--mute);font-size:13px}
+.badge{font-size:12px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.04em}
+.badge.demo{color:var(--stale);background:var(--staleb)}.badge.live{color:#fff;background:var(--abort)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+.panel h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+.e{color:var(--mute);font-size:12px}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;letter-spacing:.03em}
+.GO{background:var(--gob);color:var(--go)}.NOGO{background:var(--nob);color:var(--no)}.STALE{background:var(--staleb);color:var(--stale)}.NOTRUN{background:var(--idleb);color:var(--idle)}.WAIT{background:var(--accb);color:var(--accent)}
+button,input,select,textarea{font:inherit;color:var(--ink)}
+.btn{border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+.btn.solid{background:var(--accent);color:#fff}.btn.danger{border-color:var(--no);color:var(--no)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.rail{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+@media(max-width:760px){.rail{grid-template-columns:1fr 1fr}}
+.step{text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:8px 10px;cursor:pointer}
+.step .n{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.step .t{font-weight:700}.step .s{font-size:12px;color:var(--mute)}
+.step.cur{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.step.live .n{color:var(--no)}
+.page{display:none}.page.on{display:grid;gap:14px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}
+@media(max-width:980px){.cols{grid-template-columns:1fr}}
+.stack{display:grid;gap:14px;min-width:0}
+table{width:100%;border-collapse:collapse}
+td,th{padding:7px 6px;border-top:1px solid var(--line);text-align:left;vertical-align:top;font-size:14px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);border-top:0}
+tr.pick{cursor:pointer}tr.pick:hover td,tr.pick.on td{background:var(--accb)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:8px 0}
+label.f{display:grid;gap:3px;font-size:12px;color:var(--mute);font-weight:600}
+label.f input,label.f select,label.f textarea{border:1px solid var(--line);background:var(--field);border-radius:6px;padding:6px 8px;font-size:14px;width:100%}
+label.f input:disabled{opacity:.45}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg label{flex:1;padding:6px 8px;cursor:pointer;border-right:1px solid var(--line);font-size:13px;color:var(--ink);text-align:center}
+.seg label:last-child{border-right:0}.seg input{position:absolute;opacity:0}
+.seg label.on{background:var(--accb);color:var(--accent);font-weight:700}
+.seg label:focus-within{outline:3px solid var(--accent);outline-offset:-3px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin:6px 0}.chk input{margin-top:4px;width:18px;height:18px;flex:none}
+.risk{border:1px solid var(--stale);background:var(--staleb);border-radius:8px;padding:9px 12px;margin:8px 0}
+.risk b{color:var(--stale)}.risk .e{color:var(--ink);opacity:.85}
+.blockbox{border:1px solid var(--no);background:var(--nob);border-radius:8px;padding:9px 12px;margin:8px 0}.blockbox b{color:var(--no)}
+.note{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0}.note b{color:var(--mute)}
+.err{color:var(--no);font-size:13px;margin:4px 0}
+canvas{width:100%;height:230px;display:block;background:var(--view);border:1px solid var(--line);border-radius:6px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-top:6px}
+.sw{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.cs{border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--mute)}
+.cs.act{border-color:var(--accent);color:var(--accent);font-weight:700}.cs.ok{border-color:var(--go);color:var(--go);font-weight:700}.cs.bad{border-color:var(--no);color:var(--no);font-weight:700}
+.own{font-weight:800;padding:5px 12px;border-radius:6px;letter-spacing:.04em;display:inline-block}
+.own.NOBODY{background:var(--idleb);color:var(--idle)}.own.COMPUTER{background:var(--accb);color:var(--accent)}.own.PILOT{background:var(--nob);color:var(--no)}
+.arm{position:relative;overflow:hidden;display:block;width:100%;border:0;border-radius:10px;padding:16px 8px;font-weight:800;font-size:17px;letter-spacing:.04em;color:#fff;background:#8a5a00;cursor:pointer;text-align:center;user-select:none;touch-action:none}
+.arm:disabled{background:var(--idleb);color:var(--mute);cursor:not-allowed}
+.arm .fill{position:absolute;inset:0 auto 0 0;width:0;background:rgba(255,255,255,.32)}
+.arm span{position:relative;display:block}.arm .why{font-weight:500;font-size:12px;letter-spacing:0;margin-top:2px}
+.abort{width:100%;border:3px solid #f5c400;background:var(--abort);color:#fff;font-weight:900;padding:12px;border-radius:10px;cursor:pointer;font-size:15px}
+.abort:disabled{opacity:.4;cursor:not-allowed}
+.log{font:12px/1.5 ui-monospace,Menlo,monospace;margin:8px 0 0;padding:0;list-style:none;max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--view)}
+.log li{padding:3px 8px;border-top:1px dashed var(--line);color:var(--mute);overflow-wrap:anywhere}.log li:first-child{border-top:0}
+.log li.ev{color:var(--ink)}.log li.bad{color:var(--no);font-weight:700}.log li.sent{color:var(--accent);font-weight:700}
+pre.cmd{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,Menlo,monospace;background:var(--view);border:1px solid var(--line);border-radius:6px;padding:8px;margin:6px 0 0}
+.verdict{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.big{font-size:20px;font-weight:800}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px;margin:6px 0}.kv dt{color:var(--mute)}.kv dd{margin:0;overflow-wrap:anywhere}
+.auth{border:2px solid var(--go);background:var(--gob);border-radius:8px;padding:10px 12px;margin:8px 0}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.steph{display:flex;gap:8px;align-items:baseline;margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);font-weight:700}
+.steph i{font-style:normal;background:var(--accent);color:#fff;border-radius:99px;min-width:20px;height:20px;display:inline-grid;place-items:center;font-size:11px}
+.divider{border:0;border-top:1px dashed var(--line);margin:12px 0}
+</style></head>
+<body><div class="wrap">
+<header>
+ <div><h1>Ground Station <span class="badge" id="modeBadge"></span></h1>
+ <div class="sub" id="modeSub"></div></div>
+ <div class="bar" style="margin:0"><span class="e">Theme</span>
+  <button class="btn" id="thm" type="button">Auto</button></div>
+</header>
+<nav class="rail" id="rail"></nav>
+
+<!-- 1 CONNECT -->
+<section class="page on" id="pg-connect">
+ <div class="panel"><h2>Link and preflight</h2>
+  <div class="e">Preflight is read-only: it arms nothing and writes no parameter. Over the radio it must be GO within the last 10 minutes before a props-on run can be authorised. It checks the ground link, the right backpack, one relay, link loss and delay, the abort flag, and the aircraft's heartbeat.</div>
+  <div class="row" id="acList"></div>
+ </div>
+</section>
+
+<!-- 2 PROFILES -->
+<section class="page" id="pg-prof">
+ <div class="cols">
+  <div class="stack">
+   <div class="panel"><h2>Mission profiles</h2>
+    <div class="e">A profile is a saved offboard test: which aircraft, which link, how far through the flight to go, and the numbers the controller flies. Deleting archives to <code>profiles/deleted/</code>.</div>
+    <table id="profTable"></table>
+    <div class="bar"><button class="btn solid" id="newProf" type="button">New profile</button></div>
+   </div>
+  </div>
+  <div class="stack">
+   <div class="panel"><h2>Edit profile</h2>
+    <div id="edErr"></div>
+    <div class="row"><label class="f">Name<input id="f-name" maxlength="60"></label>
+     <label class="f">Aircraft<select id="f-sysid"></select></label></div>
+    <label class="f">Description<textarea id="f-desc" rows="2"></textarea></label>
+    <div class="row">
+     <div><div class="e"><b>Link</b></div><div class="seg" data-g="link"><label><input type="radio" name="f-link" value="radio">Radio (ELRS)</label><label><input type="radio" name="f-link" value="usb">USB cable</label></div></div>
+     <div><div class="e"><b>Flight type</b></div><div class="seg" data-g="type"><label><input type="radio" name="f-type" value="bench">Bench, props OFF</label><label><input type="radio" name="f-type" value="tether">Tethered</label><label><input type="radio" name="f-type" value="free">Free</label></div></div>
+    </div>
+    <label class="f">Run the agent until stage<select id="f-stage"></select></label>
+    <div class="row">
+     <label class="f">Hover height (m)<input id="f-height" type="number" step="0.05"></label>
+     <label class="f">Hold at height (s)<input id="f-hold" type="number" step="0.5"></label>
+     <label class="f">Takeover window (s)<input id="f-wait" type="number" step="1"></label>
+     <label class="f">Take-off pause (m)<input id="f-pause" type="number" step="0.05"></label>
+    </div>
+    <div class="row">
+     <label class="f">Test descent (m/s)<input id="f-tdr" type="number" step="0.01"></label>
+     <label class="f">Final descent (m/s)<input id="f-fdr" type="number" step="0.01"></label>
+     <label class="f">Height timeout (s, blank = auto)<input id="f-hto" type="number" step="0.5"></label>
+    </div>
+    <label class="chk"><input type="checkbox" id="f-lift"><span>Lift off by climb rate <span class="e">(recognise lift-off from the climb, not the estimate)</span></span></label>
+    <label class="chk"><input type="checkbox" id="f-gatt"><span>Hold the floor attitude on the ground <span class="e">(no wind-up against the floor)</span></span></label>
+    <div class="bar">
+     <button class="btn solid" id="save" type="button">Save</button>
+     <button class="btn" id="saveNew" type="button">Save as new</button>
+     <button class="btn danger" id="del" type="button">Archive</button>
+     <button class="btn" id="useProf" type="button">Use for a run &rarr;</button>
+    </div>
+    <div class="e" id="edMsg" style="margin-top:6px"></div>
+   </div>
+   <div class="panel"><h2>Planned height</h2>
+    <canvas id="cvEd" aria-label="Planned height against time"></canvas>
+    <div class="legend"><span><i class="sw" style="background:var(--path)"></i>planned (an estimate)</span><span><i class="sw" style="background:var(--fence)"></i>agent ceiling 1.2 m</span></div>
+    <details><summary class="e">The command this profile starts</summary><pre class="cmd" id="edCmd"></pre></details>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 3 RUN -->
+<section class="page" id="pg-run">
+ <div class="cols">
+  <div class="stack">
+   <div class="panel"><h2>Profile to run</h2>
+    <label class="f">Profile<select id="runProf"></select></label>
+    <dl class="kv" id="runSum"></dl>
+    <canvas id="cvRun" aria-label="Planned height against time"></canvas>
+    <div class="legend"><span><i class="sw" style="background:var(--path)"></i>planned</span><span><i class="sw" style="background:var(--trail)"></i>time since ARM</span><span><i class="sw" style="background:var(--fence)"></i>agent ceiling 1.2 m</span></div>
+    <div class="e" id="chartNote">The agent does not stream live height to this page, so the marker is time since ARM, not where the aircraft is.</div>
+   </div>
+   <div class="panel"><h2>What is happening</h2>
+    <div class="bar" style="margin:0 0 6px"><span class="e">Who is flying:</span><span class="own NOBODY" id="own">NOBODY</span></div>
+    <div class="chips" id="chips"></div>
+    <ul class="log" id="feed"></ul>
+   </div>
+  </div>
+  <div class="stack">
+   <div class="panel" id="setup">
+    <div class="steph"><i>1</i>Risks you are accepting</div>
+    <div id="risks"></div>
+    <hr class="divider">
+    <div class="steph"><i>2</i>Confirm the aircraft and the area</div>
+    <div id="confs"></div>
+    <hr class="divider">
+    <div class="steph"><i>3</i>Take responsibility</div>
+    <div class="e">This is recorded with the run: your name, each risk above, the confirmations, and these words. It takes effect for this exact profile for 15 minutes. It does not change what the agent or the handset will refuse.</div>
+    <div class="row">
+     <label class="f"><span>Responsible operator</span><input id="opName" autocomplete="name" placeholder="your name"></label>
+     <label class="f"><span>Type the aircraft name: <b id="acName">ARTEX113</b></span><input id="acType" autocomplete="off"></label>
+    </div>
+    <label class="f"><span>Type exactly: <b id="phraseShow"></b></span><input id="phrase" autocomplete="off"></label>
+    <div class="bar"><button class="btn solid" id="authBtn" type="button" disabled>Authorise this run</button><span class="e" id="authMsg"></span></div>
+    <div class="auth" id="authBox" hidden></div>
+   </div>
+   <div class="panel" id="ctl">
+    <div class="steph"><i>4</i>Start the agent, then arm</div>
+    <div class="e">Start connects the agent and stops at READY. It does not arm. Arming is a separate, deliberate press-and-hold below, and the agent also waits for the ARM word itself.</div>
+    <div class="bar"><button class="btn solid" id="startBtn" type="button" disabled>Start agent (stops at READY)</button><span class="e" id="startMsg"></span></div>
+    <hr class="divider">
+    <button class="arm" id="armBtn" type="button" disabled><div class="fill" id="armFill"></div><span>HOLD TO ARM<span class="why" id="armWhy">Start the agent first</span></span></button>
+    <div class="e" id="gateClock" style="margin-top:6px"></div>
+    <hr class="divider">
+    <div class="steph"><i>5</i>While it runs</div>
+    <div class="e"><b>The handset is the real override.</b> Take over with ch5 OFF (ch7 stays centre). Stop with ch8 kill, <b>held 5 s</b>. The buttons here go through the agent and the same link; they are not a substitute.</div>
+    <div class="bar" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+     <button class="abort" id="abortBtn" type="button" disabled>ABORT<br><span style="font-weight:500;font-size:12px">agent: land here</span></button>
+     <button class="abort" id="abortFlag" type="button" disabled style="background:var(--idle)">ABORT (flag)<br><span style="font-weight:500;font-size:12px">out of band, over ssh</span></button>
+    </div>
+    <div class="bar" id="demoBar" hidden><span class="e">Demo only:</span>
+     <button class="btn" id="demoTake" type="button">Pilot drops ch5</button>
+     <button class="btn" id="demoKill" type="button">Pilot holds kill</button></div>
+   </div>
+   <div class="panel" id="resultBox" hidden></div>
+  </div>
+ </div>
+</section>
+
+<!-- 4 RECORDS -->
+<section class="page" id="pg-rec">
+ <div class="cols">
+  <div class="panel"><h2>Run records</h2>
+   <div class="e">Every run is written to <code>runs/</code> with the profile, the responsible operator, what they accepted, the command, every event and the result. Nothing is added to history.md automatically.</div>
+   <table id="recTable"></table></div>
+  <div class="panel"><h2>Record</h2><div id="recView" class="e">Choose a run.</div></div>
+ </div>
+</section>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(method, path, body) {
+  const r = await fetch(path, {method, headers: {'X-GS-Client': 'ui', 'Content-Type': 'application/json'}, body: body ? JSON.stringify(body) : undefined});
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok) throw Object.assign(new Error(j.error || r.statusText), {status: r.status});
+  return j;
+}
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
+
+let ST = {}, PROFILES = [], ED = null, EDID = null, PREV = null, RUNPROF = null, RUNPREV = null, TOKEN = null, TOKEN_AT = 0;
+let SNAP = null, SINCE = 0, FEED = [], poll = null, page = 'connect';
+
+/* ---------- theme ---------- */
+const THEMES = ['auto', 'light', 'dark'];
+function setTheme(t) { const r = document.documentElement; if (t === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t); $('thm').textContent = t[0].toUpperCase() + t.slice(1); store('gs-theme', t); redraw(); }
+$('thm').onclick = () => setTheme(THEMES[(THEMES.indexOf(store('gs-theme') || 'auto') + 1) % 3]);
+
+/* ---------- rail ---------- */
+const PAGES = [['connect', '1 Connect', 'Link and preflight'], ['prof', '2 Profiles', 'Create and edit'], ['run', '3 Run', 'Offboard missions'], ['rec', '4 Records', 'What was run']];
+function rail() {
+  const live = SNAP && ['starting', 'ready', 'armed', 'pilot'].includes(SNAP.state);
+  $('rail').innerHTML = PAGES.map(([k, n, t]) => `<button class="step ${k === page ? 'cur' : ''} ${k === 'run' && live ? 'live' : ''}" data-k="${k}" type="button"><div class="n">${n}</div><div class="t">${t}</div><div class="s">${k === 'run' && live ? 'RUN ACTIVE: ' + SNAP.state.toUpperCase() : k === 'prof' ? PROFILES.length + ' saved' : ''}&nbsp;</div></button>`).join('');
+  $('rail').querySelectorAll('.step').forEach(b => b.onclick = () => go(b.dataset.k));
+}
+function go(k) { page = k; PAGES.forEach(([p]) => $('pg-' + p).classList.toggle('on', p === k)); rail(); if (k === 'rec') loadRecs(); if (k === 'run') refreshRun(); if (k === 'prof') edPreview(); redraw(); }
+
+/* ---------- connect ---------- */
+function acCard(s) {
+  const p = (ST.preflight || {})[s], rep = p && p.report && p.report.aircraft && p.report.aircraft[0];
+  let body = '<div class="e">No preflight yet this session.</div>', pill = '<span class="pill NOTRUN">NOT RUN</span>';
+  if (p) {
+    pill = `<span class="pill ${p.go ? 'GO' : 'NOGO'}">${p.go ? 'GO' : 'NO-GO'}</span> <span class="e">${Math.round(p.age_s)} s ago${p.age_s > 600 ? ', STALE for radio runs' : ''}</span>`;
+    const g = rep ? rep.ground || {} : {}, pr = rep ? rep.probe || {} : {}, v = pr.vehicle || {};
+    body = `<dl class="kv"><dt>Ground link</dt><dd>${esc(g.loss_pct)} % loss, ${esc(g.avg_ms)} ms</dd><dt>Backpack</dt><dd>${esc((pr.backpack_ping || {}).loss_pct)} % loss, ${esc((pr.wifi || {}).signal_dbm)} dBm</dd>
+     <dt>Aircraft</dt><dd>${v.reachable ? 'armed=' + esc(v.armed) + ', battery ' + esc(v.battery_pct) + ' %' : 'no heartbeat'}</dd></dl>`
+      + ((rep && rep.blockers) || []).map(b => `<div class="blockbox"><b>BLOCKER</b> ${esc(b)}</div>`).join('')
+      + ((rep && rep.warnings) || []).map(w => `<div class="e">warning: ${esc(w)}</div>`).join('');
+  }
+  return `<div class="panel" style="padding:12px"><div class="verdict"><b class="big">ARTEX${s}</b>${pill}</div>${body}
+   <div class="bar"><button class="btn solid pf" data-s="${s}" type="button">Run preflight</button><span class="e" id="pfm${s}"></span></div></div>`;
+}
+function connectRender() {
+  $('acList').innerHTML = ST.aircraft ? ST.aircraft.map(acCard).join('') : '';
+  document.querySelectorAll('.pf').forEach(b => b.onclick = async () => {
+    b.disabled = true; $('pfm' + b.dataset.s).textContent = ST.demo ? 'simulated…' : 'running, up to a few minutes…';
+    try { await api('POST', '/api/preflight', {sysid: +b.dataset.s}); } catch (e) { alert(e.message); }
+    await loadState(); connectRender();
+  });
+}
+
+/* ---------- chart ---------- */
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function chart(cv, tl, elapsed) {
+  const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight; if (!w) return;
+  if (cv.width !== Math.round(w * r)) { cv.width = Math.round(w * r); cv.height = Math.round(h * r); }
+  const x = cv.getContext('2d'); x.setTransform(r, 0, 0, r, 0, 0); x.clearRect(0, 0, w, h);
+  const ink = cssv('--ink'), mute = cssv('--mute'), grid = cssv('--grid'), path = cssv('--path'), fence = cssv('--fence'), trail = cssv('--trail');
+  x.font = '11px system-ui,sans-serif'; x.fillStyle = mute;
+  if (!tl) { x.fillText('Fix the profile to see the plan.', 12, 24); return; }
+  const L = 38, R = 10, T = 16, B = 26, pw = w - L - R, ph = h - T - B;
+  const tmax = Math.max(tl.total_s, elapsed || 0, 5) * 1.04, ymax = 1.3;
+  const X = t => L + t / tmax * pw, Y = m => T + ph - m / ymax * ph;
+  x.strokeStyle = grid; x.lineWidth = 1; x.textAlign = 'right';
+  for (let m = 0; m <= 1.2; m += 0.2) { x.beginPath(); x.moveTo(L, Y(m)); x.lineTo(w - R, Y(m)); x.stroke(); x.fillText(m.toFixed(1), L - 5, Y(m) + 4); }
+  x.textAlign = 'center'; const step = tmax > 60 ? 10 : tmax > 25 ? 5 : 2;
+  for (let t = 0; t <= tmax; t += step) x.fillText(t + ' s', X(t), h - 8);
+  x.setLineDash([5, 4]); x.strokeStyle = fence; x.beginPath(); x.moveTo(L, Y(1.2)); x.lineTo(w - R, Y(1.2)); x.stroke(); x.setLineDash([]);
+  (tl.marks || []).forEach(([n, a, b], i) => { x.fillStyle = i % 2 ? 'rgba(120,140,160,.10)' : 'rgba(120,140,160,.04)'; x.fillRect(X(a), T, X(b) - X(a), ph); x.fillStyle = mute; x.textAlign = 'center'; if (X(b) - X(a) > 34) x.fillText(n, (X(a) + X(b)) / 2, T + 10); });
+  x.beginPath(); tl.points.forEach(([t, m], i) => i ? x.lineTo(X(t), Y(m)) : x.moveTo(X(t), Y(m)));
+  x.strokeStyle = path; x.lineWidth = 3; x.stroke();
+  x.lineTo(X(tl.points[tl.points.length - 1][0]), Y(0)); x.lineTo(X(0), Y(0)); x.fillStyle = 'rgba(11,92,171,.12)'; x.fill();
+  if (elapsed != null) { x.strokeStyle = trail; x.lineWidth = 2; x.beginPath(); x.moveTo(X(elapsed), T); x.lineTo(X(elapsed), T + ph); x.stroke(); }
+  x.save(); x.translate(10, T + ph / 2); x.rotate(-Math.PI / 2); x.fillStyle = mute; x.textAlign = 'center'; x.fillText('height (m)', 0, 0); x.restore();
+}
+function redraw() { chart($('cvEd'), PREV && PREV.timeline, null); chart($('cvRun'), RUNPREV && RUNPREV.timeline, elapsedNow()); }
+function elapsedNow() { if (!SNAP || !SNAP.t || !SNAP.t.armed) return null; const end = SNAP.t.done || Date.now() / 1000; return (end - SNAP.t.armed) * (SNAP.demo ? SNAP.speed : 1); }
+window.addEventListener('resize', redraw);
+
+/* ---------- profiles ---------- */
+const F = {name: 'f-name', desc: 'f-desc', sysid: 'f-sysid', stage: 'f-stage', height_m: 'f-height', hold_s: 'f-hold', wait_s: 'f-wait', takeoff_pause_m: 'f-pause', test_descent_rate: 'f-tdr', final_descent_rate: 'f-fdr', height_timeout_s: 'f-hto'};
+function profTable() {
+  $('profTable').innerHTML = '<tr><th>Name</th><th>Aircraft</th><th>Type</th><th>Link</th><th>Until</th></tr>' + PROFILES.map(p =>
+    `<tr class="pick ${p.id === EDID ? 'on' : ''}" data-id="${esc(p.id)}"><td><b>${esc(p.name)}</b><div class="e">${esc(p.description)}</div></td><td>${p.sysid}</td><td>${esc(p.flight_type)}</td><td>${esc(p.link)}</td><td>${esc(p.stage)}</td></tr>`).join('');
+  $('profTable').querySelectorAll('tr.pick').forEach(r => r.onclick = () => edLoad(PROFILES.find(p => p.id === r.dataset.id)));
+}
+function edLoad(p) {
+  ED = Object.assign({}, p); EDID = p.id || null;
+  $('f-name').value = p.name; $('f-desc').value = p.description; $('f-sysid').value = p.sysid; $('f-stage').value = p.stage;
+  ['height_m', 'hold_s', 'wait_s', 'takeoff_pause_m', 'test_descent_rate', 'final_descent_rate'].forEach(k => $(F[k]).value = p[k]);
+  $('f-hto').value = p.height_timeout_s == null ? '' : p.height_timeout_s;
+  $('f-lift').checked = !!p.lift_by_climb; $('f-gatt').checked = !!p.ground_attitude;
+  document.querySelectorAll('input[name=f-link]').forEach(i => i.checked = i.value === p.link);
+  document.querySelectorAll('input[name=f-type]').forEach(i => i.checked = i.value === p.flight_type);
+  segs(); profTable(); edPreview();
+}
+function segs() { document.querySelectorAll('.seg label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); }
+function edRead() {
+  const num = id => $(id).value === '' ? null : +$(id).value;
+  return {name: $('f-name').value, description: $('f-desc').value, sysid: +$('f-sysid').value, stage: $('f-stage').value,
+    link: (document.querySelector('input[name=f-link]:checked') || {}).value, flight_type: (document.querySelector('input[name=f-type]:checked') || {}).value,
+    height_m: num('f-height'), hold_s: num('f-hold'), wait_s: num('f-wait'), takeoff_pause_m: num('f-pause'),
+    test_descent_rate: num('f-tdr'), final_descent_rate: num('f-fdr'), height_timeout_s: num('f-hto'),
+    lift_by_climb: $('f-lift').checked, ground_attitude: $('f-gatt').checked};
+}
+let edT = null;
+function edChanged() { segs(); clearTimeout(edT); edT = setTimeout(edPreview, 150); }
+async function edPreview() {
+  if (!ST.stages) return;
+  const p = edRead(); ED = p;
+  try { PREV = await api('POST', '/api/profiles/preview', p); } catch (e) { $('edErr').innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  $('edErr').innerHTML = PREV.errors.map(e => `<div class="err">${esc(e)}</div>`).join('');
+  const flies = ['takeoff', 'hold', 'descent', 'landing', 'disarm'].includes(p.stage);
+  ['f-height', 'f-hold', 'f-pause', 'f-tdr', 'f-fdr'].forEach(id => $(id).disabled = !flies);
+  $('f-hto').disabled = !flies; $('edCmd').textContent = PREV.argv ? 'cd ~/FlightPlanner && ' + PREV.argv.join(' ') : '(not runnable yet)';
+  chart($('cvEd'), PREV.timeline, null);
+}
+document.querySelectorAll('#pg-prof input,#pg-prof select,#pg-prof textarea').forEach(i => { i.addEventListener('input', edChanged); i.addEventListener('change', edChanged); });
+$('newProf').onclick = () => { EDID = null; edLoad(Object.assign({}, ST.defaults, {name: ''})); $('f-name').focus(); };
+async function saveProf(asNew) {
+  const p = edRead();
+  if (asNew && PROFILES.some(x => x.name === p.name)) p.name += ' copy';
+  try { const s = await api('POST', '/api/profiles', p); await loadProfiles(); edLoad(PROFILES.find(x => x.id === s.id)); $('edMsg').textContent = 'Saved as ' + s.id + '.json'; }
+  catch (e) { $('edMsg').textContent = e.message; }
+}
+$('save').onclick = () => saveProf(false); $('saveNew').onclick = () => saveProf(true);
+$('del').onclick = async () => { if (!EDID || !confirm('Archive this profile? It moves to profiles/deleted/.')) return; await api('POST', '/api/profiles/delete', {id: EDID}); await loadProfiles(); $('newProf').click(); $('edMsg').textContent = 'Archived.'; };
+$('useProf').onclick = async () => { await saveProf(false); if (EDID) { $('runProf').value = EDID; go('run'); } };
+async function loadProfiles() { PROFILES = await api('GET', '/api/profiles'); profTable(); runProfOptions(); rail(); }
+
+/* ---------- run ---------- */
+function runProfOptions() {
+  const cur = $('runProf').value; $('runProf').innerHTML = PROFILES.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+  if (PROFILES.some(p => p.id === cur)) $('runProf').value = cur;
+}
+const running = () => SNAP && ['starting', 'ready', 'armed', 'pilot'].includes(SNAP.state);
+async function refreshRun() {
+  const p = PROFILES.find(x => x.id === $('runProf').value);
+  if (running() && SNAP.profile) { RUNPROF = SNAP.profile; } else RUNPROF = p || null;
+  if (!RUNPROF) return;
+  RUNPREV = await api('POST', '/api/profiles/preview', RUNPROF);
+  $('runSum').innerHTML = `<dt>Aircraft</dt><dd>ARTEX${RUNPROF.sysid}, ${esc(RUNPROF.link === 'radio' ? 'over the ELRS radio' : 'over USB')}</dd><dt>Flight</dt><dd>${esc({bench: 'bench, props OFF', tether: 'tethered, props ON', free: 'free flight, props ON'}[RUNPROF.flight_type])}</dd>
+    <dt>Until</dt><dd>${esc(RUNPROF.stage)}: ${esc((ST.stages.find(s => s[0] === RUNPROF.stage) || [])[1])}</dd><dt>Numbers</dt><dd>${RUNPROF.height_m} m, hold ${RUNPROF.hold_s} s, window ${RUNPROF.wait_s} s</dd>`;
+  $('acName').textContent = 'ARTEX' + RUNPROF.sysid; $('phraseShow').textContent = ST.phrase;
+  if (!TOKEN) {
+    const A = RUNPREV.assessment, blocks = A.filter(i => i.level === 'block'), acc = A.filter(i => i.level === 'accept'), notes = A.filter(i => i.level === 'note');
+    $('risks').innerHTML = blocks.map(i => `<div class="blockbox"><b>BLOCKED: ${esc(i.title)}</b><div class="e" style="color:var(--ink)">${esc(i.text)}</div></div>`).join('')
+      + acc.map(i => `<label class="risk chk"><input type="checkbox" class="acc" data-id="${esc(i.id)}"><span><b>${esc(i.title)}</b><div class="e">${esc(i.text)}</div></span></label>`).join('')
+      + (acc.length || blocks.length ? '' : '<div class="e">No risk to accept for this profile.</div>')
+      + notes.map(i => `<div class="note"><b>${esc(i.title)}</b><div class="e">${esc(i.text)}</div></div>`).join('');
+    $('confs').innerHTML = RUNPREV.confirmations.map(c => `<label class="chk"><input type="checkbox" class="cf" data-id="${esc(c.id)}"><span>${esc(c.text)}</span></label>`).join('');
+    document.querySelectorAll('.acc,.cf').forEach(c => c.onchange = authState);
+  }
+  authState(); ctlState(); redraw();
+}
+$('runProf').onchange = () => { TOKEN = null; $('authBox').hidden = true; refreshRun(); };
+['opName', 'acType', 'phrase'].forEach(id => $(id).addEventListener('input', authState));
+$('opName').value = store('gs-operator') || '';
+function authState() {
+  const ok = RUNPREV && !RUNPREV.errors.length && !RUNPREV.assessment.some(i => i.level === 'block') && !running() && !TOKEN
+    && [...document.querySelectorAll('.acc,.cf')].every(c => c.checked)
+    && $('opName').value.trim().length > 1 && $('acType').value.trim().toUpperCase() === 'ARTEX' + (RUNPROF || {}).sysid && $('phrase').value.trim().toUpperCase() === ST.phrase;
+  $('authBtn').disabled = !ok;
+  $('setup').style.opacity = running() ? .55 : 1;
+  $('authMsg').textContent = TOKEN || ok ? '' : 'Every box, your name, the aircraft and the words are needed.';
+}
+$('authBtn').onclick = async () => {
+  store('gs-operator', $('opName').value.trim());
+  const accepted = [...document.querySelectorAll('.acc')].map(c => c.dataset.id), confirmed = [...document.querySelectorAll('.cf')].map(c => c.dataset.id);
+  try {
+    const r = await api('POST', '/api/run/authorise', {profile: RUNPROF, operator: $('opName').value, aircraft: $('acType').value, phrase: $('phrase').value, accepted, confirmed});
+    TOKEN = r.token; TOKEN_AT = Date.now();
+    $('authBox').hidden = false; tick();
+  } catch (e) { $('authMsg').textContent = e.message; }
+  authState(); ctlState();
+};
+function tick() {
+  if (TOKEN) {
+    const left = Math.max(0, ST.ttl_s - (Date.now() - TOKEN_AT) / 1000);
+    if (left <= 0) { TOKEN = null; $('authBox').hidden = true; refreshRun(); return; }
+    $('authBox').innerHTML = `<b>Authorised</b> by ${esc($('opName').value.trim())} for ARTEX${RUNPROF.sysid}, this exact profile. Expires in ${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}. <button class="btn" id="revoke" type="button">Withdraw</button>`;
+    $('revoke').onclick = () => { TOKEN = null; $('authBox').hidden = true; refreshRun(); };
+  }
+  if (SNAP && SNAP.state === 'ready' && SNAP.t.ready) {
+    const left = Math.max(0, SNAP.gate_s - (Date.now() / 1000 - SNAP.t.ready));
+    $('gateClock').textContent = SNAP.arm_sent ? 'ARM sent.' : `The agent gives up waiting for ARM in ${Math.ceil(left)} s.`;
+  } else $('gateClock').textContent = '';
+}
+function ctlState() {
+  const st = SNAP ? SNAP.state : 'none', act = running();
+  $('startBtn').disabled = !TOKEN || act; $('startMsg').textContent = act ? 'A run is active.' : TOKEN ? '' : 'Authorise the run first.';
+  const canArm = st === 'ready' && TOKEN && !SNAP.arm_sent;
+  $('armBtn').disabled = !canArm;
+  $('armWhy').textContent = canArm ? 'Press and hold ' + 1.2 + ' s. The motors will spool.' : st === 'ready' ? (SNAP.arm_sent ? 'ARM sent' : 'Authorisation expired: authorise again') : st === 'armed' || st === 'pilot' ? 'Armed' : st === 'starting' ? 'Waiting for the agent to reach READY…' : st === 'done' || st === 'ended' ? 'Run finished' : 'Start the agent first';
+  $('abortBtn').disabled = !act || st === 'starting'; $('abortFlag').disabled = !act;
+  $('demoBar').hidden = !(ST.demo && act);
+  const who = st === 'armed' ? 'COMPUTER' : st === 'pilot' ? 'PILOT' : 'NOBODY';
+  $('own').className = 'own ' + who; $('own').textContent = who === 'NOBODY' ? 'NOBODY (disarmed)' : who === 'COMPUTER' ? 'COMPUTER (agent flying)' : 'PILOT (took over)';
+  const order = [['starting', 'Connecting'], ['ready', 'READY'], ['armed', 'Armed'], ['done', 'Finished']], idx = order.findIndex(o => o[0] === (st === 'pilot' ? 'armed' : st === 'ended' ? 'done' : st));
+  $('chips').innerHTML = st === 'none' ? '<span class="e">No run yet.</span>' : order.map((o, i) => `<span class="cs ${i < idx ? 'ok' : i === idx ? (st === 'ended' ? 'bad' : 'act') : ''}">${o[1]}</span>`).join('') + (SNAP.stage ? `<span class="cs act">stage: ${esc(SNAP.stage)}</span>` : '') + (st === 'pilot' ? '<span class="cs bad">pilot has it</span>' : '');
+}
+$('startBtn').onclick = async () => {
+  $('startBtn').disabled = true; FEED = []; SINCE = 0; $('feed').innerHTML = '';
+  try { await api('POST', '/api/run/start', {profile: RUNPROF, token: TOKEN}); startPoll(); } catch (e) { $('startMsg').textContent = e.message; }
+};
+/* hold to arm */
+let holdT = null, holdAt = 0;
+function holdStart(e) { if ($('armBtn').disabled || holdT) return; e.preventDefault(); holdAt = performance.now(); $('armWhy').textContent = 'Keep holding…';
+  holdT = setInterval(async () => { const f = Math.min(1, (performance.now() - holdAt) / 1200); $('armFill').style.width = f * 100 + '%';
+    if (f >= 1) { holdStop(); try { await api('POST', '/api/run/arm', {token: TOKEN, confirm: 'ARM'}); } catch (er) { $('armWhy').textContent = er.message; } } }, 30); }
+function holdStop() { if (holdT) { clearInterval(holdT); holdT = null; } $('armFill').style.width = '0'; }
+$('armBtn').addEventListener('pointerdown', holdStart);
+['pointerup', 'pointerleave', 'pointercancel', 'blur'].forEach(ev => $('armBtn').addEventListener(ev, holdStop));
+$('armBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') holdStart(e); });
+$('armBtn').addEventListener('keyup', e => { if (e.key === 'Enter' || e.key === ' ') holdStop(); });
+const word = w => api('POST', '/api/run/word', {word: w}).catch(e => alert(e.message));
+$('abortBtn').onclick = () => word('ABORT');
+$('abortFlag').onclick = async () => { try { const r = await api('POST', '/api/run/abort_flag', {}); alert((r.ok ? 'Flag set: ' : 'FAILED: ') + r.text); } catch (e) { alert(e.message); } };
+$('demoTake').onclick = () => word('DEMO_TAKEOVER'); $('demoKill').onclick = () => word('DEMO_KILL');
+
+/* feed + polling */
+function line(f) {
+  const t = new Date(f.t * 1000).toTimeString().slice(0, 8);
+  if (f.kind === 'log') return `<li>${t}  ${esc(f.text)}</li>`;
+  if (f.kind === 'sent') return `<li class="sent">${t}  sent to agent: ${esc(f.text)}</li>`;
+  if (f.kind === 'result') return `<li class="ev">${t}  RESULT: ${esc(f.data.outcome || f.data.error)}</li>`;
+  const e = f.data, n = e.event;
+  const txt = n === 'ready' ? 'READY: waiting for ARM' : n === 'armed' ? 'ARMED' : n === 'stage' ? 'stage: ' + e.stage : n === 'rc_takeover' ? 'PILOT TOOK OVER (' + (e.via || 'mode change') + ')' : n === 'takeover_classified' ? 'takeover classified: ' + e.source : n === 'still_armed' ? 'still armed: the pilot disarms' : n === 'pilot_disarmed' ? 'disarmed' : n === 'safety' ? 'GUARD: ' + e.action + ' ' + (e.reasons || []).join('; ') : n;
+  return `<li class="${['rc_takeover', 'safety'].includes(n) ? 'bad' : 'ev'}">${t}  ${esc(txt)}</li>`;
+}
+async function pollOnce() {
+  let s; try { s = await api('GET', '/api/run?since=' + SINCE); } catch (e) { return; }
+  if (s.state === 'none') return;
+  SNAP = Object.assign(SNAP || {}, s); if (s.feed) { SINCE += s.feed.length; const ul = $('feed'); s.feed.forEach(f => ul.insertAdjacentHTML('afterbegin', line(f))); }
+  ctlState(); rail(); tick(); redraw();
+  if (['done', 'ended'].includes(s.state)) { stopPoll(); showResult(s); TOKEN = null; $('authBox').hidden = true; $('acType').value = ''; $('phrase').value = ''; refreshRun(); }
+}
+function startPoll() { if (!poll) poll = setInterval(pollOnce, 600); pollOnce(); }
+function stopPoll() { clearInterval(poll); poll = null; }
+function showResult(s) {
+  const r = s.result || {}, ok = r.passed, b = $('resultBox'); b.hidden = false;
+  b.innerHTML = `<h2>Result</h2><div class="verdict"><span class="big">${esc(r.outcome || (r.error ? 'did not run' : '?'))}</span><span class="pill ${ok ? 'GO' : 'NOGO'}">${ok ? 'AGENT PASSED' : 'NOT PASSED'}</span></div>
+   <dl class="kv"><dt>Takeover</dt><dd>${esc(r.takeover_source || 'none')}${r.takeover_after_s ? ' after ' + esc(r.takeover_after_s) + ' s' : ''}</dd><dt>Setpoints</dt><dd>${r.setpoints ? esc(r.setpoints.sent) + ' sent, ' + esc(r.link_losses) + ' link losses' : '–'}</dd><dt>Max height</dt><dd>${esc(r.max_height_m)}</dd>${r.error ? `<dt>Error</dt><dd class="err">${esc(r.error)}</dd>` : ''}</dl>
+   <div class="e">The agent's pass is about the takeover or flight sequence, not that the aircraft is safe to fly. Props off, nothing lifts.</div>
+   <div class="bar"><button class="btn solid" id="seeRec" type="button">Open the record</button></div>`;
+  $('seeRec').onclick = async () => { go('rec'); await loadRecs(); showRec(s.id); };
+}
+
+/* ---------- records ---------- */
+async function loadRecs() {
+  const rs = await api('GET', '/api/runs');
+  $('recTable').innerHTML = '<tr><th>Run</th><th>Profile</th><th>Operator</th><th>Outcome</th></tr>' + (rs.length ? rs.map(r => `<tr class="pick" data-id="${esc(r.id)}"><td>${esc(r.id)} <span class="pill ${r.mode === 'demo' ? 'STALE' : 'WAIT'}">${esc(r.mode)}</span></td><td>${esc(r.profile)}</td><td>${esc(r.operator)}</td><td>${esc(r.outcome || r.error || r.state)}</td></tr>`).join('') : '<tr><td colspan="4" class="e">No runs yet.</td></tr>');
+  $('recTable').querySelectorAll('tr.pick').forEach(t => t.onclick = () => showRec(t.dataset.id));
+}
+async function showRec(id) {
+  const {record: r, history} = await api('GET', '/api/runs/' + id);
+  $('recView').innerHTML = `<dl class="kv"><dt>Run</dt><dd>${esc(r.id)} (${esc(r.mode)})</dd><dt>Profile</dt><dd>${esc(r.profile.name)}: ${esc(r.profile.flight_type)}, ${esc(r.profile.link)}, until ${esc(r.profile.stage)}</dd>
+   <dt>Responsible</dt><dd>${esc(r.operator)}, authorised ${esc(r.authorised)}</dd><dt>Typed</dt><dd>${esc(r.aircraft_typed)} / ${esc(r.phrase)}</dd><dt>Accepted</dt><dd>${esc((r.accepted || []).join(', ') || 'none needed')}</dd>
+   <dt>Confirmed</dt><dd>${(r.confirmations || []).map(esc).join('<br>')}</dd><dt>Result</dt><dd>${esc((r.result || {}).outcome || (r.result || {}).error)}</dd></dl>
+   <div class="bar"><button class="btn solid" id="cpHist" type="button">Copy history.md block</button><span class="e" id="cpMsg"></span></div>
+   <details><summary class="e">Command and feed</summary><pre class="cmd">${esc((r.command || []).join(' '))}</pre><ul class="log">${(r.feed || []).slice().reverse().map(line).join('')}</ul></details>`;
+  $('cpHist').onclick = async () => { try { await navigator.clipboard.writeText(history); $('cpMsg').textContent = 'Copied. Paste it into history.md yourself.'; } catch (e) { $('cpMsg').textContent = 'Copy failed; select it from the record file.'; } };
+}
+
+/* ---------- boot ---------- */
+async function loadState() { ST = await api('GET', '/api/state'); }
+async function boot() {
+  setTheme(store('gs-theme') || 'auto');
+  await loadState();
+  $('modeBadge').className = 'badge ' + (ST.demo ? 'demo' : 'live'); $('modeBadge').textContent = ST.demo ? 'DEMO: simulated aircraft' : 'LIVE: real aircraft';
+  $('modeSub').textContent = ST.demo ? 'Nothing is contacted. Runs use a simulated agent so you can learn the screens.' : 'Runs start the real agent on the companion over ssh. The handset stays the override.';
+  $('f-sysid').innerHTML = ST.aircraft.map(a => `<option value="${a}">ARTEX${a}</option>`).join('');
+  $('f-stage').innerHTML = ST.stages.map(([s, n]) => `<option value="${s}">${s}: ${esc(n)}</option>`).join('');
+  connectRender(); await loadProfiles();
+  edLoad(PROFILES[0] || Object.assign({}, ST.defaults, {name: ''}));
+  const s = await api('GET', '/api/run?since=0'); if (s.state !== 'none') { SNAP = s; SINCE = s.feed.length; s.feed.forEach(f => $('feed').insertAdjacentHTML('afterbegin', line(f))); if (running()) startPoll(); else showResult(s); }
+  rail(); setInterval(tick, 1000);
+  const h = location.hash.replace('#', ''); go(PAGES.some(p => p[0] === h) ? h : 'connect');
+}
+boot().catch(e => { document.body.insertAdjacentHTML('afterbegin', `<div class="blockbox"><b>The page could not start:</b> ${esc(e.message)}</div>`); });
+})();
+</script></body></html>

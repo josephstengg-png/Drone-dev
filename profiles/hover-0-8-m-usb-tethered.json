@@ -1,0 +1,17 @@
+{
+ "name": "Hover 0.8 m - USB tethered",
+ "description": "Props ON, tethered, USB cable in. Take off, hover 5 s, land, disarm in Offboard. The safer route to the lab manager's hover test.",
+ "sysid": 113,
+ "link": "usb",
+ "flight_type": "tether",
+ "stage": "disarm",
+ "height_m": 0.8,
+ "hold_s": 5.0,
+ "wait_s": 15.0,
+ "takeoff_pause_m": 0.5,
+ "test_descent_rate": 0.08,
+ "final_descent_rate": 0.05,
+ "lift_by_climb": true,
+ "ground_attitude": true,
+ "height_timeout_s": null
+}

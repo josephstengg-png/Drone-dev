@@ -1,0 +1,17 @@
+{
+ "name": "Bench - arm stage over radio",
+ "description": "Props OFF. Armed in Offboard, you take over with ch5 off. The 3 Nov T2 test.",
+ "sysid": 113,
+ "link": "radio",
+ "flight_type": "bench",
+ "stage": "arm",
+ "height_m": 0.8,
+ "hold_s": 5.0,
+ "wait_s": 45.0,
+ "takeoff_pause_m": 0.5,
+ "test_descent_rate": 0.08,
+ "final_descent_rate": 0.05,
+ "lift_by_climb": true,
+ "ground_attitude": true,
+ "height_timeout_s": null
+}

@@ -1,6 +1,8 @@
 # Ground-station GUI: design brief (draft 1)
 
-Status: draft for the operator to steer. Nothing here is built. Everything is derived from
+Status: **partly built 4 Nov 2026** (`tools/gs_server.py`, `gui/index.html`; see history.md): connect/preflight, mission profiles, the
+responsibility flow, offboard runs and records. The gate list, test memory and parameter safety below are still design.
+Original status: draft for the operator to steer. Nothing here is built. Everything is derived from
 how the existing tools were actually used during indoor-demo preparation (see
 `docs/history.md`, 14-15 Oct 2026).
 

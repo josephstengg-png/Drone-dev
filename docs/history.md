@@ -359,6 +359,47 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 — Ground-station GUI built from mock 5: profiles, responsibility, offboard runs
+
+The operator asked for the GUI "continuing from version 5" that lets them **bear the responsibility**, **create mission
+profiles** and **run the offboard missions**. Built as a front end over the existing tools, standard library only.
+Commit 2 of 2 today; nothing flew, and no real aircraft was contacted (jetson-2 was unreachable; the build and every
+test ran against a simulated agent).
+
+- **Run it:** `python3 tools/gs_server.py --demo` (simulated aircraft) or without `--demo` (LIVE: the real agent over
+  ssh), then http://127.0.0.1:8787. Files: `tools/gs_core.py` (profiles, assessment, command, records),
+  `tools/gs_server.py` (HTTP + the run manager), `tools/fake_agent.py` (demo), `gui/index.html`, `profiles/`, `runs/`.
+- **Pages** (mock 5's rail, trimmed to what exists): Connect (preflight GO/NO-GO per aircraft), Profiles (create, edit,
+  archive, preview chart and the exact command), Run, Records. Mock 5's 3-D waypoint view became a planned
+  height-against-time chart, because the offboard agent flies one height, not waypoints.
+- **Profile = what the agent supports:** aircraft, link (radio/usb), flight type (bench/tether/free), stage to run until
+  (prearm ... disarm), hover height (0.3 to 1.05 m, the agent's own cap), hold, takeover window, take-off pause, descent
+  rates, two flags. Four seeded: bench arm stage and bench take-off stage over radio (the 3 Nov tests), and 0.8 m
+  hover tethered over USB and over radio. Multi-step height plans need the agent changed and are not there.
+- **Responsibility, as built.** For a run the operator ticks each ACCEPT risk the profile carries (props-on unproven,
+  no horizontal hold, radio height loop on 2 s-old readings, a GCS-heartbeat gap landing against the pilot with
+  `NAV_DLL_ACT` 3, untethered, USB cable), ticks the confirmations, enters their name, types the aircraft and
+  `I TAKE RESPONSIBILITY FOR THIS RUN`. The server checks all of it and issues a token bound to that exact profile
+  (15 min). It is written into the run record. **Responsibility does not clear a BLOCK:** an invalid profile, or props-on
+  over the radio without a Preflight GO from the last 10 minutes (the standing "disarm must be deliverable" rule).
+- **Unchanged and not offered:** the guard runs without `--allow-kill` (never in the command); KILL is not a button and
+  is refused if sent; the agent still refuses the wrong sysid or an armed aircraft; the agent still waits for the ARM
+  word, which the server sends only after the authorisation AND a 1.2 s press-and-hold; one agent at a time. The page
+  says the handset is the authority: ch5 off to take over, kill held 5 s.
+- **Local only:** binds 127.0.0.1, rejects other Host and Origin headers, and every POST needs `X-GS-Client`, so a web
+  page in the browser cannot start a run.
+- **Tests (345 pass, 34 new):** `tests/test_gs_core.py` (profiles, assessment, authorisation, tokens, records) and
+  `tests/test_gs_server.py` (the demo run end to end, CSRF, one-agent rule, and the LIVE ssh command with Popen
+  captured). The page was driven through a whole demo run in headless Chrome (edit a profile, authorise, start, arm by
+  hold, simulated pilot takeover, record): no JavaScript errors.
+- **Not verified:** LIVE mode against a real aircraft; live `preflight.py` and `takeover.py --now` from the page.
+  The agent does not stream height while it flies, so the page shows time since ARM against the planned curve, not the
+  aircraft's height (emitting telemetry from the control loop was left alone: a blocked write there would stall the
+  setpoint stream). `tools/hover_elrs_run.sh` is superseded by this and was never copied to jetson-2.
+- **Next, in order:** run `gs_server.py` live against the bench aircraft props off; add live telemetry from the agent
+  outside the control loop; the test-memory store and the "which tests are required" decision from mock 5; multi-step
+  profiles; the heartbeat-race fix in `connect()`.
+
 ## 2026-11-03 (end of day) — shutdown state, and what is open
 
 **Last known state of ARTEX113:** disarmed, props off at the last test, in Offboard/Altitude, last seen over ELRS
