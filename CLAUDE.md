@@ -148,7 +148,9 @@ then http://127.0.0.1:8787. Mission profiles live in `profiles/`, run records in
 `drone_agent.py offboard-flight` command we type, stops the agent at READY, and sends `ARM` only after the operator's
 recorded authorisation and a press-and-hold. Never `--allow-kill`; KILL is not a button; the handset stays the override.
 Responsibility is the operator's to accept for risks (listed in `tools/gs_core.py`), never for BLOCKs (invalid profile;
-props-on over the radio without a fresh Preflight GO). LIVE mode has not yet been run against an aircraft.
+props-on over the radio without a fresh Preflight GO). First live run 4 Nov 2026 (props off, passed).
+Endurance hover (4 Nov): `--max-height-m` up to 2.0 m, holds up to 2 h, guard battery thresholds in the profile; ARTEX113 has no
+current sensor, so battery use is volts and a voltage-based percent only. Not yet flown.
 
 ## Known-unfinished, so nobody assumes otherwise
 

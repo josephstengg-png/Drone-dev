@@ -1,0 +1,19 @@
+{
+ "name": "Endurance hover 2.0 m - USB tethered",
+ "description": "Props ON, tethered, USB. Hover 2.0 m for up to 40 min; the run ends at the first of: your takeover, the controller's saturation abort, a battery failsafe or the guard at 8 %. Logs volts and percent every 30 s.",
+ "sysid": 113,
+ "link": "usb",
+ "flight_type": "tether",
+ "stage": "disarm",
+ "height_m": 2.0,
+ "hold_s": 2400.0,
+ "wait_s": 15.0,
+ "takeoff_pause_m": 0.5,
+ "test_descent_rate": 0.08,
+ "final_descent_rate": 0.05,
+ "lift_by_climb": true,
+ "ground_attitude": true,
+ "height_timeout_s": null,
+ "battery_hold_pct": 12.0,
+ "battery_land_pct": 8.0
+}

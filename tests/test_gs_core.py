@@ -36,7 +36,7 @@ def full_body(p, ctx=GO, **kw):
 
 def test_a_good_profile_validates_and_a_bad_one_says_why():
     assert core.validate(prof()) == []
-    assert any("Hover height" in e for e in core.validate(prof(height_m=1.2)))     # the agent refuses > 1.05
+    assert any("Hover height" in e for e in core.validate(prof(height_m=2.1)))     # the agent refuses > 2.0
     assert any("name" in e.lower() for e in core.validate(prof(name="")))
     assert any("Stage" in e for e in core.validate(prof(stage="orbit")))
     assert any("not known" in e for e in core.validate(prof(sysid=999)))

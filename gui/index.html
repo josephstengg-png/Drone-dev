@@ -122,7 +122,7 @@ pre.cmd{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,M
     <label class="f">Run the agent until stage<select id="f-stage"></select></label>
     <div class="row">
      <label class="f">Hover height (m)<input id="f-height" type="number" step="0.05"></label>
-     <label class="f">Hold at height (s)<input id="f-hold" type="number" step="0.5"></label>
+     <label class="f">Hold at height (s; up to 7200)<input id="f-hold" type="number" step="1"></label>
      <label class="f">Takeover window (s)<input id="f-wait" type="number" step="1"></label>
      <label class="f">Take-off pause (m)<input id="f-pause" type="number" step="0.05"></label>
     </div>
@@ -131,6 +131,11 @@ pre.cmd{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,M
      <label class="f">Final descent (m/s)<input id="f-fdr" type="number" step="0.01"></label>
      <label class="f">Height timeout (s, blank = auto)<input id="f-hto" type="number" step="0.5"></label>
     </div>
+    <div class="row">
+     <label class="f"><span>Guard: battery HOLD at (%, blank = 25)</span><input id="f-bhold" type="number" step="1"></label>
+     <label class="f"><span>Guard: battery LAND at (%, blank = 15)</span><input id="f-bland" type="number" step="1"></label>
+    </div>
+    <div class="e">PX4 on ARTEX113 warns at 20 %, returns at 15 %, lands at 10 %. Put the guard's numbers below those to let PX4's own failsafes act first. The % is a voltage estimate (no current sensor).</div>
     <label class="chk"><input type="checkbox" id="f-lift"><span>Lift off by climb rate <span class="e">(recognise lift-off from the climb, not the estimate)</span></span></label>
     <label class="chk"><input type="checkbox" id="f-gatt"><span>Hold the floor attitude on the ground <span class="e">(no wind-up against the floor)</span></span></label>
     <div class="bar">
@@ -232,7 +237,7 @@ async function api(method, path, body) {
 function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
 
 let ST = {}, PROFILES = [], ED = null, EDID = null, PREV = null, RUNPROF = null, RUNPREV = null, TOKEN = null, TOKEN_AT = 0;
-let SNAP = null, SINCE = 0, FEED = [], poll = null, page = 'connect';
+let LASTBATT = null, SNAP = null, SINCE = 0, FEED = [], poll = null, page = 'connect';
 
 /* ---------- theme ---------- */
 const THEMES = ['auto', 'light', 'dark'];
@@ -286,8 +291,8 @@ function chart(cv, tl, elapsed) {
   const X = t => L + t / tmax * pw, Y = m => T + ph - m / ymax * ph;
   x.strokeStyle = grid; x.lineWidth = 1; x.textAlign = 'right';
   for (let m = 0; m <= 1.2; m += 0.2) { x.beginPath(); x.moveTo(L, Y(m)); x.lineTo(w - R, Y(m)); x.stroke(); x.fillText(m.toFixed(1), L - 5, Y(m) + 4); }
-  x.textAlign = 'center'; const step = tmax > 60 ? 10 : tmax > 25 ? 5 : 2;
-  for (let t = 0; t <= tmax; t += step) x.fillText(t + ' s', X(t), h - 8);
+  x.textAlign = 'center'; const step = [2, 5, 10, 30, 60, 120, 300, 600, 1200].find(s => tmax / s <= 8) || 1800;
+  for (let t = 0; t <= tmax; t += step) x.fillText(step >= 60 ? (t / 60) + ' min' : t + ' s', X(t), h - 8);
   x.setLineDash([5, 4]); x.strokeStyle = fence; x.beginPath(); x.moveTo(L, Y(1.2)); x.lineTo(w - R, Y(1.2)); x.stroke(); x.setLineDash([]);
   (tl.marks || []).forEach(([n, a, b], i) => { x.fillStyle = i % 2 ? 'rgba(120,140,160,.10)' : 'rgba(120,140,160,.04)'; x.fillRect(X(a), T, X(b) - X(a), ph); x.fillStyle = mute; x.textAlign = 'center'; if (X(b) - X(a) > 34) x.fillText(n, (X(a) + X(b)) / 2, T + 10); });
   x.beginPath(); tl.points.forEach(([t, m], i) => i ? x.lineTo(X(t), Y(m)) : x.moveTo(X(t), Y(m)));
@@ -312,6 +317,7 @@ function edLoad(p) {
   $('f-name').value = p.name; $('f-desc').value = p.description; $('f-sysid').value = p.sysid; $('f-stage').value = p.stage;
   ['height_m', 'hold_s', 'wait_s', 'takeoff_pause_m', 'test_descent_rate', 'final_descent_rate'].forEach(k => $(F[k]).value = p[k]);
   $('f-hto').value = p.height_timeout_s == null ? '' : p.height_timeout_s;
+  $('f-bhold').value = p.battery_hold_pct == null ? '' : p.battery_hold_pct; $('f-bland').value = p.battery_land_pct == null ? '' : p.battery_land_pct;
   $('f-lift').checked = !!p.lift_by_climb; $('f-gatt').checked = !!p.ground_attitude;
   document.querySelectorAll('input[name=f-link]').forEach(i => i.checked = i.value === p.link);
   document.querySelectorAll('input[name=f-type]').forEach(i => i.checked = i.value === p.flight_type);
@@ -322,6 +328,7 @@ function edRead() {
   const num = id => $(id).value === '' ? null : +$(id).value;
   return {name: $('f-name').value, description: $('f-desc').value, sysid: +$('f-sysid').value, stage: $('f-stage').value,
     link: (document.querySelector('input[name=f-link]:checked') || {}).value, flight_type: (document.querySelector('input[name=f-type]:checked') || {}).value,
+    battery_hold_pct: num('f-bhold'), battery_land_pct: num('f-bland'),
     height_m: num('f-height'), hold_s: num('f-hold'), wait_s: num('f-wait'), takeoff_pause_m: num('f-pause'),
     test_descent_rate: num('f-tdr'), final_descent_rate: num('f-fdr'), height_timeout_s: num('f-hto'),
     lift_by_climb: $('f-lift').checked, ground_attitude: $('f-gatt').checked};
@@ -335,7 +342,7 @@ async function edPreview() {
   $('edErr').innerHTML = PREV.errors.map(e => `<div class="err">${esc(e)}</div>`).join('');
   const flies = ['takeoff', 'hold', 'descent', 'landing', 'disarm'].includes(p.stage);
   ['f-height', 'f-hold', 'f-pause', 'f-tdr', 'f-fdr'].forEach(id => $(id).disabled = !flies);
-  $('f-hto').disabled = !flies; $('edCmd').textContent = PREV.argv ? 'cd ~/FlightPlanner && ' + PREV.argv.join(' ') : '(not runnable yet)';
+  $('f-hto').disabled = !flies; $('f-bhold').disabled = $('f-bland').disabled = !flies; $('edCmd').textContent = PREV.argv ? 'cd ~/FlightPlanner && ' + PREV.argv.join(' ') : '(not runnable yet)';
   chart($('cvEd'), PREV.timeline, null);
 }
 document.querySelectorAll('#pg-prof input,#pg-prof select,#pg-prof textarea').forEach(i => { i.addEventListener('input', edChanged); i.addEventListener('change', edChanged); });
@@ -420,10 +427,10 @@ function ctlState() {
   const who = st === 'armed' ? 'COMPUTER' : st === 'pilot' ? 'PILOT' : 'NOBODY';
   $('own').className = 'own ' + who; $('own').textContent = who === 'NOBODY' ? 'NOBODY (disarmed)' : who === 'COMPUTER' ? 'COMPUTER (agent flying)' : 'PILOT (took over)';
   const order = [['starting', 'Connecting'], ['ready', 'READY'], ['armed', 'Armed'], ['done', 'Finished']], idx = order.findIndex(o => o[0] === (st === 'pilot' ? 'armed' : st === 'ended' ? 'done' : st));
-  $('chips').innerHTML = st === 'none' ? '<span class="e">No run yet.</span>' : order.map((o, i) => `<span class="cs ${i < idx ? 'ok' : i === idx ? (st === 'ended' ? 'bad' : 'act') : ''}">${o[1]}</span>`).join('') + (SNAP.stage ? `<span class="cs act">stage: ${esc(SNAP.stage)}</span>` : '') + (st === 'pilot' ? '<span class="cs bad">pilot has it</span>' : '');
+  $('chips').innerHTML = st === 'none' ? '<span class="e">No run yet.</span>' : order.map((o, i) => `<span class="cs ${i < idx ? 'ok' : i === idx ? (st === 'ended' ? 'bad' : 'act') : ''}">${o[1]}</span>`).join('') + (SNAP.stage ? `<span class="cs act">stage: ${esc(SNAP.stage)}</span>` : '') + (st === 'pilot' ? '<span class="cs bad">pilot has it</span>' : '') + (LASTBATT && act ? `<span class="cs act">battery ${LASTBATT.volts != null ? LASTBATT.volts.toFixed(2) + ' V' : ''} ${LASTBATT.pct != null ? '(' + LASTBATT.pct + ' %)' : ''}</span>` : '');
 }
 $('startBtn').onclick = async () => {
-  $('startBtn').disabled = true; FEED = []; SINCE = 0; $('feed').innerHTML = '';
+  $('startBtn').disabled = true; FEED = []; SINCE = 0; LASTBATT = null; $('feed').innerHTML = '';
   try { await api('POST', '/api/run/start', {profile: RUNPROF, token: TOKEN}); startPoll(); } catch (e) { $('startMsg').textContent = e.message; }
 };
 /* hold to arm */
@@ -448,13 +455,13 @@ function line(f) {
   if (f.kind === 'sent') return `<li class="sent">${t}  sent to agent: ${esc(f.text)}</li>`;
   if (f.kind === 'result') return `<li class="ev">${t}  RESULT: ${esc(f.data.outcome || f.data.error)}</li>`;
   const e = f.data, n = e.event;
-  const txt = n === 'ready' ? 'READY: waiting for ARM' : n === 'armed' ? 'ARMED' : n === 'stage' ? 'stage: ' + e.stage : n === 'rc_takeover' ? 'PILOT TOOK OVER (' + (e.via || 'mode change') + ')' : n === 'takeover_classified' ? 'takeover classified: ' + e.source : n === 'still_armed' ? 'still armed: the pilot disarms' : n === 'pilot_disarmed' ? 'disarmed' : n === 'safety' ? 'GUARD: ' + e.action + ' ' + (e.reasons || []).join('; ') : n;
+  const txt = n === 'ready' ? 'READY: waiting for ARM' : n === 'armed' ? 'ARMED' : n === 'stage' ? 'stage: ' + e.stage : n === 'rc_takeover' ? 'PILOT TOOK OVER (' + (e.via || 'mode change') + ')' : n === 'takeover_classified' ? 'takeover classified: ' + e.source : n === 'still_armed' ? 'still armed: the pilot disarms' : n === 'pilot_disarmed' ? 'disarmed' : n === 'safety' ? 'GUARD: ' + e.action + ' ' + (e.reasons || []).join('; ') : n === 'battery' ? 'battery ' + (e.volts != null ? e.volts.toFixed(2) + ' V' : '? V') + (e.pct != null ? ' (' + e.pct + ' %)' : '') + ', ' + Math.round(e.t_s / 60 * 10) / 10 + ' min in' : n;
   return `<li class="${['rc_takeover', 'safety'].includes(n) ? 'bad' : 'ev'}">${t}  ${esc(txt)}</li>`;
 }
 async function pollOnce() {
   let s; try { s = await api('GET', '/api/run?since=' + SINCE); } catch (e) { return; }
   if (s.state === 'none') return;
-  SNAP = Object.assign(SNAP || {}, s); if (s.feed) { SINCE += s.feed.length; const ul = $('feed'); s.feed.forEach(f => ul.insertAdjacentHTML('afterbegin', line(f))); }
+  SNAP = Object.assign(SNAP || {}, s); if (s.feed) { s.feed.forEach(f => { if (f.kind === 'event' && f.data.event === 'battery') LASTBATT = f.data; }); SINCE += s.feed.length; const ul = $('feed'); s.feed.forEach(f => ul.insertAdjacentHTML('afterbegin', line(f))); }
   ctlState(); rail(); tick(); redraw();
   if (['done', 'ended'].includes(s.state)) { stopPoll(); showResult(s); TOKEN = null; $('authBox').hidden = true; $('acType').value = ''; $('phrase').value = ''; refreshRun(); }
 }

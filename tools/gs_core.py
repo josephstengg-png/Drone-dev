@@ -45,9 +45,11 @@ STAGE_NOTE = {
     "landing": "... and landing",
     "disarm": "The whole flight: take off, hover, land, disarm (the full hover test)",
 }
-# drone_agent.py refuses --height above ceiling - 0.15 with a real aircraft (ceiling 1.2 m)
-REAL_CEILING_M = 1.2
-HEIGHT_MAX_M = REAL_CEILING_M - 0.15
+# drone_agent.py caps a real hover at 1.05 m unless --max-height-m raises it, to 2.0 m at most (4 Nov 2026,
+# endurance hover). The profile may ask for up to 2.0 m; the command then carries --max-height-m.
+HEIGHT_DEFAULT_CAP_M = 1.05
+HEIGHT_MAX_M = 2.0
+HOLD_MAX_S = 7200.0
 AIRCRAFT = {113: dict(host="jetson-2", radio="udpout://127.0.0.1:14540", usb="serial:/dev/ttyACM0",
                       fleet="fleet-artex113.yaml", hover=0.42),
             115: dict(host="jetson-1", radio="udpout://127.0.0.1:14540", usb="serial:/dev/ttyACM0",
@@ -56,7 +58,8 @@ AIRCRAFT = {113: dict(host="jetson-2", radio="udpout://127.0.0.1:14540", usb="se
 DEFAULTS = dict(name="", description="", sysid=113, link="radio", flight_type="bench", stage="takeoff",
                 height_m=0.8, hold_s=5.0, wait_s=15.0, takeoff_pause_m=0.5,
                 test_descent_rate=0.08, final_descent_rate=0.05,
-                lift_by_climb=True, ground_attitude=True, height_timeout_s=None)
+                lift_by_climb=True, ground_attitude=True, height_timeout_s=None,
+                battery_hold_pct=None, battery_land_pct=None)
 FLIGHT_TYPES = ("bench", "tether", "free")
 
 
@@ -86,6 +89,12 @@ def normalise(raw: dict) -> dict:
             p["height_timeout_s"] = float(p["height_timeout_s"])
         except (TypeError, ValueError):
             p["height_timeout_s"] = float("nan")
+    for k in ("battery_hold_pct", "battery_land_pct"):
+        if p[k] is not None:
+            try:
+                p[k] = float(p[k])
+            except (TypeError, ValueError):
+                p[k] = float("nan")
     for k in ("lift_by_climb", "ground_attitude"):
         p[k] = bool(p[k])
     p["name"] = str(p["name"]).strip()
@@ -107,7 +116,7 @@ def validate(p: dict) -> list[str]:
     if p["stage"] not in STAGES:
         e.append(f"Stage must be one of {', '.join(STAGES)}.")
     for k, lo, hi, label in (("height_m", 0.3, HEIGHT_MAX_M, "Hover height"),
-                             ("hold_s", 0.0, 120.0, "Hold time"),
+                             ("hold_s", 0.0, HOLD_MAX_S, "Hold time"),
                              ("wait_s", 1.0, 120.0, "Takeover window"),
                              ("takeoff_pause_m", 0.2, HEIGHT_MAX_M, "Take-off pause height"),
                              ("test_descent_rate", 0.03, 0.5, "Test descent rate"),
@@ -118,6 +127,12 @@ def validate(p: dict) -> list[str]:
                      f"{' m' if k.endswith('_m') else ' s' if k.endswith('_s') else ' m/s'}.")
     if p["height_timeout_s"] is not None and not (0.3 <= p["height_timeout_s"] <= 10):
         e.append("Height timeout must be 0.3 to 10 s, or blank for automatic.")
+    bh, bl = p["battery_hold_pct"], p["battery_land_pct"]
+    for v, label in ((bh, "Guard battery hold"), (bl, "Guard battery land")):
+        if v is not None and not (v == v and 0 <= v <= 60):
+            e.append(f"{label} must be 0 to 60 %, or blank for the default.")
+    if bh is not None and bl is not None and bh == bh and bl == bl and bh < bl:
+        e.append("Guard battery hold must not be below the land threshold.")
     return e
 
 
@@ -209,6 +224,11 @@ def agent_argv(p: dict, trace: str) -> list[str]:
               "--takeoff-pause-m", f"{p['takeoff_pause_m']:g}",
               "--test-descent-rate", f"{p['test_descent_rate']:g}",
               "--final-descent-rate", f"{p['final_descent_rate']:g}"]
+        if p["height_m"] > HEIGHT_DEFAULT_CAP_M:
+            a += ["--max-height-m", f"{HEIGHT_MAX_M:g}"]
+        for flag, k in (("--battery-hold-pct", "battery_hold_pct"), ("--battery-land-pct", "battery_land_pct")):
+            if p[k] is not None:
+                a += [flag, f"{p[k]:g}"]
         if p["lift_by_climb"]:
             a.append("--lift-by-climb")
         if p["ground_attitude"]:
@@ -268,6 +288,20 @@ def assess(p: dict, ctx: dict) -> list[dict]:
         add("drift", "accept", "No horizontal position hold",
             "Only height is controlled. Indoors the aircraft will drift sideways; the tether and the pilot "
             "limit it, the software does not.")
+    if props_on and flies and (p["height_m"] > HEIGHT_DEFAULT_CAP_M or p["hold_s"] > 600):
+        mins = p["hold_s"] / 60
+        add("long_hover", "accept", "A long or high props-on hover",
+            f"{p['height_m']:g} m for {mins:.0f} min of hold. The aircraft has no horizontal position hold, so drift "
+            "accumulates for the whole time and nothing but the tether and the pilot's attention limits it. "
+            "A fall from this height carries more energy than the 0.3 m run that has been flown. "
+            "The pilot must stay at the handset for the full duration, with ch5 and kill in reach.")
+    if props_on and flies and p["battery_land_pct"] is not None and p["battery_land_pct"] < 15:
+        add("battery_deep", "accept", "The guard will not land you before PX4's own battery failsafes",
+            f"The guard lands at {p['battery_land_pct']:g} % (default 15). PX4 on ARTEX113 (COM_LOW_BAT_ACT 3) warns at 20 %, "
+            "returns at 15 % and lands at 10 %, and indoors a return needs a position it does not have, so the "
+            "outcome is unobserved. The percentage is a voltage estimate (no current sensor, no capacity set): "
+            "it reads low under load and can recover. Thrust needed to hover rises as the pack sags, and the "
+            "controller aborts to LAND if it saturates for 2 s.")
     if p["flight_type"] == "free" and flies:
         add("untethered", "accept", "Free flight: nothing physically limits the aircraft",
             "A height-loop fault or a drift takes it wherever it goes. The only stops are the pilot's switches.")

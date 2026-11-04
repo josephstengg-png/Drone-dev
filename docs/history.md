@@ -359,6 +359,43 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (afternoon) — Endurance hover: 2.0 m, holds past 30 min, battery log; first live GUI run found
+
+The operator asked for the code to allow a hover up to 2 m held for more than 30 minutes, to measure ARTEX113's endurance
+and battery use while testing its low-battery and critical behaviour. **Nothing was flown.** Changes (358 tests pass;
+agent, guard and controller deployed to jetson-2 together, md5-verified, no agent was running):
+- **`drone_agent.py`:** `--max-height-m` (real aircraft, default cap still 1.05 m, at most 2.0 m); the controller ceiling is the
+  cap + 0.15 m (2.15 m at 2.0). New `real_height_limits()` also reads PX4's `GF_ACTION` and `GF_MAX_VER_DIST` and **refuses** a
+  hover within 0.25 m of the fence, since PX4 would act first. The guard's own stage-1 ceiling now follows
+  (`max(2.0, ceiling + 0.15)`, so 2.3 m for a 2 m hover; unchanged for ordinary runs). `--battery-hold-pct` added beside
+  `--battery-land-pct`. The trace gains `batt_v,batt_pct`, and a `battery` event (volts, percent, minutes in) goes out every
+  30 s: about 100 bytes, far below anything that could fill the stdout pipe and stall the control loop.
+- **GUI** (`gs_core.py`, `gui/index.html`): hover height to 2.0 m, hold up to 7200 s, guard battery thresholds as profile fields,
+  battery shown in the feed and as a chip, a chart axis in minutes. Two new risks to accept: a long or high props-on hover,
+  and a guard that lands below PX4's own battery failsafes. Seeded **"Endurance hover 2.0 m - USB tethered"** (2.0 m, 2400 s,
+  guard holds at 12 % and lands at 8 %, so PX4's own failsafes act first).
+- **Found while reading 113's parameters** (`artex113-params-live.json`):
+  - `GF_MAX_VER_DIST` is **3.0 m** now (it was 1.0 on 15 Oct), `GF_ACTION` 5 (Land): a 2 m hover is inside it.
+  - **There is no current sensor or capacity** (`BAT1_I_CHANNEL` -1, `BAT1_CAPACITY` -1, `BAT1_SOURCE` 0): the battery
+    percentage is a **voltage estimate** (4 cells, 4.1 V full, 3.2 V empty). **Consumption in Ah cannot be measured**; the
+    run gives volts and percent against time only. The estimate reads low under load and recovers on the ground.
+  - `COM_LOW_BAT_ACT` 3: warn at 20 % (`BAT_LOW_THR`), **return at 15 %**, **land at 10 %**. Indoors a return needs a position
+    the aircraft does not have, so the outcome there is **unobserved**.
+- **Controller model, not a flight:** a simulated 2 m hold of 2400 s with the true hover thrust rising 0.42 to 0.50 over
+  30 minutes ended in a normal landing at 2419 s. If the pack sags past what the integrator (`i_limit` 0.25) and
+  `thrust_max` 0.8 can cover, the controller aborts to PX4 LAND after 2 s saturated.
+- **What the code does not remove:** no horizontal position hold, so drift accumulates for the whole run; the USB cable and
+  tether limit it, nothing else does. The pilot must stay at the handset for the full duration. Not tested on an aircraft.
+- Evidence: `tests/test_endurance.py`, 13 tests.
+
+**First live GUI run (the operator's, 11:36, props off):** `runs/20261104-113615.json`, profile "artex113 GUI test"
+(arm stage over radio), operator Joseph. The agent reached READY, ARM was sent only after the authorisation, it armed,
+the pilot took over (classified `pilot_switch` in 0.7 s), PX4 disarmed by RC switch 5.1 s later, `passed`. Two things
+worth knowing: the takeover went to **main mode 7 (Stabilized)**, not Altitude, so ch7 was at -100 (Stabilized is direct
+throttle); and the 3 Nov pattern recurred, "Connection to ground station lost" and "Failsafe activated" while armed.
+**`profiles/bench-arm-stage-over-radio.json` now says `sysid` 115** (it was 113): saved that way from the GUI, so a profile
+named for the 113 bench test points at ARTEX115. Not changed; check it.
+
 ## 2026-11-04 (later) — TODO (parked by the operator): two-aircraft hover, arm all, then take off together
 
 **Status: NOT STARTED. The operator paused the multi-aircraft work to do the endurance hover first.**

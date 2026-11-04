@@ -1,7 +1,7 @@
 {
  "name": "Bench - arm stage over radio",
  "description": "Props OFF. Armed in Offboard, you take over with ch5 off. The 3 Nov T2 test.",
- "sysid": 113,
+ "sysid": 115,
  "link": "radio",
  "flight_type": "bench",
  "stage": "arm",

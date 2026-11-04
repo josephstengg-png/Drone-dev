@@ -755,6 +755,30 @@ ESTIMATOR_ATTITUDE_FLAG = 1
 FORCE_DISARM_MAGIC = 21196            # MAVLink's "yes, I mean it" for disarming in flight
 EMERGENCY_WORDS = ("ABORT", "LAND", "HOLD", "DISARM", "KILL")
 
+# Hover height on a real aircraft (4 Nov 2026). Default cap 1.05 m as always; --max-height-m raises it, to at
+# most 2.0 m, for the endurance hover. The controller's ceiling stays 0.15 m above whatever cap is in force.
+REAL_DEFAULT_CAP_M = 1.05
+REAL_ABS_MAX_M = 2.0
+GEOFENCE_MARGIN_M = 0.25
+
+
+def real_height_limits(height: float, max_height: float | None, gf_action, gf_max_ver) -> tuple[float | None, str | None]:
+    """(controller ceiling, None) for a real aircraft, or (None, why not).
+
+    PX4's own vertical geofence (GF_MAX_VER_DIST, acting by GF_ACTION) would take the aircraft away from
+    the agent before the agent's ceiling does, so a hover within GEOFENCE_MARGIN_M of it is refused.
+    Conservative: PX4 may not evaluate the fence without a home position, and the agent cannot tell."""
+    cap = REAL_DEFAULT_CAP_M if not max_height else max_height
+    if cap > REAL_ABS_MAX_M:
+        return None, f"--max-height-m {cap:g} is above the {REAL_ABS_MAX_M:g} m limit"
+    if height > cap:
+        return None, (f"--height {height:g} is above the {cap:g} m cap"
+                      + ("" if max_height else " (--max-height-m raises it, to 2.0 m at most)"))
+    if gf_action and gf_max_ver and gf_max_ver > 0 and height + GEOFENCE_MARGIN_M > gf_max_ver:
+        return None, (f"PX4's vertical geofence GF_MAX_VER_DIST is {gf_max_ver:g} m (GF_ACTION {int(gf_action)}): "
+                      f"a {height:g} m hover is within {GEOFENCE_MARGIN_M:g} m of it and PX4 would act first")
+    return round(cap + 0.15, 2), None
+
 # PX4's own words for the pilot's kill switch. These are the OPERATOR stopping the
 # aircraft, not the aircraft failing, so they must neither count as accumulated error nor
 # provoke the guard into commanding anything. Proven necessary on ARTEX113, 9 Oct 2026:
@@ -781,7 +805,7 @@ def statustext_of(msg) -> str:
 def limits_from_args(args) -> safety_rules.Limits:
     lim = safety_rules.Limits()
     for attr, name in (("hold_rate", "hold_rate"), ("land_rate", "land_rate"),
-                       ("battery_land_pct", "battery_land_pct"),
+                       ("battery_hold_pct", "battery_hold_pct"), ("battery_land_pct", "battery_land_pct"),
                        ("tilt_land_deg", "tilt_land_deg"),
                        ("cut_after_s", "cut_after_s")):
         given = getattr(args, attr, None)
@@ -845,6 +869,8 @@ class Guard:
         # 3 Nov 2026: 45 min after boot raw -z read 4.92 m on the floor, and the ceiling rule
         # commanded LAND the moment the agent connected (props-off Run A, never armed).
         self.zero_required = False
+        self.batt_v: float | None = None          # volts, from SYS_STATUS (None = unknown)
+        self.batt_pct: float | None = None        # PX4's voltage-based estimate; no current sensor on ARTEX113
         # Takeover classification (29 Oct 2026): which way the aircraft left OFFBOARD.
         self.mode_chan = getattr(args, "mode_chan", 7) or 7
         self.offboard_chan = getattr(args, "offboard_chan", 5) or 5      # since 3 Nov 2026
@@ -881,6 +907,11 @@ class Guard:
             self.wd.statustext(msg.severity, text, now)
         elif kind == "BATTERY_STATUS":
             self.wd.battery(getattr(msg, "battery_remaining", None), now)
+        elif kind == "SYS_STATUS":
+            # for the endurance log only; the rules above use BATTERY_STATUS
+            mv, pct = getattr(msg, "voltage_battery", 0), getattr(msg, "battery_remaining", -1)
+            self.batt_v = mv / 1000.0 if 0 < mv < 65535 else None
+            self.batt_pct = pct if 0 <= pct <= 100 else None
         elif kind == "ATTITUDE":
             self.wd.attitude(math.degrees(msg.roll), math.degrees(msg.pitch), now)
         elif kind == "EXTENDED_SYS_STATE":
@@ -1481,11 +1512,20 @@ def cmd_offboard_flight(args) -> int:
                                 "--sim-outage is simulator-only"))
             emit(result)
             return 2
-    ceiling = 1.5 if sim else 1.2
-    if args.height > ceiling - 0.15:
-        result["error"] = f"--height {args.height} too close to the {ceiling} m ceiling"
+    if sim:
+        ceiling = 1.5
+        err = f"--height {args.height} too close to the {ceiling} m ceiling" if args.height > ceiling - 0.15 else None
+    else:
+        gf_act, gf_max = read_param(conn, "GF_ACTION"), read_param(conn, "GF_MAX_VER_DIST")
+        ceiling, err = real_height_limits(args.height, args.max_height_m, gf_act, gf_max)
+        result["geofence"] = dict(action=gf_act, max_ver_dist=gf_max)
+    if err:
+        result["error"] = err
         emit(result)
         return 2
+    # the guard's own ceiling (stage 1 LAND) must sit above the controller's, or it fires in a normal hover
+    if getattr(args, "ceiling_m", None) is None:
+        args.ceiling_m = max(2.0, ceiling + 0.15)
     if vehicle_armed(conn) is not False:
         result["error"] = "refusing: vehicle is ARMED or silent"
         emit(result)
@@ -1696,7 +1736,7 @@ def cmd_offboard_flight(args) -> int:
         floor_att = (state["roll"] or 0.0, state["pitch"] or 0.0)
         result["profile"] = prof
         ctl.start(time.time(), 0.0)
-        t_prev = time.time()
+        t_prev = last_batt = time.time()
         while True:
             pump(0.05)
             now = time.time()
@@ -1733,7 +1773,11 @@ def cmd_offboard_flight(args) -> int:
             enter("takeoff" if stage == "takeoff" and name == "hold" else name)
             trace.append((round(now - t_start, 2), cmd.phase, None if h is None else round(h, 3),
                           None if cmd.height_sp is None else round(cmd.height_sp, 3),
-                          round(cmd.thrust, 3), state["mode"]))
+                          round(cmd.thrust, 3), state["mode"], guard.batt_v, guard.batt_pct))
+            if now - last_batt >= 30.0 and (guard.batt_v is not None or guard.batt_pct is not None):
+                last_batt = now      # ~100 bytes every 30 s: far too little to ever fill the stdout pipe
+                emit(dict(event="battery", slot=args.slot, volts=guard.batt_v, pct=guard.batt_pct,
+                          stage=cur["stage"], t_s=round(now - t_start, 1), t_epoch=round(time.time(), 3)))
             if cmd.request == "land":
                 log(f"[ladder] controller abort: {cmd.reason} -> PX4 LAND")
                 result.update(outcome="controller_abort", abort_reason=cmd.reason)
@@ -1761,7 +1805,7 @@ def cmd_offboard_flight(args) -> int:
         # The trace first, before anything below touches the link: in T3 run 1 (29 Oct) the USB
         # dropped at the floor impact, the pump() here raised again and the trace was lost.
         if args.trace:
-            Path(args.trace).write_text("t_s,phase,height_m,height_sp_m,thrust,mode\n" + "".join(
+            Path(args.trace).write_text("t_s,phase,height_m,height_sp_m,thrust,mode,batt_v,batt_pct\n" + "".join(
                 ",".join("" if v is None else str(v) for v in r) + "\n" for r in trace))
         result["takeover_source"] = guard.takeover_source if guard.pilot_has_it else None
         result["link_losses"] = guard.link_losses
@@ -2005,6 +2049,11 @@ def main() -> int:
                          "(default 0.5 s sim, 1.0 s real)")
     ap.add_argument("--real-aircraft", action="store_true",
                     help="offboard-flight: required, with --expect-sysid and --gate, to fly a real one")
+    ap.add_argument("--max-height-m", type=float, default=None,
+                    help="offboard-flight, real aircraft: raise the hover-height cap above 1.05 m, to 2.0 m at most "
+                         "(the controller ceiling follows, +0.15 m). Endurance hover, 4 Nov 2026")
+    ap.add_argument("--battery-hold-pct", type=float, default=None,
+                    help="guard: battery %% that makes it HOLD (default 25)")
     ap.add_argument("--allow-radio-flight", action="store_true",
                     help="offboard-flight, real aircraft: allow flight stages over ELRS. PROPS OFF "
                          "ONLY -- the thrust-only height loop is unstable across the radio (29 Oct); "

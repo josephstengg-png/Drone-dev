@@ -91,7 +91,7 @@ def main():
     t_arm = time.time()
     emit(dict(event="armed", slot=None, sysid=a.expect_sysid, armed_epoch=round(t_arm, 3)))
     names = {"spool": "arm", "climb": "takeoff", "hold": "hold", "descent": "descent", "landing": "landing"}
-    last_stage, tick = None, 0
+    last_stage, tick, last_batt = None, 0, -30.0
     total = tl["total_s"] if tl["flies"] else a.wait_s
     pilot = None
     while True:
@@ -119,6 +119,10 @@ def main():
             result.update(outcome="takeover", takeover_source=src, takeover_stage=last_stage,
                           takeover_after_s=round(t, 2), disarmed=True)
             break
+        if tl["flies"] and t - last_batt >= 30:
+            last_batt = t
+            emit(dict(event="battery", slot=None, volts=round(16.2 - 0.0008 * t, 2), pct=max(0, round(95 - t / 40)),
+                      stage=last_stage, t_s=round(t, 1), t_epoch=time.time()))
         if tl["flies"]:
             cur = next((n for n, lo, hi in tl["marks"] if lo <= t < hi), None)
             if cur and cur != "spool" and names[cur] != last_stage:
