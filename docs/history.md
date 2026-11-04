@@ -363,7 +363,7 @@ bench run wants the agent to stop at READY and never arm.
 
 The operator asked for the GUI "continuing from version 5" that lets them **bear the responsibility**, **create mission
 profiles** and **run the offboard missions**. Built as a front end over the existing tools, standard library only.
-Commit 2 of 2 today; nothing flew, and no real aircraft was contacted (jetson-2 was unreachable; the build and every
+Nothing flew, and no real aircraft was contacted (jetson-2 was unreachable; the build and every
 test ran against a simulated agent).
 
 - **Run it:** `python3 tools/gs_server.py --demo` (simulated aircraft) or without `--demo` (LIVE: the real agent over
