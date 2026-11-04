@@ -359,6 +359,25 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (later) — TODO (parked by the operator): two-aircraft hover, arm all, then take off together
+
+**Status: NOT STARTED. The operator paused the multi-aircraft work to do the endurance hover first.**
+Wanted: ARM ALL, then only when every aircraft reports armed, TAKE OFF ALL together. Why it needs work (14 Oct, 6 runs,
+props off, radio): arm instants differed by a median 1.75 s, worst 2.6 s (3.3 s on 12 Oct); 4/6 clean; the barrier syncs
+permission, not the arm instant; each agent retries ARM every 3 s; RF contention was ruled out (0 % loss).
+- **Where the code is** (`FlightPlanner/`): `tools/pair_arm_test.py` (`Gated` line 96, `main` from 149: the ARM loop that sends
+  one aircraft after another); `tools/drone_agent.py` (`cmd_offboard_arm` 1257, arm retry loop after the gate;
+  `cmd_offboard_flight` 1433, the agent the GUI drives: gate about 1640, then straight to take-off; `hold_for` 663, the
+  shared-epoch hold that `do_arm` 671 and `do_start` 710 accept but the pair test never passes); `tools/swarm_deploy.py`
+  (barrier 402, shared start instant 416, 78 ms spread in SITL); `tools/arm_stability.py`; `fleet-artex-pair.yaml`.
+  No tests cover the pair test or the swarm barrier.
+- **To do:** a second gate in `cmd_offboard_flight` (armed, then wait for `GO <epoch>`); release ARM and GO with a shared
+  epoch via `hold_for`; a barrier in `gs_server.py` (one `Run` per aircraft, ARM ALL only when all READY and preflight GO,
+  GO only when all armed, abort-all and disarm if any is missing inside a limit under `COM_DISARM_PRFLT` 10 s); a clock
+  check first (jetson-2 resets to 1970 on power loss). Physical lift-off still varies per aircraft (about 4 s on 29 Oct).
+- Waypoint (multi-mission) integration is also paused; the open swarm gaps (RTL layer, launch scheduling, no collision
+  avoidance, failsafe baseline 113 vs 115, 115's CRSF setting) are listed in the same conversation and in `parameters.yaml`.
+
 ## 2026-11-04 — Ground-station GUI built from mock 5: profiles, responsibility, offboard runs
 
 The operator asked for the GUI "continuing from version 5" that lets them **bear the responsibility**, **create mission
