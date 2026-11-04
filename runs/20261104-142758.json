@@ -1,0 +1,215 @@
+{
+ "id": "20261104-142758",
+ "started": "2026-11-04 14:27:58",
+ "mode": "live",
+ "profile": {
+  "name": "artex113 GUI test",
+  "description": "Props OFF, to arm only over radio test GUI pipeline",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "disarm",
+  "height_m": 1.0,
+  "hold_s": 30.0,
+  "wait_s": 20.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.06,
+  "final_descent_rate": 0.04,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": null
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-04 14:27:56",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage disarm --wait-s 20 --gate-timeout-s 150 --height 1 --hold-s 30 --takeoff-pause-m 0.5 --test-descent-rate 0.06 --final-descent-rate 0.04 --lift-by-climb --ground-attitude --allow-radio-flight --height-timeout-s 3 --trace /tmp/gs_20261104-142758.csv"
+ ],
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "disarm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": null,
+  "takeover_source": "link_loss",
+  "takeover_stage": "prearm",
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "rx_hz": {
+   "RC_CHANNELS": 1.0,
+   "ATTITUDE": 1.5,
+   "LOCAL_POSITION_NED": 0.5,
+   "HEARTBEAT": 1.0
+  },
+  "height_feed_requested_hz": 10,
+  "takeover_after_s": 3.39,
+  "takeover_height_m": 0.0,
+  "takeover_tilt_deg": 0.9,
+  "height_feed": {
+   "readings_last_6s": 0,
+   "longest_gap_s": null,
+   "timeout_s": 3.0,
+   "waited_s": 1.8,
+   "ok": false
+  },
+  "error": "refusing to arm: height does not arrive fast enough to fly. In the last 6 s there were 0 readings, longest gap unknown, against a 3 s timeout and a 1 Hz minimum, so the controller would abort at once. Over the radio this can happen; use the USB cable",
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 90,
+   "dropped_sim": 0,
+   "hz": 20.0
+  },
+  "max_height_m": null,
+  "disarmed": true,
+  "passed": false
+ },
+ "finished": "2026-11-04 14:28:17",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793773678.58,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793773678.89,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793773692.03,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 16130.435
+   }
+  },
+  {
+   "n": 3,
+   "t": 1793773692.03,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 4,
+   "t": 1793773693.81,
+   "kind": "log",
+   "text": "[ladder] waiting up to 40 s for a height feed the controller can live on (a reading every 3 s, 1 Hz or better); asked the aircraft for 10 Hz"
+  },
+  {
+   "n": 5,
+   "t": 1793773695.42,
+   "kind": "log",
+   "text": "[safety] LEFT OUR MODE: main mode 6 -> 7. Standing down -- no setpoints, no mode changes, no disarm while airborne."
+  },
+  {
+   "n": 6,
+   "t": 1793773695.42,
+   "kind": "event",
+   "data": {
+    "event": "rc_takeover",
+    "slot": null,
+    "from_mode": 6,
+    "to_mode": 7,
+    "airborne": false,
+    "t_epoch": 16133.828
+   }
+  },
+  {
+   "n": 7,
+   "t": 1793773696.94,
+   "kind": "event",
+   "data": {
+    "event": "takeover_classified",
+    "slot": null,
+    "source": "link_loss",
+    "after_s": 1.52,
+    "airborne": false,
+    "t_epoch": 16135.347
+   }
+  },
+  {
+   "n": 8,
+   "t": 1793773696.94,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "disarm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": null,
+    "takeover_source": "link_loss",
+    "takeover_stage": "prearm",
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "rx_hz": {
+     "RC_CHANNELS": 1.0,
+     "ATTITUDE": 1.5,
+     "LOCAL_POSITION_NED": 0.5,
+     "HEARTBEAT": 1.0
+    },
+    "height_feed_requested_hz": 10,
+    "takeover_after_s": 3.39,
+    "takeover_height_m": 0.0,
+    "takeover_tilt_deg": 0.9,
+    "height_feed": {
+     "readings_last_6s": 0,
+     "longest_gap_s": null,
+     "timeout_s": 3.0,
+     "waited_s": 1.8,
+     "ok": false
+    },
+    "error": "refusing to arm: height does not arrive fast enough to fly. In the last 6 s there were 0 readings, longest gap unknown, against a 3 s timeout and a 1 Hz minimum, so the controller would abort at once. Over the radio this can happen; use the USB cable",
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 90,
+     "dropped_sim": 0,
+     "hz": 20.0
+    },
+    "max_height_m": null,
+    "disarmed": true,
+    "passed": false
+   }
+  },
+  {
+   "n": 9,
+   "t": 1793773696.94,
+   "kind": "log",
+   "text": "[safety] *** OFFBOARD LOST ON THE LINK -- NOT A PILOT TAKEOVER *** the offboard switch (ch5) is still on and ch7 has not moved. PX4 failed over and the agent has stood down for good. PILOT: you have the aircraft -- fly it and land it."
+  }
+ ]
+}

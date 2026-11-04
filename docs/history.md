@@ -359,6 +359,28 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (night, later) — Experiment 2: the ARM arrives faster at 3 Hz than at 20 Hz (supported, n = 5 per arm)
+
+Protocol `docs/experiments/2026-11-04-radio-uplink.md`; analysis `python3 tools/experiment_report.py exp2`. Operator-run in the GUI, props OFF, bench / radio / arm
+stage, `EXP2-A` (`--setpoint-hz 20`) against `EXP2-B` (`--setpoint-hz 3`), planned order `B A A A B B B A B A`; the operator pressed ARM each time. Seconds from "ARM sent" to
+"Armed by external command":
+
+    B  3 Hz   runs 1, 5, 6, 7, 10:   1.8  2.3  3.5  1.6  2.6   5 of 5 armed, median 2.3 s, worst 3.5 s
+    A 20 Hz   runs 2, 3, 4, 8, 9:    3.7  9.6  7.3  NO ARM  7.1  4 of 5 armed, median 7.3 s, one failure in the 20 s window (agent withdrew, nothing armed later)
+    Mann-Whitney (failure counted as 15 s) p = 0.012 (exact 0.008: every B was faster than every A).
+
+- **Supported:** at 20 Hz the ARM takes 3 times longer on median and can fail; at 3 Hz it arrived within 3.5 s every time. Together with Experiment 1 (round trips and losses
+  rise with rate) this is the mechanism for the slow and failed radio arms today.
+- **Not supported by this experiment:** the "ground station lost" blips: zero in all ten runs, at either rate.
+- **Operator observation (uninstrumented):** after runs 2, 3 and 4 (A) the aircraft tried to re-arm almost immediately after the pilot's disarm; not after runs 5 (B), 8 and 9 (A,
+  reported none). So 3 of 5 A runs, 0 of the B runs the operator was asked about. A stale queued ARM re-arming after a pilot disarm is a hazard with props on. The agent exits
+  about 0.5 s after the disarm, so the records cannot show it.
+- **Deviations and limits:** runs 9 and 10 were swapped against the plan (A then B instead of B then A), which keeps 5 and 5; the operator was not blinded; one day, one aircraft, 5 per arm.
+  It shows the rate matters for arming, not that 3 Hz is optimal (Experiment 1 put 1 to 2 Hz at idle level) nor that Offboard holds at 3 Hz.
+- **Next, in order:** (1) ARM retry every 3 s piles up copies when round trips exceed 3 s: retry at 8 to 10 s or send once, log how many ARMs were sent, and add a stale-ARM guard (for about
+  20 s after a pilot disarm, an "Armed by external command" is answered with DISARM); (2) an armed props-off hold at 3 Hz and at 2 Hz to see whether PX4 stays in Offboard
+  (the 3.7 s bounce in run 142907 was at 20 Hz); (3) the ulog from these runs (USB) would show when PX4 received each ARM.
+
 ## 2026-11-04 (night) — Experiment 1: the setpoint stream chokes the ELRS uplink (supported, dose-dependent)
 
 `docs/experiments/2026-11-04-radio-uplink.md`; data `fc-backups/2026-11-04/exp1.jsonl` and `exp1.py`; analysis

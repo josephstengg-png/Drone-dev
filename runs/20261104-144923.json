@@ -1,0 +1,361 @@
+{
+ "id": "20261104-144923",
+ "started": "2026-11-04 14:49:23",
+ "mode": "live",
+ "profile": {
+  "name": "Bench - take-off stage over radio",
+  "description": "Props OFF. Spools in Offboard; takeover with ch5 off or kill. The 3 Nov radio test.",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "takeoff",
+  "height_m": 1.0,
+  "hold_s": 30.0,
+  "wait_s": 40.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.06,
+  "final_descent_rate": 0.03,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": null
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-04 14:49:19",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage takeoff --wait-s 40 --gate-timeout-s 150 --height 1 --hold-s 30 --takeoff-pause-m 0.5 --test-descent-rate 0.06 --final-descent-rate 0.03 --lift-by-climb --ground-attitude --allow-radio-flight --height-timeout-s 3 --trace /tmp/gs_20261104-144923.csv"
+ ],
+ "arm_requested": "2026-11-04 14:50:02",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "takeoff",
+  "slot": null,
+  "sysid": 113,
+  "outcome": "left_offboard_to_mode_4",
+  "takeover_source": null,
+  "takeover_stage": "takeoff",
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "rx_hz": {
+   "LOCAL_POSITION_NED": 0.5,
+   "ATTITUDE": 2.5,
+   "RC_CHANNELS": 0.5,
+   "HEARTBEAT": 1.0
+  },
+  "height_feed_requested_hz": 10,
+  "height_feed": {
+   "readings_last_6s": 6,
+   "longest_gap_s": 2.6,
+   "timeout_s": 3.0,
+   "waited_s": 6.0,
+   "ok": true
+  },
+  "vehicle_text": [
+   "Connection to ground station lost",
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "GCS connection regained",
+   "Armed by external command",
+   "[logger] /fs/microsd/log/sess109/log100.ulg",
+   "Failsafe activated",
+   "Failsafe activated",
+   "Takeoff detected"
+  ],
+  "profile": {
+   "target_height_m": 0.5,
+   "hold_s": 40.0,
+   "descent_rate_ms": 0.3,
+   "final_descent_rate_ms": 0.3
+  },
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 890,
+   "dropped_sim": 0,
+   "hz": 20.0
+  },
+  "max_height_m": 0.0,
+  "takeover_after_s": 8.8,
+  "takeover_height_m": 0.02,
+  "takeover_tilt_deg": 1.0,
+  "disarmed": false,
+  "passed": false
+ },
+ "finished": "2026-11-04 14:50:31",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793774963.9,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793774963.99,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793774977.99,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 3,
+   "t": 1793774977.99,
+   "kind": "log",
+   "text": "[ladder] waiting up to 40 s for a height feed the controller can live on (a reading every 3 s, 1 Hz or better); asked the aircraft for 10 Hz"
+  },
+  {
+   "n": 4,
+   "t": 1793774977.99,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 17416.348
+   }
+  },
+  {
+   "n": 5,
+   "t": 1793774984.02,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "takeoff"
+   }
+  },
+  {
+   "n": 6,
+   "t": 1793774984.02,
+   "kind": "log",
+   "text": "[ladder] READY for test 'takeoff' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 7,
+   "t": 1793774999.46,
+   "kind": "log",
+   "text": "[vehicle] Connection to ground station lost"
+  },
+  {
+   "n": 8,
+   "t": 1793774999.96,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: No connection to the ground contro"
+  },
+  {
+   "n": 9,
+   "t": 1793775000.06,
+   "kind": "log",
+   "text": "[vehicle] l station"
+  },
+  {
+   "n": 10,
+   "t": 1793775000.37,
+   "kind": "log",
+   "text": "[vehicle] GCS connection regained"
+  },
+  {
+   "n": 11,
+   "t": 1793775002.31,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 12,
+   "t": 1793775002.47,
+   "kind": "log",
+   "text": "[ladder] stage: arm"
+  },
+  {
+   "n": 13,
+   "t": 1793775002.47,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": false,
+    "height_m": 0.15,
+    "t_epoch": 17440.827
+   }
+  },
+  {
+   "n": 14,
+   "t": 1793775021.86,
+   "kind": "event",
+   "data": {
+    "event": "armed",
+    "slot": null,
+    "sysid": 113,
+    "armed_epoch": 17460.217
+   }
+  },
+  {
+   "n": 15,
+   "t": 1793775021.86,
+   "kind": "log",
+   "text": "[vehicle] Armed by external command"
+  },
+  {
+   "n": 16,
+   "t": 1793775021.93,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "takeoff",
+    "under_test": true,
+    "height_m": 0.0,
+    "t_epoch": 17460.279
+   }
+  },
+  {
+   "n": 17,
+   "t": 1793775021.93,
+   "kind": "log",
+   "text": "[ladder] stage: takeoff <- the stage under test"
+  },
+  {
+   "n": 18,
+   "t": 1793775022.07,
+   "kind": "log",
+   "text": "[vehicle] [logger] /fs/microsd/log/sess109/log100.ulg"
+  },
+  {
+   "n": 19,
+   "t": 1793775023.48,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 20,
+   "t": 1793775023.48,
+   "kind": "log",
+   "text": "[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)"
+  },
+  {
+   "n": 21,
+   "t": 1793775030.22,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 22,
+   "t": 1793775030.73,
+   "kind": "log",
+   "text": "[vehicle] Takeoff detected"
+  },
+  {
+   "n": 23,
+   "t": 1793775030.73,
+   "kind": "log",
+   "text": "[safety] LEFT OUR MODE: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne."
+  },
+  {
+   "n": 24,
+   "t": 1793775030.73,
+   "kind": "event",
+   "data": {
+    "event": "rc_takeover",
+    "slot": null,
+    "from_mode": 4,
+    "to_mode": 2,
+    "airborne": false,
+    "t_epoch": 17469.077
+   }
+  },
+  {
+   "n": 25,
+   "t": 1793775030.73,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "takeoff",
+    "slot": null,
+    "sysid": 113,
+    "outcome": "left_offboard_to_mode_4",
+    "takeover_source": null,
+    "takeover_stage": "takeoff",
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "rx_hz": {
+     "LOCAL_POSITION_NED": 0.5,
+     "ATTITUDE": 2.5,
+     "RC_CHANNELS": 0.5,
+     "HEARTBEAT": 1.0
+    },
+    "height_feed_requested_hz": 10,
+    "height_feed": {
+     "readings_last_6s": 6,
+     "longest_gap_s": 2.6,
+     "timeout_s": 3.0,
+     "waited_s": 6.0,
+     "ok": true
+    },
+    "vehicle_text": [
+     "Connection to ground station lost",
+     "Preflight Fail: No connection to the ground contro",
+     "l station",
+     "GCS connection regained",
+     "Armed by external command",
+     "[logger] /fs/microsd/log/sess109/log100.ulg",
+     "Failsafe activated",
+     "Failsafe activated",
+     "Takeoff detected"
+    ],
+    "profile": {
+     "target_height_m": 0.5,
+     "hold_s": 40.0,
+     "descent_rate_ms": 0.3,
+     "final_descent_rate_ms": 0.3
+    },
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 890,
+     "dropped_sim": 0,
+     "hz": 20.0
+    },
+    "max_height_m": 0.0,
+    "takeover_after_s": 8.8,
+    "takeover_height_m": 0.02,
+    "takeover_tilt_deg": 1.0,
+    "disarmed": false,
+    "passed": false
+   }
+  }
+ ]
+}

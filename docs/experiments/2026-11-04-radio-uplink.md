@@ -23,6 +23,10 @@ the run is done. Leave about 30 s between runs. Primary result: seconds from "AR
 `python3 tools/experiment_report.py exp2`. Prediction: 3 Hz arms in a few seconds nearly every time; 20 Hz is slower and fails some.
 Props off, so every arm is harmless; each run still needs your fresh confirmation in the GUI.
 
+## Experiment 2 result (done)
+3 Hz: 1.8, 2.3, 3.5, 1.6, 2.6 s (5 of 5 armed). 20 Hz: 3.7, 9.6, 7.3, no arm, 7.1 s (4 of 5). Mann-Whitney p = 0.012. Supported. Runs 9 and 10 were swapped
+against the plan; limits and next steps in history.md, 4 Nov night.
+
 ## Operator observation during Experiment 2 (not instrumented)
 After runs 2 and 3 (both A, 20 Hz) the aircraft **tried to arm again almost immediately after the pilot disarmed it in Offboard**. Not seen after
 run 1 (B, 3 Hz). The run records cannot show it, because the agent exits within about half a second of the disarm. Consistent with the theory:
