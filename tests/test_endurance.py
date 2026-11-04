@@ -262,3 +262,19 @@ def test_no_top_level_definition_in_the_agent_is_defined_twice():
              if isinstance(n, (ast.FunctionDef, ast.ClassDef))]
     dupes = sorted({n for n in names if names.count(n) > 1})
     assert dupes == []
+
+
+# ---- the setpoint rate over a radio (4 Nov 2026) ----
+
+def test_the_setpoint_rate_is_low_over_a_radio_and_high_on_a_wire_or_in_the_simulator():
+    assert agent.default_setpoint_hz("udpout://127.0.0.1:14540", False, None) == 3.0          # ELRS relay
+    assert agent.default_setpoint_hz("serial:/dev/ttyACM0", False, None) == 20.0               # USB
+    assert agent.default_setpoint_hz("/dev/ttyACM0", False, None) == 20.0
+    assert agent.default_setpoint_hz("udpin://:14540", True, None) == 20.0                     # SITL keeps its rate
+    assert agent.default_setpoint_hz("udpout://127.0.0.1:14540", False, 8) == 8                # an explicit value wins
+
+
+def test_the_agent_applies_the_default_before_anything_transmits():
+    src = Path(agent.__file__).read_text()
+    assert "args.setpoint_hz = default_setpoint_hz(args.link, sim, args.setpoint_hz)" in src
+    assert src.index("args.setpoint_hz = default_setpoint_hz(") < src.index("1.0 / args.setpoint_hz")

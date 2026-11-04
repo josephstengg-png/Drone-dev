@@ -133,7 +133,7 @@ def validate(p: dict) -> list[str]:
     if p["height_timeout_s"] is not None and not (0.3 <= p["height_timeout_s"] <= 10):
         e.append("Height timeout must be 0.3 to 10 s, or blank for automatic.")
     if p["setpoint_hz"] is not None and not (p["setpoint_hz"] == p["setpoint_hz"] and 1 <= p["setpoint_hz"] <= 50):
-        e.append("Setpoint rate must be 1 to 50 Hz, or blank for the agent's default (20).")
+        e.append("Setpoint rate must be 1 to 50 Hz, or blank for the agent's default (3 over the radio, 20 over USB).")
     bh, bl = p["battery_hold_pct"], p["battery_land_pct"]
     for v, label in ((bh, "Guard battery hold"), (bl, "Guard battery land")):
         if v is not None and not (v == v and 0 <= v <= 60):

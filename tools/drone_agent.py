@@ -704,6 +704,20 @@ def height_feed_check(stamps: list[float], now: float, timeout_s: float) -> tupl
 
 LOCAL_POSITION_NED_ID = 32
 RADIO_HEIGHT_FEED_HZ = 10
+RADIO_SETPOINT_HZ = 3.0
+WIRED_SETPOINT_HZ = 20.0
+
+
+def default_setpoint_hz(link: str, sim: bool, given: float | None) -> float:
+    """The offboard setpoint rate. An explicit --setpoint-hz always wins. Otherwise 20 Hz on a wire or in the simulator, and
+    3 Hz over a radio: 4 Nov 2026, ARTEX113 over ELRS, aircraft disarmed, a harmless command's round trip while streaming
+    setpoints: none 0.9 s median (10/10 acked); 20 Hz 5.6 s (3/10, seven got no answer in 15 s); 5 Hz 4.6 s (9/10); 3 Hz 2.6 s
+    (8/8); 2 Hz 1.2 s (8/8); 1 Hz 2.3 s (8/8). The agent's own 20 Hz stream buried its ARM command and the ground-station
+    heartbeat, which is why radio arms took 6 to 20+ s or failed."""
+    if given is not None:
+        return given
+    wired = link.startswith(("serial:", "/dev/"))
+    return WIRED_SETPOINT_HZ if (sim or wired) else RADIO_SETPOINT_HZ
 
 
 def set_height_feed(conn, hz: float) -> None:
@@ -1545,6 +1559,7 @@ def cmd_offboard_flight(args) -> int:
                   outcome=None, takeover_source=None, takeover_stage=None)
     sim = read_param(conn, "SIM_GZ_EN") is not None
     result["simulator"] = sim
+    args.setpoint_hz = default_setpoint_hz(args.link, sim, args.setpoint_hz)
     if not sim:
         need = [("--real-aircraft", args.real_aircraft), ("--expect-sysid", args.expect_sysid)]
         if upto >= oc.STAGES.index("arm"):
@@ -2138,8 +2153,9 @@ def main() -> int:
                     help="offboard-flight --stage descent: m/s, slow so the stage lasts")
     ap.add_argument("--final-descent-rate", type=float, default=0.05,
                     help="offboard-flight --stage landing: m/s over the last 0.3 m")
-    ap.add_argument("--setpoint-hz", type=float, default=20.0,
-                    help="offboard-flight: setpoint rate. 5 Hz made the loop oscillate in SITL "
+    ap.add_argument("--setpoint-hz", type=float, default=None,
+                    help="offboard-flight: setpoint rate (default 20 on USB and in SITL, 3 over a radio: 20 Hz buries "
+                         "commands on the ELRS uplink, 4 Nov 2026). 5 Hz made the height loop oscillate in SITL "
                          "(29 Oct); 50 Hz held +/-1 cm")
     ap.add_argument("--height-timeout-s", type=float, default=None,
                     help="offboard-flight: abort if no height estimate this long "

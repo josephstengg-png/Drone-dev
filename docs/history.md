@@ -359,6 +359,29 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (evening, last) — GUI run 150922 "did not arm": the agent's own 20 Hz setpoint stream buries commands on the ELRS uplink
+
+Operator's live run, bench / radio / until stage disarm, `runs/20261104-150922.json`. READY +38.8 s (the feed check passed, though PX4 logged
+"Connection to ground station lost" at +32.4 s), ARM sent +48.5 s, **no arm for the 20 s window**, the agent withdrew its ARM (DISARM behind it,
+`armed_late` false) and exited "vehicle did not arm" at +79 s. Aircraft disarmed afterwards (read over ELRS: Altitude, ch5 off).
+- **Measured afterwards, aircraft disarmed, over ELRS: command round trip** (a harmless MAV_CMD_REQUEST_MESSAGE, 8 to 10 each; the link itself drifted
+  0.9 to 2.0 s idle between sets):
+
+      no setpoints   10/10 acked, median 0.9 s    (again: 10/10, 1.5 s; and 6/6, 2.0 s)
+      20 Hz           3/10 acked, median 5.6 s, seven got NO ack in 15 s     <- what the agent sent
+       5 Hz           9/10 acked, median 4.6 s, worst 7.5 s
+       3 Hz           8/8,  median 2.6 s       2 Hz   8/8, 1.2 s       1 Hz   8/8, 2.3 s
+
+  **The setpoint stream chokes the uplink.** The 20 Hz stream delays or drops the ARM and the GCS heartbeat. That explains radio arms taking
+  6.5 to 20+ s and the failures (131643, 131928, 150922), the "No connection to the ground control station" blips, and probably the 3.7 s
+  offboard bounce in run 142907 (it came right after the stream resumed at full rate after arming). The downlink is not affected (0.44 Hz
+  height feed regardless of setpoint rate, measured earlier), which is why that test saw nothing.
+- **Fix** (`drone_agent.py`, `default_setpoint_hz`, deployed md5-verified, 373 tests): the default setpoint rate over a radio is now **3 Hz**; USB and the
+  simulator stay at **20 Hz**; an explicit `--setpoint-hz` (the GUI's profile field) always wins. PX4's offboard-loss timeout is
+  `COM_OF_LOSS_T` 1.0 s, so 3 Hz leaves only a few hundred milliseconds of slack against uplink jitter of seconds: expect offboard-loss bounces to continue.
+- **Not yet verified live**: jetson-2 lost its association to the ELRS backpack right after the deploy (preflight: "not associated", 100 % loss; ordinary
+  state, transmitter or aircraft off). Next: a bench arm-stage run at the new default; compare time to arm and whether Offboard holds.
+
 ## 2026-11-04 (evening, later still) — GUI run 142907: first take-off ramp over the radio; classified link loss
 
 Operator's live run, bench / radio / until stage disarm (1 m, hold 30 s), `runs/20261104-142907.json`. **The new pre-arm feed check worked**:
