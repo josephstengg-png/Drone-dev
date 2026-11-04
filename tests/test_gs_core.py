@@ -180,3 +180,12 @@ def test_run_records_round_trip_and_make_a_history_block():
     assert core.load_run("../etc/passwd") is None
     h = core.history_block(rec)
     assert "J Leong" in h and "pilot_switch" in h and "runs/20261104-101500.json" in h
+
+
+def test_the_takeover_window_only_counts_for_the_stages_that_read_it():
+    # 4 Nov 2026: a 1500 s window on a full-flight profile blocked the whole profile although the agent ignores it there
+    assert core.validate(prof(stage="disarm", wait_s=1500)) == []
+    assert core.validate(prof(stage="descent", wait_s=1500)) == []
+    assert core.validate(prof(stage="arm", wait_s=1500)) == []              # up to 2 h where it is read
+    assert any("Takeover window" in e for e in core.validate(prof(stage="arm", wait_s=9000)))
+    assert any("Takeover window" in e for e in core.validate(prof(stage="takeoff", wait_s=0)))

@@ -359,6 +359,18 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (afternoon, later still) — GUI showed the old limits: the server had not been restarted
+
+The operator's endurance profile (free flight, radio, 1.5 m, hold 1200 s, window 1500 s) showed three red errors: height
+0.3 to 1.05 m, hold 0 to 120 s, window 1 to 120 s. **The first two were stale:** the running `gs_server.py` (pid 13106) started
+at 11:32 and holds `gs_core` in memory, while the 2 m / 2 h limits were written at 13:23 and before. A probe POST to the live
+server returned the old messages; the code on disk accepts the profile. A GUI server must be restarted after any change to
+`tools/gs_core.py` (Ctrl+C, run it again, reload the page). The third was a real bug: `wait_s` was capped at 120 s for every
+stage although the agent reads it only for prearm, arm, take-off (the pause) and hold. Fixed: capped at 7200 s where it is read,
+ignored (and greyed out in the editor) for descent, landing and disarm. 363 tests pass.
+That profile, as written, now validates and asks for six risks to accept (unproven, no position hold, long hover, **untethered**,
+radio height loop, GCS failsafe) and **blocks until a Preflight GO from the last 10 minutes** on the Connect page.
+
 ## 2026-11-04 (afternoon, later) — GUI run 131928: "did not arm", then the aircraft armed after the agent had gone
 
 Operator's live run, props off, bench / radio / until stage arm, `runs/20261104-131928.json`. The GUI reported "vehicle did not

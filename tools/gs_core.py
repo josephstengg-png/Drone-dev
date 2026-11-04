@@ -115,13 +115,18 @@ def validate(p: dict) -> list[str]:
         e.append("Flight type must be bench, tether or free.")
     if p["stage"] not in STAGES:
         e.append(f"Stage must be one of {', '.join(STAGES)}.")
+    # the window only means something up to the stage that uses it (prearm, arm, take-off pause, hold); beyond that
+    # the agent is given the number but never reads it, so a stale value must not stop a full-flight profile
+    uses_window = p["stage"] in ("prearm", "arm", "takeoff", "hold")
     for k, lo, hi, label in (("height_m", 0.3, HEIGHT_MAX_M, "Hover height"),
                              ("hold_s", 0.0, HOLD_MAX_S, "Hold time"),
-                             ("wait_s", 1.0, 120.0, "Takeover window"),
+                             ("wait_s", 1.0, HOLD_MAX_S, "Takeover window"),
                              ("takeoff_pause_m", 0.2, HEIGHT_MAX_M, "Take-off pause height"),
                              ("test_descent_rate", 0.03, 0.5, "Test descent rate"),
                              ("final_descent_rate", 0.03, 0.5, "Final descent rate")):
         v = p[k]
+        if k == "wait_s" and not uses_window:
+            continue
         if not (v == v) or not lo <= v <= hi:
             e.append(f"{label} must be between {lo:g} and {hi:g}"
                      f"{' m' if k.endswith('_m') else ' s' if k.endswith('_s') else ' m/s'}.")
