@@ -702,6 +702,32 @@ def height_feed_check(stamps: list[float], now: float, timeout_s: float) -> tupl
     return worst < timeout_s, worst
 
 
+LOCAL_POSITION_NED_ID = 32
+RADIO_HEIGHT_FEED_HZ = 10
+
+
+def set_height_feed(conn, hz: float) -> None:
+    """Ask the flight controller for LOCAL_POSITION_NED at `hz` (0 = back to its default rate). A runtime
+    MAV_CMD_SET_MESSAGE_INTERVAL, not a parameter: it is not saved and a reboot clears it.
+
+    Measured 4 Nov 2026 over ELRS, aircraft disarmed, 25 s each: the default gave 0.48 Hz (longest gap 2.8 s); asking for
+    5 Hz gave 1.64 Hz (0.9 s); asking for 10 Hz gave 3.0 Hz (1.0 s). Total downlink stayed at about 25 messages/s, so the
+    rate budget was going to streams nobody here reads. The setpoint rate made no difference to it (0.44 / 0.44 / 0.36 Hz
+    for 0 / 20 / 5 Hz). The request crosses the same slow uplink, so it can take seconds to land."""
+    conn.mav.command_long_send(conn.target_system, 1, mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, 0,
+                               LOCAL_POSITION_NED_ID, int(1e6 / hz) if hz else 0, 0, 0, 0, 0, 0)
+
+
+def height_feed_ready(stamps: list[float], now: float, timeout_s: float, window_s: float = 6.0,
+                      min_hz: float = 1.0) -> tuple[bool, float, int]:
+    """Is the feed fast enough RIGHT NOW? Judged on the last `window_s` only, so a slow start does not count against it.
+    Needs at least `min_hz` on average as well as no gap over the timeout, so one lucky window cannot pass a 0.45 Hz feed.
+    Returns (ok, longest gap in the window, readings in the window)."""
+    recent = [t for t in stamps if now - window_s <= t <= now]
+    ok, worst = height_feed_check(recent, now, timeout_s)
+    return (ok and len(recent) >= window_s * min_hz), worst, len(recent)
+
+
 def withdraw_arm(send_disarm, pump, state, seconds: float = 10.0) -> dict:
     """The arm loop gave up -- but its ARM commands may still be queued in a slow radio link (4 Nov 2026: ARM sent at
     +17 s, the agent gave up at +38 s, and the aircraft armed after the agent had exited, unsupervised). Send DISARM
@@ -1576,6 +1602,7 @@ def cmd_offboard_flight(args) -> int:
         outage = oc.OutageModel(every, lo, hi, random.Random(args.seed))
     state = dict(armed=False, mode=None, z=None, vz=None, t_lp=None, tilt=None, yaw=None,
                  roll=None, pitch=None, last_hb=None)
+    feed_asked = dict(on=False)       # set once we have asked for a faster height feed, so we put the default back
     rx = {}
     stdin = dict(pending=[], eof=False)
     guard = Guard(conn, args)
@@ -1707,20 +1734,32 @@ def cmd_offboard_flight(args) -> int:
         if not sim and upto >= oc.STAGES.index("takeoff"):
             # Refuse BEFORE arming if the height feed cannot keep the controller alive (see height_feed_check).
             timeout = args.height_timeout_s or 1.0
-            log(f"[ladder] watching the height feed for 10 s (the controller needs a reading every {timeout:g} s)")
-            stamps, end = [], time.time() + 10.0
-            while time.time() < end and not hands_off():
+            radio_link = not args.link.startswith(("serial:", "/dev/"))
+            if radio_link:
+                result["height_feed_requested_hz"] = RADIO_HEIGHT_FEED_HZ
+                feed_asked["on"] = True
+            log(f"[ladder] waiting up to 40 s for a height feed the controller can live on (a reading every "
+                f"{timeout:g} s, 1 Hz or better)" + (f"; asked the aircraft for {RADIO_HEIGHT_FEED_HZ} Hz" if radio_link else ""))
+            stamps, begun, last_ask, ok, worst, n = [], time.time(), 0.0, False, float("inf"), 0
+            while time.time() - begun < 40.0 and not hands_off():
+                if radio_link and time.time() - last_ask >= 3.0:      # a command can be lost or late on the radio
+                    set_height_feed(conn, RADIO_HEIGHT_FEED_HZ)
+                    last_ask = time.time()
                 pump(0.25)
                 if state["t_lp"] is not None and (not stamps or state["t_lp"] != stamps[-1]):
                     stamps.append(state["t_lp"])
-            ok, worst = height_feed_check(stamps, time.time(), timeout)
-            result["height_feed"] = dict(readings=len(stamps), longest_gap_s=None if worst == float("inf") else round(worst, 1),
-                                         timeout_s=timeout)
+                if time.time() - begun >= 6.0:
+                    ok, worst, n = height_feed_ready(stamps, time.time(), timeout)
+                    if ok:
+                        break
+            result["height_feed"] = dict(readings_last_6s=n, longest_gap_s=None if worst == float("inf") else round(worst, 1),
+                                         timeout_s=timeout, waited_s=round(time.time() - begun, 1), ok=ok)
             if not ok:
-                result["error"] = (f"refusing to arm: height arrives too slowly to fly. Longest gap in 10 s was "
-                                   f"{'no reading at all' if worst == float('inf') else f'{worst:.1f} s'} against a "
-                                   f"{timeout:g} s timeout, so the controller would abort at once. Over the radio this is "
-                                   "expected; use the USB cable")
+                result["error"] = (f"refusing to arm: height does not arrive fast enough to fly. In the last 6 s there were "
+                                   f"{n} readings, longest gap "
+                                   f"{'unknown' if worst == float('inf') else f'{worst:.1f} s'}, against a {timeout:g} s "
+                                   "timeout and a 1 Hz minimum, so the controller would abort at once. Over the radio this "
+                                   "can happen; use the USB cable")
                 return 2
 
         if args.gate:
@@ -1890,6 +1929,11 @@ def cmd_offboard_flight(args) -> int:
                             and result["takeover_source"] in ("pilot_switch", "kill_switch")
                             and not result.get("safety"))
         emit(result)
+        if feed_asked["on"]:
+            try:
+                set_height_feed(conn, 0)      # the default rate again; best effort, a reboot clears it anyway
+            except Exception:
+                pass
 
 
 # COM_FLTMODE<n> values, from PX4 1.16's own parameter metadata

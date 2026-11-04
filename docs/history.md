@@ -359,6 +359,32 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (evening, later) — the radio height feed can be fixed; my pre-arm check broke the bench test; a corrupted agent file, caught and restored
+
+**What the operator hit.** Bench take-off-stage runs over the radio (props off) were refused at 14:08 and 14:10 with "height arrives too
+slowly" (longest gap 5.0 s and 4.6 s against a 3 s timeout), `runs/20261104-140810.json` and `...141029.json`. The same bench test
+had passed on 3 Nov. **My pre-arm height check (0118f28) was the cause of the refusals**: it treats every real flight stage as props-on,
+so it started refusing the props-off bench runs that used to pass. Props off was not the reason for the slow feed.
+- **Measured (read-only, aircraft disarmed, 25 s each, over ELRS):** LOCAL_POSITION_NED arrives at **0.44 Hz listening only, 0.44 Hz with
+  20 Hz setpoints, 0.36 Hz with 5 Hz setpoints**: the setpoint rate does not touch it (so the "congested by 20 Hz" idea is not supported
+  for the downlink). The downlink carries about 23 to 25 messages/s across 25 message types, all at low rates. Asking for
+  LOCAL_POSITION_NED with MAV_CMD_SET_MESSAGE_INTERVAL: **5 Hz gave 1.64 Hz (longest gap 0.9 s), 10 Hz gave 3.0 Hz (1.0 s)**, total
+  traffic unchanged at 25/s. A runtime stream rate, not a parameter; the default was restored after each test (`tools/height_feed_probe.py`).
+- **Fix** (`drone_agent.py`, deployed with the guard and controller, md5-verified, 371 tests): on a radio link the agent now asks for the
+  feed at 10 Hz (re-asking every 3 s, the command can be lost or late on the same slow uplink) and waits **up to 40 s** for the **last 6 s**
+  to show at least 1 Hz with no gap over the timeout (`height_feed_ready`), instead of judging the first 10 s; the default rate is put
+  back at exit. **Live check on the real radio, no arm (stdin closed):** 13 readings in 6 s, longest gap 0.7 s, passed, reached READY.
+  It still refuses before arming if the feed never gets there.
+- **What this does not show:** that the controller can fly a props-on radio hover. The feed is now about 2 to 3 Hz with gaps under 1 s, which
+  is much better than 0.45 Hz with 2 to 3 s gaps, but the 0.35 s command delay and the 29 Oct analysis (no gain set survived a 0.05
+  hover-thrust error) have not been redone with this feed. Not a recommendation to fly it.
+- **A mistake of mine, caught:** while adding the above, a text splice in `drone_agent.py` used an anchor that also occurs earlier in the
+  file and **duplicated a large block**. It compiled and the tests passed, because Python keeps the last definition of each function, which
+  was the old copy; the live result carried the old field names, which exposed it. **That corrupted file was on jetson-2 for about
+  20 minutes; only my own no-arm checks ran on it** (no run, no arming). Restored from the last good commit, the changes were reapplied
+  with unique anchors, every top-level definition is now unique, and a test (`test_no_top_level_definition_in_the_agent_is_defined_twice`)
+  guards it.
+
 ## 2026-11-04 (evening) — GUI run 135442: take-off aborted at once, "height estimate lost"
 
 Operator's live run, bench / radio / until stage disarm, height 1 m, hold 30 s, `--allow-radio-flight --height-timeout-s 3`,

@@ -207,6 +207,58 @@ def test_a_feed_faster_than_the_timeout_passes_and_the_open_gap_counts():
 
 def test_the_check_runs_before_the_gate_for_real_flight_stages_only():
     src = Path(agent.__file__).read_text()
-    i, j = src.index("height_feed_check(stamps, time.time(), timeout)"), src.index('emit(dict(event="ready", slot=args.slot, sysid=conn.target_system, stage=stage))')
+    i, j = src.index("height_feed_ready(stamps, time.time(), timeout)"), src.index('emit(dict(event="ready", slot=args.slot, sysid=conn.target_system, stage=stage))')
     assert i < j                                                    # before READY, so before any ARM
     assert "if not sim and upto >= oc.STAGES.index(\"takeoff\"):" in src
+
+
+# ---- the radio height feed (4 Nov 2026) ----
+
+class _Cmd:
+    def __init__(self):
+        self.sent = []
+        self.target_system = 113
+        self.mav = self
+
+    def command_long_send(self, *a):
+        self.sent.append(a)
+
+
+def test_the_agent_asks_for_the_height_feed_and_can_put_the_default_back():
+    c = _Cmd()
+    agent.set_height_feed(c, 10)
+    agent.set_height_feed(c, 0)
+    (sys1, comp1, cmd1, conf1, mid1, us1, *rest1), (_, _, _, _, mid2, us2, *_) = c.sent
+    assert cmd1 == 511 and sys1 == 113 and mid1 == 32 and us1 == 100000        # LOCAL_POSITION_NED every 100 ms
+    assert mid2 == 32 and us2 == 0                                              # 0 = back to the default rate
+
+
+def test_the_height_feed_is_asked_for_only_over_a_radio_link_and_given_back():
+    src = Path(agent.__file__).read_text()
+    assert 'radio_link = not args.link.startswith(("serial:", "/dev/"))' in src
+    assert "if radio_link and time.time() - last_ask >= 3.0:" in src          # re-asked: a command can be lost on the radio
+    assert "set_height_feed(conn, 0)" in src                                  # and restored at exit
+
+
+def test_only_the_recent_feed_counts_so_a_slow_start_is_forgiven():
+    # the request for a faster feed takes seconds to land: 0.4 Hz for 12 s, then about 3 Hz
+    slow = [0, 2.5, 5, 7.5, 10]
+    fast = [12 + i / 3 for i in range(30)]
+    ok, worst, n = agent.height_feed_ready(slow + fast, 22.0, 3.0)
+    assert ok and worst < 1.0 and n >= 6
+    assert not agent.height_feed_ready(slow, 11.0, 3.0)[0]
+
+
+def test_a_steady_slow_feed_never_passes_even_in_a_lucky_window():
+    stamps = [i * 2.2 for i in range(20)]                     # 0.45 Hz, the measured default
+    assert not any(agent.height_feed_ready(stamps, 6.0 + k, 3.0)[0] for k in range(0, 30))
+    assert not agent.height_feed_ready([0.0, 3.0, 6.0], 6.5, 3.0)[0]       # gaps just under the timeout, but only 0.5 Hz
+
+
+def test_no_top_level_definition_in_the_agent_is_defined_twice():
+    # 4 Nov 2026: a text splice duplicated a block of drone_agent.py; it compiled and the old copy silently won
+    import ast
+    names = [n.name for n in ast.parse(Path(agent.__file__).read_text()).body
+             if isinstance(n, (ast.FunctionDef, ast.ClassDef))]
+    dupes = sorted({n for n in names if names.count(n) > 1})
+    assert dupes == []
