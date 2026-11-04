@@ -22,3 +22,10 @@ kill off, props OFF, press ARM at READY, and when the agent finishes (or the air
 the run is done. Leave about 30 s between runs. Primary result: seconds from "ARM sent" to "Armed by external command". Then
 `python3 tools/experiment_report.py exp2`. Prediction: 3 Hz arms in a few seconds nearly every time; 20 Hz is slower and fails some.
 Props off, so every arm is harmless; each run still needs your fresh confirmation in the GUI.
+
+## Operator observation during Experiment 2 (not instrumented)
+After runs 2 and 3 (both A, 20 Hz) the aircraft **tried to arm again almost immediately after the pilot disarmed it in Offboard**. Not seen after
+run 1 (B, 3 Hz). The run records cannot show it, because the agent exits within about half a second of the disarm. Consistent with the theory:
+the agent re-sends ARM every 3 s until it sees the aircraft armed, so a delayed stream leaves several copies queued in the radio, and the
+later ones arrive after the first has armed it and after the pilot's disarm. **A stale ARM re-arming an aircraft after its pilot disarmed it
+is a hazard with props on.** Nothing in the agent is changed during the experiment (it would confound it); fixes are listed in history.md after.
