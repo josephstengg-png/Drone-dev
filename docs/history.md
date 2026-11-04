@@ -359,6 +359,34 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-04 (night) — Experiment 1: the setpoint stream chokes the ELRS uplink (supported, dose-dependent)
+
+`docs/experiments/2026-11-04-radio-uplink.md`; data `fc-backups/2026-11-04/exp1.jsonl` and `exp1.py`; analysis
+`python3 tools/experiment_report.py exp1 <file>`. ARTEX113 disarmed, over ELRS. Round trip of a harmless MAV_CMD_REQUEST_MESSAGE
+(HOME_POSITION) while streaming zero-thrust setpoints at each rate; **3 rounds in random order, 6 commands per block, 18 per condition,
+8 s of silence between blocks, two idle controls.** A command with no ack in 15 s counts as a loss and ranks as 15 s (conservative).
+
+    condition   n  loss%  median s   p90 s   p vs idle (Mann-Whitney)   downlink msg/s
+    idle A     18     0     0.83     1.36        control                   24.0
+    idle B     18     0     1.01     2.48        control                   23.7
+     1 Hz      18     0     0.86     2.40        0.65  (same as idle)      21.8
+     3 Hz      18     0     1.15     3.90        0.051 (borderline)        20.7
+     5 Hz      18     6     2.31     7.62        <0.0001                   19.0
+    10 Hz      18    17     3.37    15.0         <0.0001                   17.9
+    20 Hz      18    72    15.00    15.0         <0.0001                   18.3
+
+- **The prediction held.** Idle A against idle B (the drift control) p = 0.125: the link did not drift enough to explain the rest. Loss and round
+  trip rise with the rate: 1 Hz is idle, 3 Hz is at most marginally slower, 5 Hz starts losing commands, **at 20 Hz (the agent's old radio
+  default) 13 of 18 commands got no answer in 15 s.** That is the mechanism behind slow or failed radio arms, the ground-station-lost blips
+  and probably the offboard bounce.
+- **A correction to an earlier statement:** total downlink also falls as the rate rises (24 to 18 messages/s at 20 Hz), so the link shares airtime;
+  it is not only the uplink. Heartbeats still arrive at 1 Hz.
+- **Limits:** a harmless command, aircraft disarmed, 18 samples per condition, one hour on one day. It supports "the stream delays commands", not yet
+  "the ARM itself arrives faster": **Experiment 2** (the operator, props off, `EXP2-A` 20 Hz vs `EXP2-B` 3 Hz, order `B A A A B B B A B A`) tests that.
+- **Consequence for the default:** 3 Hz (current radio default) is borderline (p 0.051, p90 3.9 s); 1 to 2 Hz looked like idle in this and the earlier test, but PX4's
+  offboard timeout is 1.0 s, so 1 Hz leaves no margin. **2 Hz is the likely better default; untested in the interleaved design**, and could be added as
+  a third arm of Experiment 2.
+
 ## 2026-11-04 (evening, last) — GUI run 150922 "did not arm": the agent's own 20 Hz setpoint stream buries commands on the ELRS uplink
 
 Operator's live run, bench / radio / until stage disarm, `runs/20261104-150922.json`. READY +38.8 s (the feed check passed, though PX4 logged

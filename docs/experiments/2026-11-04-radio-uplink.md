@@ -12,6 +12,9 @@ as idle and 20 Hz (the link just drifts), or (b) in Experiment 2 the 20 Hz and 3
 rounds in random order, 6 commands per block, 8 s of silence between blocks. Prediction: round trip and loss rise with rate, 20 Hz is far
 worse than idle, 3 Hz is indistinguishable from idle.
 
+**Result (done):** supported. Idle A vs idle B p = 0.125 (no drift); loss 0 % at 1 and 3 Hz, 6 % at 5 Hz, 17 % at 10 Hz, **72 % at 20 Hz**
+(median 15 s, all p < 0.0001 against idle). See history.md, 4 Nov night.
+
 ## Experiment 2: does the ARM itself arrive faster at 3 Hz? (the operator, props OFF)
 Profiles `EXP2-A arm stage 20 Hz` and `EXP2-B arm stage 3 Hz` (bench, radio, arm stage, window 15 s). **Run them in this order,
 one run each, ten runs:** `B A A A B B B A B A` (random, fixed in advance). Do not edit the profiles. For each run: ch5 on, ch7 centre,
