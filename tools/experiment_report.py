@@ -143,10 +143,13 @@ def exp3(runs_dir: str = "runs") -> int:
         texts = [(x["t"], x.get("text", "")) for x in feed if x["kind"] == "log"]
         t_armed = next((x["t"] for x in feed if x["kind"] == "event" and x["data"].get("event") == "armed"), None)
         t_fs = next((t for t, tx in texts if "Failsafe activated" in tx and t_armed and t >= t_armed), None)
+        t_dis = next((t for t, tx in texts if "Disarmed by auto preflight" in tx), None)
+        if t_fs and t_dis and t_dis - t_fs < 1.0:
+            t_fs = None   # PX4 disarms ~10 s after arming with no take-off; a failsafe at that instant is the end of the window, not a loss
         by_switch = any("Disarmed by RC switch" in tx or "kill" in tx.lower() and "Disarmed" in tx for _, tx in texts)
         # a failsafe in the armed window is a loss of Offboard even when the mode never dropped (20 Hz, 5 Nov)
         kind = ("not armed" if not armed else "void (pilot or kill)" if src and src != "link_loss" or by_switch
-                else "bounce" if src == "link_loss" or t_fs else "survived" if res.get("outcome") == "no_takeover"
+                else "bounce" if src == "link_loss" or t_fs else "survived" if res.get("outcome") in ("no_takeover", "disarmed") and t_dis
                 else f"other:{res.get('outcome')}")
         t = round(t_fs - t_armed, 1) if t_fs and t_armed else None
         groups.setdefault(f"{hz:g} Hz" if hz else "?", []).append(dict(run=r["id"], kind=kind, t=t, fs=fs))
