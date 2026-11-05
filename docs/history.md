@@ -359,6 +359,24 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-05 — GUI run 101032: props-on FREE flight over the radio at 3 Hz; PX4 lost Offboard 0.8 s after arming
+
+Operator's run (`runs/20261105-101032.json`): profile "artex113 HOVER ENDURANCE test", **free (no tether) / radio / until stage disarm**, 1 m, hold 1200 s, setpoints 3 Hz (agent default),
+operator accepted drift, gcs_failsafe, long_hover, radio_loop, untested, untethered. Props were on: the pilot flew the aircraft afterwards ("drifting left").
+- **Timeline** (seconds from run start): feed check passed (8 readings in 6 s, longest gap 2.1 s, waited 6.3 s); ARM sent +42.8 (**one** ARM command, retry 8 s); armed +44.5 (1.7 s);
+  take-off ramp started +44.6; **"Failsafe activated" +45.4, 0.8 s after arming**; the agent saw mode 6 to 2 at +46.0 and 2 to 6 at +47.0, classified `link_loss` at +47.5 (ch5 on, ch7 unmoved)
+  and stood down for good; "Switching to Position is currently not available" +54.2; the pilot used **kill at +70.5 (airborne)**, "Disarmed by kill-switch" +75.3; the stale-ARM watch ran 20 s and saw nothing.
+- **The controller never lifted the aircraft:** the trace has 24 rows (1.45 s), thrust 0.127 to 0.277 against a lift-off thrust of about 0.40 and a hover guess of 0.42, measured height 0.0.
+  Whatever flying happened afterwards was the pilot in PX4's fallback mode (Altitude), without horizontal hold, which is what the "drift" risk said.
+- **Cause:** PX4's offboard-loss failsafe (`COM_OF_LOSS_T` 1.0 s) fired almost at once. At 3 Hz a setpoint is due every 0.33 s, but uplink delays are far more variable than that
+  (Experiment 1, 3 Hz: median round trip 1.15 s, p90 3.9 s). **This is the second rate to fail:** 20 Hz lost Offboard 3.7 s after arming (run 142907), 3 Hz lost it 0.8 s after arming here.
+  Experiment 2's first 3 Hz run also logged "Failsafe activated" 0.1 s after arming (not flagged at the time). **Experiment 3 was going to measure exactly this and is paused;
+  this run is one data point against 3 Hz keeping Offboard alive.**
+- **What worked:** the pre-arm height-feed check; one ARM, armed in 1.7 s; the stale-ARM watch ran cleanly; the record was saved.
+- **Consequence:** on this radio, no setpoint rate tried (3 Hz, 20 Hz) keeps Offboard alive reliably against a 1.0 s timeout. The options are a wired link (USB), a PX4-flown take-off and hold with the agent
+  only commanding (needs a position source), or raising `COM_OF_LOSS_T` (a parameter change that lets PX4 hold a stale thrust for that long; needs the operator's approval and is not recommended with props on).
+- Afterwards the link was down (jetson-2 not associated to the backpack; ordinary, transmitter or aircraft off). Not known: how high the aircraft got, and whether it was damaged.
+
 ## 2026-11-04 (night, last) — after Experiment 2: stale-ARM fixes in the agent, Experiment 3 prepared, flight logs waiting for the USB cable
 
 - **Agent** (`drone_agent.py`, deployed with guard and controller, md5-verified, 385 tests):
