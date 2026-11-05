@@ -238,7 +238,7 @@ async function api(method, path, body) {
 function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
 
 let ST = {}, PROFILES = [], ED = null, EDID = null, PREV = null, RUNPROF = null, RUNPREV = null, TOKEN = null, TOKEN_AT = 0;
-let LASTBATT = null, SNAP = null, SINCE = 0, FEED = [], poll = null, page = 'connect';
+let LOSTLINK = false, LASTBATT = null, SNAP = null, SINCE = 0, FEED = [], poll = null, page = 'connect';
 
 /* ---------- theme ---------- */
 const THEMES = ['auto', 'light', 'dark'];
@@ -426,12 +426,12 @@ function ctlState() {
   $('abortBtn').disabled = !act || st === 'starting'; $('abortFlag').disabled = !act;
   $('demoBar').hidden = !(ST.demo && act);
   const who = st === 'armed' ? 'COMPUTER' : st === 'pilot' ? 'PILOT' : 'NOBODY';
-  $('own').className = 'own ' + who; $('own').textContent = who === 'NOBODY' ? 'NOBODY (disarmed)' : who === 'COMPUTER' ? 'COMPUTER (agent flying)' : 'PILOT (took over)';
+  $('own').className = 'own ' + who; $('own').textContent = who === 'NOBODY' ? 'NOBODY (disarmed)' : who === 'COMPUTER' ? 'COMPUTER (agent flying)' : (LOSTLINK ? 'OFFBOARD LOST (link, not the pilot)' : 'PILOT (took over)');
   const order = [['starting', 'Connecting'], ['ready', 'READY'], ['armed', 'Armed'], ['done', 'Finished']], idx = order.findIndex(o => o[0] === (st === 'pilot' ? 'armed' : st === 'ended' ? 'done' : st));
-  $('chips').innerHTML = st === 'none' ? '<span class="e">No run yet.</span>' : order.map((o, i) => `<span class="cs ${i < idx ? 'ok' : i === idx ? (st === 'ended' ? 'bad' : 'act') : ''}">${o[1]}</span>`).join('') + (SNAP.stage ? `<span class="cs act">stage: ${esc(SNAP.stage)}</span>` : '') + (st === 'pilot' ? '<span class="cs bad">pilot has it</span>' : '') + (LASTBATT && act ? `<span class="cs act">battery ${LASTBATT.volts != null ? LASTBATT.volts.toFixed(2) + ' V' : ''} ${LASTBATT.pct != null ? '(' + LASTBATT.pct + ' %)' : ''}</span>` : '');
+  $('chips').innerHTML = st === 'none' ? '<span class="e">No run yet.</span>' : order.map((o, i) => `<span class="cs ${i < idx ? 'ok' : i === idx ? (st === 'ended' ? 'bad' : 'act') : ''}">${o[1]}</span>`).join('') + (SNAP.stage ? `<span class="cs act">stage: ${esc(SNAP.stage)}</span>` : '') + (st === 'pilot' ? (LOSTLINK ? '<span class="cs bad">offboard lost on the link: not the pilot</span>' : '<span class="cs bad">aircraft left Offboard: classifying</span>') : '') + (LASTBATT && act ? `<span class="cs act">battery ${LASTBATT.volts != null ? LASTBATT.volts.toFixed(2) + ' V' : ''} ${LASTBATT.pct != null ? '(' + LASTBATT.pct + ' %)' : ''}</span>` : '');
 }
 $('startBtn').onclick = async () => {
-  $('startBtn').disabled = true; FEED = []; SINCE = 0; LASTBATT = null; $('feed').innerHTML = '';
+  $('startBtn').disabled = true; FEED = []; SINCE = 0; LASTBATT = null; LOSTLINK = false; $('feed').innerHTML = '';
   try { await api('POST', '/api/run/start', {profile: RUNPROF, token: TOKEN}); startPoll(); } catch (e) { $('startMsg').textContent = e.message; }
 };
 /* hold to arm */
@@ -456,13 +456,13 @@ function line(f) {
   if (f.kind === 'sent') return `<li class="sent">${t}  sent to agent: ${esc(f.text)}</li>`;
   if (f.kind === 'result') return `<li class="ev">${t}  RESULT: ${esc(f.data.outcome || f.data.error)}</li>`;
   const e = f.data, n = e.event;
-  const txt = n === 'ready' ? 'READY: waiting for ARM' : n === 'armed' ? 'ARMED' : n === 'stage' ? 'stage: ' + e.stage : n === 'rc_takeover' ? 'PILOT TOOK OVER (' + (e.via || 'mode change') + ')' : n === 'takeover_classified' ? 'takeover classified: ' + e.source : n === 'still_armed' ? 'still armed: the pilot disarms' : n === 'pilot_disarmed' ? 'disarmed' : n === 'safety' ? 'GUARD: ' + e.action + ' ' + (e.reasons || []).join('; ') : n === 'battery' ? 'battery ' + (e.volts != null ? e.volts.toFixed(2) + ' V' : '? V') + (e.pct != null ? ' (' + e.pct + ' %)' : '') + ', ' + Math.round(e.t_s / 60 * 10) / 10 + ' min in' : n;
+  const txt = n === 'ready' ? 'READY: waiting for ARM' : n === 'armed' ? 'ARMED' : n === 'stage' ? 'stage: ' + e.stage : n === 'rc_takeover' ? 'AIRCRAFT LEFT OFFBOARD (' + (e.via || 'mode change') + '), classifying' : n === 'takeover_classified' ? (e.source === 'link_loss' ? 'OFFBOARD LOST ON THE LINK, not a pilot takeover (no switch moved)' : 'pilot takeover confirmed: ' + e.source) : n === 'still_armed' ? 'still armed: the pilot disarms' : n === 'pilot_disarmed' ? 'disarmed' : n === 'safety' ? 'GUARD: ' + e.action + ' ' + (e.reasons || []).join('; ') : n === 'battery' ? 'battery ' + (e.volts != null ? e.volts.toFixed(2) + ' V' : '? V') + (e.pct != null ? ' (' + e.pct + ' %)' : '') + ', ' + Math.round(e.t_s / 60 * 10) / 10 + ' min in' : n;
   return `<li class="${['rc_takeover', 'safety'].includes(n) ? 'bad' : 'ev'}">${t}  ${esc(txt)}</li>`;
 }
 async function pollOnce() {
   let s; try { s = await api('GET', '/api/run?since=' + SINCE); } catch (e) { return; }
   if (s.state === 'none') return;
-  SNAP = Object.assign(SNAP || {}, s); if (s.feed) { s.feed.forEach(f => { if (f.kind === 'event' && f.data.event === 'battery') LASTBATT = f.data; }); SINCE += s.feed.length; const ul = $('feed'); s.feed.forEach(f => ul.insertAdjacentHTML('afterbegin', line(f))); }
+  SNAP = Object.assign(SNAP || {}, s); if (s.feed) { s.feed.forEach(f => { if (f.kind === 'event' && f.data.event === 'battery') LASTBATT = f.data; if (f.kind === 'event' && f.data.event === 'takeover_classified') LOSTLINK = f.data.source === 'link_loss'; }); SINCE += s.feed.length; const ul = $('feed'); s.feed.forEach(f => ul.insertAdjacentHTML('afterbegin', line(f))); }
   ctlState(); rail(); tick(); redraw();
   if (['done', 'ended'].includes(s.state)) { stopPoll(); showResult(s); TOKEN = null; $('authBox').hidden = true; $('acType').value = ''; $('phrase').value = ''; refreshRun(); }
 }
@@ -471,7 +471,7 @@ function stopPoll() { clearInterval(poll); poll = null; }
 function showResult(s) {
   const r = s.result || {}, ok = r.passed, b = $('resultBox'); b.hidden = false;
   b.innerHTML = `<h2>Result</h2><div class="verdict"><span class="big">${esc(r.outcome || (r.error ? 'did not run' : '?'))}</span><span class="pill ${ok ? 'GO' : 'NOGO'}">${ok ? 'AGENT PASSED' : 'NOT PASSED'}</span></div>
-   <dl class="kv"><dt>Takeover</dt><dd>${esc(r.takeover_source || 'none')}${r.takeover_after_s ? ' after ' + esc(r.takeover_after_s) + ' s' : ''}</dd><dt>Setpoints</dt><dd>${r.setpoints ? esc(r.setpoints.sent) + ' sent, ' + esc(r.link_losses) + ' link losses' : '–'}</dd><dt>Max height</dt><dd>${esc(r.max_height_m)}</dd>${r.arm_commands_sent != null ? `<dt>ARM commands</dt><dd>${esc(r.arm_commands_sent)} sent, one every ${esc(r.arm_retry_s)} s</dd>` : ''}${r.stale_arm ? `<dt>Stale-ARM watch</dt><dd>${r.stale_arm.error ? esc(r.stale_arm.error) : r.stale_arm.stale_arm_seen ? '<b>a late ARM arrived and was answered with ' + esc(r.stale_arm.disarms_sent) + ' DISARM</b>' : 'nothing arrived in ' + esc(r.stale_arm.watched_s) + ' s'}</dd>` : ''}${r.error ? `<dt>Error</dt><dd class="err">${esc(r.error)}</dd>` : ''}</dl>
+   <dl class="kv"><dt>Takeover</dt><dd>${esc(r.takeover_source === 'link_loss' ? 'none: Offboard lost on the link (link_loss), not the pilot' : r.takeover_source || 'none')}${r.takeover_after_s ? ' after ' + esc(r.takeover_after_s) + ' s' : ''}</dd><dt>Setpoints</dt><dd>${r.setpoints ? esc(r.setpoints.sent) + ' sent, ' + esc(r.link_losses) + ' link losses' : '–'}</dd><dt>Max height</dt><dd>${esc(r.max_height_m)}</dd>${r.arm_commands_sent != null ? `<dt>ARM commands</dt><dd>${esc(r.arm_commands_sent)} sent, one every ${esc(r.arm_retry_s)} s</dd>` : ''}${r.stale_arm ? `<dt>Stale-ARM watch</dt><dd>${r.stale_arm.error ? esc(r.stale_arm.error) : r.stale_arm.stale_arm_seen ? '<b>a late ARM arrived and was answered with ' + esc(r.stale_arm.disarms_sent) + ' DISARM</b>' : 'nothing arrived in ' + esc(r.stale_arm.watched_s) + ' s'}</dd>` : ''}${r.error ? `<dt>Error</dt><dd class="err">${esc(r.error)}</dd>` : ''}</dl>
    ${r.abort_reason === 'height estimate lost' ? `<div class="blockbox"><b>The controller refused to fly blind.</b> No height reading arrived within ${esc((SNAP && SNAP.profile && SNAP.profile.height_timeout_s) || 3)} s. Over the radio height arrives every 2 to 3 s. It armed, aborted at once and told PX4 to land; the motors did not spool. This is the safeguard working. Use the USB cable for flight stages.</div>` : ''}
    ${r.error && /height arrives too slowly/.test(r.error) ? `<div class="blockbox"><b>Not armed.</b> ${esc(r.error)}</div>` : ''}
    ${r.error && /did not arm/.test(r.error) ? `<div class="blockbox"><b>Check the aircraft.</b> An ARM command can arrive late over the radio. The agent sent DISARM behind it and listened for ${r.armed_late ? 'a late arm: it DID arm after the agent gave up' : '10 s: it did not arm in that time'}. If the aircraft is armed, disarm with ch6 or hold kill 5 s.</div>` : ''}
