@@ -359,6 +359,19 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-05 (pm) — ARTEX113 flight logs pulled over USB: every Experiment 3 failsafe was PX4 losing the OFFBOARD SIGNAL, not the GCS link
+
+Pulled ulogs 101-117 (all 17, no missing chunks) from jetson-2 over USB; copies in `~/drone-dev/fc-backups/2026-11-05/ulg/` (workspace, not git). Read with `tools/ulog_failsafes.py`
+(`failsafe_flags` and `offboard_control_mode` topics). Logs exist only for armed runs (the logger starts on arming), so the no-arm runs have none.
+- **Every armed run's failsafe was `offboard_control_signal_lost`**: PX4 dropped Offboard (nav_state 14 -> 1 Altitude) and went back to Offboard when a setpoint arrived, 2-4 times in the ~11 s armed
+  (log 104, EXP3-B: armed t=911.1; lost 913.8, back 914.1, lost 915.8, back 916.6, lost 918.5; auto-disarm 922.2). First loss 2.1-4.9 s after arming in 11 of 13 holds; 10.9 s (end of window) in one.
+- **`gcs_connection_lost` fired in only 2 of 16 armed runs** (logs 107 at +6.8 s, 113 at +3.3 s) and in both after the offboard loss. So for the bounces the GCS link is not the cause and the operator's
+  theory is not supported. The "Connection to ground station lost / Preflight Fail" flapping seen in the no-arm runs is a separate problem (it blocks arming); it is not in any ulog.
+- **The cause is the setpoint stream reaching PX4**: gaps between OFFBOARD_CONTROL_MODE messages reached 1.35-2.9 s in every armed run (PX4 declares loss after `COM_OF_LOSS_T` 1.0 s), at 2 Hz, 3 Hz and 20 Hz.
+  Delivered about 1 message/s in the 2 Hz runs, 2.5-3/s at 3 Hz, 4-7/s at 20 Hz (of 20 sent). Rate does not fix it: the radio uplink is bursty.
+- Why the agent's times differ (7.4 s in the GUI against 3.5 s in the log, run 107): the agent learns of events over the same slow downlink.
+- Not done: matching each log to its run record one by one; the props-on run 101032 is log 101 (first loss +1.5 s after arming).
+
 ## 2026-11-05 — Experiment 3 finished (props OFF, radio): every armed run lost Offboard or ran out the ~10 s armed window; 20 Hz mostly never armed
 
 Operator ran 18 GUI runs 13:48-14:33 (`runs/20261105-1348*` to `-1432*`). Props OFF, hands off, no switch except the void run. Counted by `tools/experiment_report.py exp3`
