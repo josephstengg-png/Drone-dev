@@ -1,0 +1,439 @@
+{
+ "id": "20261105-143119",
+ "started": "2026-11-05 14:31:19",
+ "mode": "live",
+ "profile": {
+  "name": "EXP3-A arm and hold 60 s at 3 Hz",
+  "description": "EXPERIMENT 3, props OFF. After arming, HANDS OFF for the 60 s window. 3 Hz. Do not edit between runs.",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "arm",
+  "height_m": 0.8,
+  "hold_s": 5.0,
+  "wait_s": 60.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.08,
+  "final_descent_rate": 0.05,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": 3.0
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-05 14:31:18",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage arm --wait-s 60 --gate-timeout-s 150 --setpoint-hz 3 --trace /tmp/gs_20261105-143119.csv"
+ ],
+ "arm_requested": "2026-11-05 14:31:39",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "arm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": "takeover",
+  "takeover_source": "link_loss",
+  "takeover_stage": "arm",
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "rx_hz": {
+   "ATTITUDE": 4.0,
+   "RC_CHANNELS": 1.0,
+   "HEARTBEAT": 1.0,
+   "LOCAL_POSITION_NED": 0.5
+  },
+  "vehicle_text": [
+   "Armed by external command",
+   "[logger] /fs/microsd/log/2026-11-05/06_31_41.ulg",
+   "Failsafe activated",
+   "Failsafe activated",
+   "Failsafe activated",
+   "Failsafe activated",
+   "Disarmed by auto preflight disarming"
+  ],
+  "arm_commands_sent": 1,
+  "arm_retry_s": 8.0,
+  "takeover_after_s": 6.05,
+  "takeover_height_m": -0.0,
+  "takeover_tilt_deg": 1.2,
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 31,
+   "dropped_sim": 0,
+   "hz": 3.0
+  },
+  "max_height_m": null,
+  "disarmed": true,
+  "stale_arm": {
+   "stale_arm_seen": false,
+   "disarms_sent": 0,
+   "watched_s": 20.0
+  },
+  "passed": false
+ },
+ "finished": "2026-11-05 14:32:14",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793860280.42,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793860280.78,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793860297.24,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 1780690461.423
+   }
+  },
+  {
+   "n": 3,
+   "t": 1793860297.24,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "arm"
+   }
+  },
+  {
+   "n": 4,
+   "t": 1793860297.24,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 5,
+   "t": 1793860297.24,
+   "kind": "log",
+   "text": "[ladder] READY for test 'arm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 6,
+   "t": 1793860299.39,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 7,
+   "t": 1793860299.69,
+   "kind": "log",
+   "text": "[ladder] stage: arm <- the stage under test"
+  },
+  {
+   "n": 8,
+   "t": 1793860299.69,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": true,
+    "height_m": 0.0,
+    "t_epoch": 1780690463.881
+   }
+  },
+  {
+   "n": 9,
+   "t": 1793860302.59,
+   "kind": "log",
+   "text": "[vehicle] Armed by external command"
+  },
+  {
+   "n": 10,
+   "t": 1793860302.69,
+   "kind": "log",
+   "text": "[vehicle] [logger] /fs/microsd/log/2026-11-05/06_31_41.ulg"
+  },
+  {
+   "n": 11,
+   "t": 1793860302.99,
+   "kind": "event",
+   "data": {
+    "event": "armed",
+    "slot": null,
+    "sysid": 113,
+    "armed_epoch": 1780690467.178
+   }
+  },
+  {
+   "n": 12,
+   "t": 1793860305.62,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 13,
+   "t": 1793860305.62,
+   "kind": "log",
+   "text": "[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)"
+  },
+  {
+   "n": 14,
+   "t": 1793860305.74,
+   "kind": "log",
+   "text": "[safety] LEFT OUR MODE: main mode 6 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne."
+  },
+  {
+   "n": 15,
+   "t": 1793860305.74,
+   "kind": "event",
+   "data": {
+    "event": "rc_takeover",
+    "slot": null,
+    "from_mode": 6,
+    "to_mode": 2,
+    "airborne": false,
+    "t_epoch": 1780690469.926
+   }
+  },
+  {
+   "n": 16,
+   "t": 1793860307.24,
+   "kind": "log",
+   "text": "[safety] *** OFFBOARD LOST ON THE LINK -- NOT A PILOT TAKEOVER *** the offboard switch (ch5) is still on and ch7 has not moved. PX4 failed over and the agent has stood down for good. PILOT: you have the aircraft -- fly it and land it."
+  },
+  {
+   "n": 17,
+   "t": 1793860307.24,
+   "kind": "log",
+   "text": "[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8)."
+  },
+  {
+   "n": 18,
+   "t": 1793860307.24,
+   "kind": "event",
+   "data": {
+    "event": "takeover_classified",
+    "slot": null,
+    "source": "link_loss",
+    "after_s": 1.5,
+    "airborne": false,
+    "t_epoch": 1780690471.426
+   }
+  },
+  {
+   "n": 19,
+   "t": 1793860307.24,
+   "kind": "event",
+   "data": {
+    "event": "still_armed",
+    "slot": null,
+    "waited_s": 0.0
+   }
+  },
+  {
+   "n": 20,
+   "t": 1793860307.84,
+   "kind": "log",
+   "text": "[safety] switch requested OFFBOARD after a pilot takeover. The agent is NOT resuming: offboard flight is not implemented (the stream is zero thrust). PX4 will still select OFFBOARD; with no setpoints and the aircraft armed, its offboard-loss failsafe acts after COM_OF_LOSS_T (COM_OBL_RC_ACT)."
+  },
+  {
+   "n": 21,
+   "t": 1793860307.84,
+   "kind": "event",
+   "data": {
+    "event": "rc_handback_requested",
+    "slot": null,
+    "from_mode": 2,
+    "to_mode": 6,
+    "resumed": false,
+    "airborne": false,
+    "t_epoch": 1780690472.022
+   }
+  },
+  {
+   "n": 22,
+   "t": 1793860309.91,
+   "kind": "log",
+   "text": "[safety] switch requested OFFBOARD after a pilot takeover. The agent is NOT resuming: offboard flight is not implemented (the stream is zero thrust). PX4 will still select OFFBOARD; with no setpoints and the aircraft armed, its offboard-loss failsafe acts after COM_OF_LOSS_T (COM_OBL_RC_ACT)."
+  },
+  {
+   "n": 23,
+   "t": 1793860309.91,
+   "kind": "event",
+   "data": {
+    "event": "rc_handback_requested",
+    "slot": null,
+    "from_mode": 2,
+    "to_mode": 6,
+    "resumed": false,
+    "airborne": false,
+    "t_epoch": 1780690474.1
+   }
+  },
+  {
+   "n": 24,
+   "t": 1793860310.21,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 25,
+   "t": 1793860311.53,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 26,
+   "t": 1793860312.03,
+   "kind": "log",
+   "text": "[safety] switch requested OFFBOARD after a pilot takeover. The agent is NOT resuming: offboard flight is not implemented (the stream is zero thrust). PX4 will still select OFFBOARD; with no setpoints and the aircraft armed, its offboard-loss failsafe acts after COM_OF_LOSS_T (COM_OBL_RC_ACT)."
+  },
+  {
+   "n": 27,
+   "t": 1793860312.03,
+   "kind": "event",
+   "data": {
+    "event": "rc_handback_requested",
+    "slot": null,
+    "from_mode": 2,
+    "to_mode": 6,
+    "resumed": false,
+    "airborne": false,
+    "t_epoch": 1780690476.213
+   }
+  },
+  {
+   "n": 28,
+   "t": 1793860312.33,
+   "kind": "log",
+   "text": "[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8)."
+  },
+  {
+   "n": 29,
+   "t": 1793860312.33,
+   "kind": "event",
+   "data": {
+    "event": "still_armed",
+    "slot": null,
+    "waited_s": 5.1
+   }
+  },
+  {
+   "n": 30,
+   "t": 1793860312.57,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 31,
+   "t": 1793860313.52,
+   "kind": "log",
+   "text": "[vehicle] Disarmed by auto preflight disarming"
+  },
+  {
+   "n": 32,
+   "t": 1793860313.84,
+   "kind": "log",
+   "text": "[safety] aircraft disarmed (by the pilot or PX4) after 6.6 s"
+  },
+  {
+   "n": 33,
+   "t": 1793860313.84,
+   "kind": "log",
+   "text": "[safety] disarmed; watching 20 s for a stale ARM arriving late"
+  },
+  {
+   "n": 34,
+   "t": 1793860313.84,
+   "kind": "event",
+   "data": {
+    "event": "pilot_disarmed",
+    "slot": null,
+    "waited_s": 6.6
+   }
+  },
+  {
+   "n": 35,
+   "t": 1793860334.04,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "arm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": "takeover",
+    "takeover_source": "link_loss",
+    "takeover_stage": "arm",
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "rx_hz": {
+     "ATTITUDE": 4.0,
+     "RC_CHANNELS": 1.0,
+     "HEARTBEAT": 1.0,
+     "LOCAL_POSITION_NED": 0.5
+    },
+    "vehicle_text": [
+     "Armed by external command",
+     "[logger] /fs/microsd/log/2026-11-05/06_31_41.ulg",
+     "Failsafe activated",
+     "Failsafe activated",
+     "Failsafe activated",
+     "Failsafe activated",
+     "Disarmed by auto preflight disarming"
+    ],
+    "arm_commands_sent": 1,
+    "arm_retry_s": 8.0,
+    "takeover_after_s": 6.05,
+    "takeover_height_m": -0.0,
+    "takeover_tilt_deg": 1.2,
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 31,
+     "dropped_sim": 0,
+     "hz": 3.0
+    },
+    "max_height_m": null,
+    "disarmed": true,
+    "stale_arm": {
+     "stale_arm_seen": false,
+     "disarms_sent": 0,
+     "watched_s": 20.0
+    },
+    "passed": false
+   }
+  }
+ ]
+}

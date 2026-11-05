@@ -1,0 +1,292 @@
+{
+ "id": "20261105-160308",
+ "started": "2026-11-05 16:03:08",
+ "mode": "live",
+ "profile": {
+  "name": "EXP3-A arm and hold 60 s at 3 Hz",
+  "description": "EXPERIMENT 3, props OFF. After arming, HANDS OFF for the 60 s window. 3 Hz. Do not edit between runs.",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "arm",
+  "height_m": 0.8,
+  "hold_s": 5.0,
+  "wait_s": 60.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.08,
+  "final_descent_rate": 0.05,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": 3.0,
+  "downlink": "outdoors"
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-05 16:03:06",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage arm --wait-s 60 --gate-timeout-s 150 --setpoint-hz 3 --trace /tmp/gs_20261105-160308.csv"
+ ],
+ "arm_requested": "2026-11-05 16:03:33",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "arm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": "disarmed",
+  "takeover_source": null,
+  "takeover_stage": null,
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "downlink": "outdoors",
+  "rx_hz": {
+   "ATTITUDE": 5.4,
+   "LOCAL_POSITION_NED": 0.5,
+   "HEARTBEAT": 1.0,
+   "RC_CHANNELS": 2.0
+  },
+  "vehicle_text": [
+   "Armed by external command",
+   "[logger] /fs/microsd/log/2026-11-05/08_03_38.ulg",
+   "Failsafe activated",
+   "Failsafe activated",
+   "Failsafe activated",
+   "Failsafe activated",
+   "Disarmed by auto preflight disarming"
+  ],
+  "arm_commands_sent": 1,
+  "arm_retry_s": 8.0,
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 54,
+   "dropped_sim": 0,
+   "hz": 3.0
+  },
+  "max_height_m": null,
+  "disarmed": true,
+  "stale_arm": {
+   "stale_arm_seen": false,
+   "disarms_sent": 0,
+   "watched_s": 20.0
+  },
+  "rx_msgs_per_s": 25.0,
+  "passed": false
+ },
+ "finished": "2026-11-05 16:04:08",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793865788.93,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793865789.63,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793865811.26,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 3,
+   "t": 1793865811.26,
+   "kind": "log",
+   "text": "[ladder] READY for test 'arm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 4,
+   "t": 1793865811.26,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 1780695975.291
+   }
+  },
+  {
+   "n": 5,
+   "t": 1793865811.26,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "arm"
+   }
+  },
+  {
+   "n": 6,
+   "t": 1793865813.44,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 7,
+   "t": 1793865813.69,
+   "kind": "log",
+   "text": "[ladder] stage: arm <- the stage under test"
+  },
+  {
+   "n": 8,
+   "t": 1793865813.69,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": true,
+    "height_m": -0.02,
+    "t_epoch": 1780695977.716
+   }
+  },
+  {
+   "n": 9,
+   "t": 1793865816.34,
+   "kind": "log",
+   "text": "[vehicle] Armed by external command"
+  },
+  {
+   "n": 10,
+   "t": 1793865816.53,
+   "kind": "log",
+   "text": "[vehicle] [logger] /fs/microsd/log/2026-11-05/08_03_38.ulg"
+  },
+  {
+   "n": 11,
+   "t": 1793865816.73,
+   "kind": "event",
+   "data": {
+    "event": "armed",
+    "slot": null,
+    "sysid": 113,
+    "armed_epoch": 1780695980.762
+   }
+  },
+  {
+   "n": 12,
+   "t": 1793865817.24,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 13,
+   "t": 1793865817.24,
+   "kind": "log",
+   "text": "[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)"
+  },
+  {
+   "n": 14,
+   "t": 1793865818.88,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 15,
+   "t": 1793865821.95,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 16,
+   "t": 1793865823.63,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 17,
+   "t": 1793865827.55,
+   "kind": "log",
+   "text": "[vehicle] Disarmed by auto preflight disarming"
+  },
+  {
+   "n": 18,
+   "t": 1793865827.65,
+   "kind": "log",
+   "text": "[safety] disarmed; watching 20 s for a stale ARM arriving late"
+  },
+  {
+   "n": 19,
+   "t": 1793865847.85,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "arm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": "disarmed",
+    "takeover_source": null,
+    "takeover_stage": null,
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "downlink": "outdoors",
+    "rx_hz": {
+     "ATTITUDE": 5.4,
+     "LOCAL_POSITION_NED": 0.5,
+     "HEARTBEAT": 1.0,
+     "RC_CHANNELS": 2.0
+    },
+    "vehicle_text": [
+     "Armed by external command",
+     "[logger] /fs/microsd/log/2026-11-05/08_03_38.ulg",
+     "Failsafe activated",
+     "Failsafe activated",
+     "Failsafe activated",
+     "Failsafe activated",
+     "Disarmed by auto preflight disarming"
+    ],
+    "arm_commands_sent": 1,
+    "arm_retry_s": 8.0,
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 54,
+     "dropped_sim": 0,
+     "hz": 3.0
+    },
+    "max_height_m": null,
+    "disarmed": true,
+    "stale_arm": {
+     "stale_arm_seen": false,
+     "disarms_sent": 0,
+     "watched_s": 20.0
+    },
+    "rx_msgs_per_s": 25.0,
+    "passed": false
+   }
+  }
+ ]
+}

@@ -16,5 +16,6 @@
  "height_timeout_s": null,
  "battery_hold_pct": null,
  "battery_land_pct": null,
- "setpoint_hz": 3.0
+ "setpoint_hz": 3.0,
+ "downlink": "outdoors"
 }

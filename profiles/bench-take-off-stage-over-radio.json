@@ -5,13 +5,16 @@
  "link": "radio",
  "flight_type": "bench",
  "stage": "takeoff",
- "height_m": 0.8,
- "hold_s": 5.0,
- "wait_s": 15.0,
+ "height_m": 1.0,
+ "hold_s": 30.0,
+ "wait_s": 40.0,
  "takeoff_pause_m": 0.5,
- "test_descent_rate": 0.08,
- "final_descent_rate": 0.05,
+ "test_descent_rate": 0.06,
+ "final_descent_rate": 0.03,
  "lift_by_climb": true,
  "ground_attitude": true,
- "height_timeout_s": null
+ "height_timeout_s": null,
+ "battery_hold_pct": null,
+ "battery_land_pct": null,
+ "setpoint_hz": null
 }

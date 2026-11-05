@@ -1,0 +1,355 @@
+{
+ "id": "20261105-153848",
+ "started": "2026-11-05 15:38:48",
+ "mode": "live",
+ "profile": {
+  "name": "EXP5 arm and hold 3 Hz indoors downlink",
+  "description": "Experiment 5: like EXP3-A (3 Hz, arm stage, radio, props OFF) but with the indoors (lean) downlink. Does Offboard survive the ~10 s armed window?",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "arm",
+  "height_m": 0.8,
+  "hold_s": 5.0,
+  "wait_s": 60.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.08,
+  "final_descent_rate": 0.05,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": 3.0,
+  "downlink": "indoors"
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-05 15:38:46",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage arm --wait-s 60 --gate-timeout-s 150 --setpoint-hz 3 --downlink indoors --trace /tmp/gs_20261105-153848.csv"
+ ],
+ "arm_requested": "2026-11-05 15:39:32",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "arm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": null,
+  "takeover_source": null,
+  "takeover_stage": null,
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "downlink": "indoors",
+  "vehicle_text": [
+   "GPS reports critical jamming state",
+   "Preflight Fail: High Accelerometer Bias",
+   "GPS reports critical jamming state",
+   "Preflight Fail: High Accelerometer Bias",
+   "GPS reports critical jamming state",
+   "Preflight Fail: High Accelerometer Bias",
+   "GPS reports critical jamming state",
+   "Preflight Fail: High Accelerometer Bias",
+   "GPS reports critical jamming state",
+   "Preflight Fail: High Accelerometer Bias",
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t"
+  ],
+  "rx_hz": {
+   "ATTITUDE": 3.0,
+   "RC_CHANNELS": 2.9,
+   "HEARTBEAT": 1.0,
+   "LOCAL_POSITION_NED": 0.7
+  },
+  "arm_commands_sent": 3,
+  "arm_retry_s": 8.0,
+  "arm_withdrawn": true,
+  "armed_late": false,
+  "error": "vehicle did not arm",
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 152,
+   "dropped_sim": 0,
+   "hz": 3.0
+  },
+  "max_height_m": null,
+  "disarmed": true,
+  "rx_msgs_per_s": 18.5,
+  "passed": false
+ },
+ "finished": "2026-11-05 15:40:06",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793864328.82,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793864329.7,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793864350.99,
+   "kind": "log",
+   "text": "[link] downlink profile INDOORS: 16 unused streams off, ATTITUDE at 3 Hz (runtime only; restored at the end)"
+  },
+  {
+   "n": 3,
+   "t": 1793864353.51,
+   "kind": "log",
+   "text": "[vehicle] GPS reports critical jamming state"
+  },
+  {
+   "n": 4,
+   "t": 1793864353.81,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: High Accelerometer Bias"
+  },
+  {
+   "n": 5,
+   "t": 1793864356.67,
+   "kind": "log",
+   "text": "[vehicle] GPS reports critical jamming state"
+  },
+  {
+   "n": 6,
+   "t": 1793864357.07,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: High Accelerometer Bias"
+  },
+  {
+   "n": 7,
+   "t": 1793864360.82,
+   "kind": "log",
+   "text": "[vehicle] GPS reports critical jamming state"
+  },
+  {
+   "n": 8,
+   "t": 1793864361.22,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: High Accelerometer Bias"
+  },
+  {
+   "n": 9,
+   "t": 1793864362.94,
+   "kind": "log",
+   "text": "[vehicle] GPS reports critical jamming state"
+  },
+  {
+   "n": 10,
+   "t": 1793864363.34,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: High Accelerometer Bias"
+  },
+  {
+   "n": 11,
+   "t": 1793864363.97,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 12,
+   "t": 1793864363.97,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 1780694528.001
+   }
+  },
+  {
+   "n": 13,
+   "t": 1793864363.97,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "arm"
+   }
+  },
+  {
+   "n": 14,
+   "t": 1793864363.97,
+   "kind": "log",
+   "text": "[ladder] READY for test 'arm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 15,
+   "t": 1793864365.81,
+   "kind": "log",
+   "text": "[vehicle] GPS reports critical jamming state"
+  },
+  {
+   "n": 16,
+   "t": 1793864365.91,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: High Accelerometer Bias"
+  },
+  {
+   "n": 17,
+   "t": 1793864372.27,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 18,
+   "t": 1793864372.54,
+   "kind": "log",
+   "text": "[ladder] stage: arm <- the stage under test"
+  },
+  {
+   "n": 19,
+   "t": 1793864372.54,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": true,
+    "height_m": 0.05,
+    "t_epoch": 1780694536.57
+   }
+  },
+  {
+   "n": 20,
+   "t": 1793864373.03,
+   "kind": "log",
+   "text": "[vehicle] Arming denied: Resolve system health failures firs"
+  },
+  {
+   "n": 21,
+   "t": 1793864373.03,
+   "kind": "log",
+   "text": "[vehicle] t"
+  },
+  {
+   "n": 22,
+   "t": 1793864380.9,
+   "kind": "log",
+   "text": "[vehicle] Arming denied: Resolve system health failures firs"
+  },
+  {
+   "n": 23,
+   "t": 1793864381.0,
+   "kind": "log",
+   "text": "[vehicle] t"
+  },
+  {
+   "n": 24,
+   "t": 1793864389.22,
+   "kind": "log",
+   "text": "[vehicle] Arming denied: Resolve system health failures firs"
+  },
+  {
+   "n": 25,
+   "t": 1793864389.34,
+   "kind": "log",
+   "text": "[vehicle] t"
+  },
+  {
+   "n": 26,
+   "t": 1793864392.87,
+   "kind": "log",
+   "text": "[ladder] gave up waiting for the arm; sending DISARM behind any ARM still queued in the link"
+  },
+  {
+   "n": 27,
+   "t": 1793864403.01,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "arm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": null,
+    "takeover_source": null,
+    "takeover_stage": null,
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "downlink": "indoors",
+    "vehicle_text": [
+     "GPS reports critical jamming state",
+     "Preflight Fail: High Accelerometer Bias",
+     "GPS reports critical jamming state",
+     "Preflight Fail: High Accelerometer Bias",
+     "GPS reports critical jamming state",
+     "Preflight Fail: High Accelerometer Bias",
+     "GPS reports critical jamming state",
+     "Preflight Fail: High Accelerometer Bias",
+     "GPS reports critical jamming state",
+     "Preflight Fail: High Accelerometer Bias",
+     "Arming denied: Resolve system health failures firs",
+     "t",
+     "Arming denied: Resolve system health failures firs",
+     "t",
+     "Arming denied: Resolve system health failures firs",
+     "t"
+    ],
+    "rx_hz": {
+     "ATTITUDE": 3.0,
+     "RC_CHANNELS": 2.9,
+     "HEARTBEAT": 1.0,
+     "LOCAL_POSITION_NED": 0.7
+    },
+    "arm_commands_sent": 3,
+    "arm_retry_s": 8.0,
+    "arm_withdrawn": true,
+    "armed_late": false,
+    "error": "vehicle did not arm",
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 152,
+     "dropped_sim": 0,
+     "hz": 3.0
+    },
+    "max_height_m": null,
+    "disarmed": true,
+    "rx_msgs_per_s": 18.5,
+    "passed": false
+   }
+  },
+  {
+   "n": 28,
+   "t": 1793864406.42,
+   "kind": "log",
+   "text": "[link] downlink profile restored to PX4's defaults"
+  }
+ ]
+}

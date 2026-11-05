@@ -5,15 +5,16 @@
  "link": "usb",
  "flight_type": "tether",
  "stage": "disarm",
- "height_m": 2.0,
+ "height_m": 1.5,
  "hold_s": 2400.0,
  "wait_s": 15.0,
  "takeoff_pause_m": 0.5,
- "test_descent_rate": 0.08,
- "final_descent_rate": 0.05,
+ "test_descent_rate": 0.06,
+ "final_descent_rate": 0.03,
  "lift_by_climb": true,
  "ground_attitude": true,
  "height_timeout_s": null,
  "battery_hold_pct": 12.0,
- "battery_land_pct": 8.0
+ "battery_land_pct": 8.0,
+ "setpoint_hz": null
 }

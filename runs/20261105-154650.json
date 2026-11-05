@@ -1,0 +1,266 @@
+{
+ "id": "20261105-154650",
+ "started": "2026-11-05 15:46:50",
+ "mode": "live",
+ "profile": {
+  "name": "EXP5 arm and hold 3 Hz indoors downlink",
+  "description": "Experiment 5: like EXP3-A (3 Hz, arm stage, radio, props OFF) but with the indoors (lean) downlink. Does Offboard survive the ~10 s armed window?",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "arm",
+  "height_m": 0.8,
+  "hold_s": 5.0,
+  "wait_s": 60.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.08,
+  "final_descent_rate": 0.05,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": 3.0,
+  "downlink": "indoors"
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-05 15:46:49",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage arm --wait-s 60 --gate-timeout-s 150 --setpoint-hz 3 --downlink indoors --trace /tmp/gs_20261105-154650.csv"
+ ],
+ "arm_requested": "2026-11-05 15:47:20",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "arm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": "disarmed",
+  "takeover_source": null,
+  "takeover_stage": null,
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "downlink": "indoors",
+  "rx_hz": {
+   "ATTITUDE": 3.7,
+   "RC_CHANNELS": 3.1,
+   "HEARTBEAT": 1.0,
+   "LOCAL_POSITION_NED": 0.8
+  },
+  "vehicle_text": [
+   "Armed by external command",
+   "[logger] /fs/microsd/log/2026-11-05/07_47_23.ulg",
+   "Disarmed by auto preflight disarming"
+  ],
+  "arm_commands_sent": 1,
+  "arm_retry_s": 8.0,
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 85,
+   "dropped_sim": 0,
+   "hz": 3.0
+  },
+  "max_height_m": null,
+  "disarmed": true,
+  "stale_arm": {
+   "stale_arm_seen": false,
+   "disarms_sent": 0,
+   "watched_s": 20.0
+  },
+  "rx_msgs_per_s": 18.6,
+  "passed": false
+ },
+ "finished": "2026-11-05 15:47:58",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793864811.45,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793864811.73,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793864825.52,
+   "kind": "log",
+   "text": "[link] downlink profile INDOORS: 16 unused streams off, ATTITUDE at 3 Hz (runtime only; restored at the end)"
+  },
+  {
+   "n": 3,
+   "t": 1793864838.5,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 4,
+   "t": 1793864838.5,
+   "kind": "log",
+   "text": "[ladder] READY for test 'arm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 5,
+   "t": 1793864838.5,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 1780695002.513
+   }
+  },
+  {
+   "n": 6,
+   "t": 1793864838.5,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "arm"
+   }
+  },
+  {
+   "n": 7,
+   "t": 1793864840.79,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 8,
+   "t": 1793864840.97,
+   "kind": "log",
+   "text": "[ladder] stage: arm <- the stage under test"
+  },
+  {
+   "n": 9,
+   "t": 1793864840.97,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": true,
+    "height_m": 0.01,
+    "t_epoch": 1780695004.984
+   }
+  },
+  {
+   "n": 10,
+   "t": 1793864843.98,
+   "kind": "log",
+   "text": "[vehicle] Armed by external command"
+  },
+  {
+   "n": 11,
+   "t": 1793864844.28,
+   "kind": "log",
+   "text": "[vehicle] [logger] /fs/microsd/log/2026-11-05/07_47_23.ulg"
+  },
+  {
+   "n": 12,
+   "t": 1793864844.28,
+   "kind": "event",
+   "data": {
+    "event": "armed",
+    "slot": null,
+    "sysid": 113,
+    "armed_epoch": 1780695008.291
+   }
+  },
+  {
+   "n": 13,
+   "t": 1793864853.93,
+   "kind": "log",
+   "text": "[vehicle] Disarmed by auto preflight disarming"
+  },
+  {
+   "n": 14,
+   "t": 1793864854.64,
+   "kind": "log",
+   "text": "[safety] disarmed; watching 20 s for a stale ARM arriving late"
+  },
+  {
+   "n": 15,
+   "t": 1793864874.85,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "arm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": "disarmed",
+    "takeover_source": null,
+    "takeover_stage": null,
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "downlink": "indoors",
+    "rx_hz": {
+     "ATTITUDE": 3.7,
+     "RC_CHANNELS": 3.1,
+     "HEARTBEAT": 1.0,
+     "LOCAL_POSITION_NED": 0.8
+    },
+    "vehicle_text": [
+     "Armed by external command",
+     "[logger] /fs/microsd/log/2026-11-05/07_47_23.ulg",
+     "Disarmed by auto preflight disarming"
+    ],
+    "arm_commands_sent": 1,
+    "arm_retry_s": 8.0,
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 85,
+     "dropped_sim": 0,
+     "hz": 3.0
+    },
+    "max_height_m": null,
+    "disarmed": true,
+    "stale_arm": {
+     "stale_arm_seen": false,
+     "disarms_sent": 0,
+     "watched_s": 20.0
+    },
+    "rx_msgs_per_s": 18.6,
+    "passed": false
+   }
+  },
+  {
+   "n": 16,
+   "t": 1793864878.27,
+   "kind": "log",
+   "text": "[link] downlink profile restored to PX4's defaults"
+  }
+ ]
+}
