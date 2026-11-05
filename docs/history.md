@@ -359,6 +359,26 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-05 (eve) — Experiment 4: trimming the aircraft's DOWNLINK cuts the command round trip by 70-75 % and removes the loss at 3 Hz
+
+Question (operator's idea): the ELRS link is F500 / telemetry ratio 1:2 (9921 bps). We measured the downlink at ~27 msgs/s = ~1.07 kB/s, ~86 % of that. Does the downlink traffic slow
+the UPLINK that carries ARM and the setpoints? Aircraft DISARMED, 18 commands per condition (3 rounds x 6, random order, 12 s settle, 8 s drain), harmless `REQUEST_MESSAGE` as the probe, zero-thrust setpoints
+at 0/3/20 Hz, and either the normal downlink or "trim" = runtime `SET_MESSAGE_INTERVAL -1` on all 24 periodic streams except HEARTBEAT/ACK/STATUSTEXT (ids 1 4 24 29 30 31 32 36 42 65 74 83 85 132 141
+147 230 241 242 245 265 285 436 12901). Not parameters; all restored to default at the end, downlink re-measured 27.9/s. Script `tools/exp4_downlink_trim.py`, data `fc-backups/2026-11-05/exp4.jsonl`.
+
+| Condition | median round trip | p90 | lost (>=15 s) | downlink msgs/s |
+|---|---|---|---|---|
+| normal, 0 Hz | 0.82 s | 0.87 | 0/18 | 27.3 |
+| **trim, 0 Hz** | **0.26 s** | 0.28 | 0/18 | 2.7 |
+| normal, 3 Hz | 0.98 s | 1.43 | 0/18 | 24.0 |
+| **trim, 3 Hz** | **0.24 s** | 0.31 | 0/18 | 2.7 |
+| normal, 20 Hz | 15 s (timeout) | 15 | 14/18 | 17.4 |
+| trim, 20 Hz | 3.63 s | 15 | 8/18 | 15.6 |
+
+Mann-Whitney trim vs normal: p < 0.001 at 0 Hz and 3 Hz, p = 0.014 at 20 Hz. **Downlink chatter is the main source of uplink delay.** Trimming it makes the round trip ~3.5-4x faster at 0 and 3 Hz
+and tighter (p90 0.31 s against 1.43 s). At 20 Hz the stream-rate commands themselves are mostly lost, so the trim only reached 15.6 msgs/s: the uplink is also choked by the setpoint stream at that rate (as in Experiment 1).
+Not yet shown: that a trimmed downlink keeps PX4 in Offboard. A flight needs a few streams (LOCAL_POSITION_NED for height, RC_CHANNELS for takeover, SYS_STATUS for battery, ATTITUDE for tilt).
+
 ## 2026-11-05 (pm) — ARTEX113 flight logs pulled over USB: every Experiment 3 failsafe was PX4 losing the OFFBOARD SIGNAL, not the GCS link
 
 Pulled ulogs 101-117 (all 17, no missing chunks) from jetson-2 over USB; copies in `~/drone-dev/fc-backups/2026-11-05/ulg/` (workspace, not git). Read with `tools/ulog_failsafes.py`
