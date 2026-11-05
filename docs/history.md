@@ -359,6 +359,11 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-05 (night) — Experiment 5 finished and written up: Indoors downlink, 8 clean of 9 against 1 of 8 with the default (p = 0.003); ulogs 128-132 pulled
+
+Full write-up: `docs/experiments/2026-11-05-lean-downlink.md`. Ulogs 128-132 = runs `164342`, `164515`, `164644`, `164831`, `165058` (ch5 ON in all). Clean in 4 of 5; log 129 (`164515`) lost Offboard once at 1.8 s with the longest gap at PX4 1.13 s;
+clean runs had gaps 0.51-0.87 s. Overall at 3 Hz, props off: Indoors 8 clean / 1 failsafe, Outdoors 1 clean / 7 failsafe, Fisher exact p = 0.003. Bench only; not a flight result. Decisions listed in the write-up.
+
 ## 2026-11-05 (late) — Experiment 5 + controls read from the ulogs: lean downlink works; but ch5 was OFF in seven runs and the classifier mistook that for a takeover
 
 Pulled ulogs 118-127 over USB (copies in `fc-backups/2026-11-05/ulg/`; `tools/ulog_failsafes.py`, plus the RC input record). Mapping by time: 119 = `154650`, 120 = `155027`, 121 = `155157`, 122 = `155434`, 123 = `155645`
