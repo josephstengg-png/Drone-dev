@@ -149,7 +149,7 @@ def exp3(runs_dir: str = "runs") -> int:
         by_switch = any("Disarmed by RC switch" in tx or "kill" in tx.lower() and "Disarmed" in tx for _, tx in texts)
         # a failsafe in the armed window is a loss of Offboard even when the mode never dropped (20 Hz, 5 Nov)
         kind = ("not armed" if not armed else "void (pilot or kill)" if src and src != "link_loss" or by_switch
-                else "bounce" if src == "link_loss" or t_fs else "survived" if res.get("outcome") in ("no_takeover", "disarmed") and t_dis
+                else "bounce" if src == "link_loss" or t_fs else "survived" if res.get("outcome") == "no_takeover" or res.get("outcome") == "disarmed" and t_dis
                 else f"other:{res.get('outcome')}")
         t = round(t_fs - t_armed, 1) if t_fs and t_armed else None
         groups.setdefault(f"{hz:g} Hz" if hz else "?", []).append(dict(run=r["id"], kind=kind, t=t, fs=fs))
