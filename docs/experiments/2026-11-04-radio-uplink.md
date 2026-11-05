@@ -44,3 +44,7 @@ disarm with ch6. Outcome: "survived" (60 s in Offboard) or "bounce" (and when). 
 `python3 tools/experiment_report.py exp3`. Prediction: 3 Hz and 2 Hz survive nearly always; 20 Hz loses Offboard in some runs.
 The agent now also retries ARM every 8 s over a radio (was 3 s), counts the ARMs it sent, and for 20 s after a disarm answers a stale "Armed by external
 command" with DISARM: these runs also show whether anything re-arms.
+
+### Experiment 3 results (5 Nov 2026)
+See the 2026-11-05 "Experiment 3 finished" entry in `history.md`. Summary: 2 Hz 4/4 armed holds bounced (2.6, 2.6, 2.6, 4.5 s); 3 Hz 3 bounced, 1 survived; 20 Hz 2 bounced and 7 of 9 attempts never armed in time.
+The 60 s window was unreachable: PX4 auto-disarms ~10 s after arming. Rates are not separable (Fisher p = 1.0); GCS-link loss is the leading suspect, unproven until the ulogs are read.

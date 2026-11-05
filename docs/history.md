@@ -359,6 +359,30 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-05 — Experiment 3 finished (props OFF, radio): every armed run lost Offboard or ran out the ~10 s armed window; 20 Hz mostly never armed
+
+Operator ran 18 GUI runs 13:48-14:33 (`runs/20261105-1348*` to `-1432*`). Props OFF, hands off, no switch except the void run. Counted by `tools/experiment_report.py exp3`
+(changed today, see below). The order was fixed (B A C C A A C B B C A B); the operator started at B, repeated slots that did not arm, and moved on after 2 consecutive no-arms.
+- **Valid armed holds** (time from "armed" to first "Failsafe activated"): **2 Hz: 4 bounces (2.6, 2.6, 2.6, 4.5 s)**; **3 Hz: 3 bounces (4.8, 1.6, 2.6 s) + 1 survived the armed window**;
+  **20 Hz: 2 bounces (2.3, 7.4 s)**. Fisher exact between any two rates: p = 1.0. The rates cannot be told apart on this data.
+- **The 60 s window was never reachable.** PX4 auto-disarms ~10 s after arming with no take-off ("Disarmed by auto preflight disarming" 10.1-10.7 s after armed in every armed run).
+  So "survived" means "no failsafe in the ~10 s the aircraft stayed armed". A failsafe within 1 s of that auto-disarm is counted as the end of the window, not a loss.
+  The profiles are still named "hold 60 s"; that is misleading.
+- **20 Hz mostly did not arm.** Of 9 C attempts, 2 armed in time; the rest were an ssh failure (laptop `enp131s0` had lost carrier; reseated), 4 no-arms and 2 late arms
+  (ARM acted on 20 s after it was sent, after the agent gave up; its DISARM landed ~8 s later). 2 Hz and 3 Hz armed in time every time (one 3 Hz run needed a second ARM after
+  "Resolve system health failures first"). Consistent with Experiment 2 (the 20 Hz stream buries the ARM on the uplink), but see GCS loss below.
+- **GCS loss shows up in 5 of 6 failed 20 Hz arms** ("Connection to ground station lost" / "Preflight Fail: No connection to the ground control station" / "GCS connection regained", flapping
+  five times in one window) and in one 20 Hz bounce. Not seen in any 2 Hz or 3 Hz run. The operator's view: the GCS-link loss, not the setpoint rate, is the real problem. These records
+  neither prove nor refute it: vehicle messages come back over the same slow radio. **PX4 ulogs (USB) will say which failsafe fired and when; pull `/fs/microsd/log/2026-11-05/06_*.ulg`.**
+- **2.6 s recurs** across 2 Hz (x3) and 3 Hz (x1): suggests a fixed interval in the sequence or in event timestamping rather than random gaps. Unexplained.
+- Void: `135030` (operator disarmed with ch6 at 2.8 s), `135631` (ssh to jetson-2 timed out, nothing started), 6 no-arm or late-arm 20 Hz runs.
+- **Late arm after give-up happened twice (141901, 142309):** the agent's withdraw + DISARM worked, props off. It is the same risk class that blocks props-on radio arming.
+
+Tooling changes today (committed): GUI says "Offboard lost on the link, not the pilot" for `link_loss` instead of "pilot took over" (fd... see git log); `experiment_report.py exp3` counts a
+failsafe in the armed window as a bounce, times from the armed event, treats an RC-switch disarm as void, and treats a failsafe at the auto-disarm instant as the end of the window.
+
+Decisions open: pull the ulogs; the GCS heartbeat / `NAV_DLL_ACT` 3 question (a parameter change, needs the operator's approval); props-on tethered runs are the only place a long hold is possible.
+
 ## 2026-11-05 — GUI run 101032: props-on FREE flight over the radio at 3 Hz; PX4 lost Offboard 0.8 s after arming
 
 Operator's run (`runs/20261105-101032.json`): profile "artex113 HOVER ENDURANCE test", **free (no tether) / radio / until stage disarm**, 1 m, hold 1200 s, setpoints 3 Hz (agent default),
