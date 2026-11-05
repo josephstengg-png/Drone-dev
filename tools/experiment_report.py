@@ -140,9 +140,16 @@ def exp3(runs_dir: str = "runs") -> int:
         armed = any(x["kind"] == "event" and x["data"].get("event") == "armed" for x in feed)
         fs = sum("Failsafe activated" in x.get("text", "") for x in feed if x["kind"] == "log")
         src = res.get("takeover_source")
-        kind = ("not armed" if not armed else "bounce" if src == "link_loss" else "void (pilot or kill)" if src
-                else "survived" if res.get("outcome") == "no_takeover" else f"other:{res.get('outcome')}")
-        groups.setdefault(f"{hz:g} Hz" if hz else "?", []).append(dict(run=r["id"], kind=kind, t=res.get("takeover_after_s"), fs=fs))
+        texts = [(x["t"], x.get("text", "")) for x in feed if x["kind"] == "log"]
+        t_armed = next((x["t"] for x in feed if x["kind"] == "event" and x["data"].get("event") == "armed"), None)
+        t_fs = next((t for t, tx in texts if "Failsafe activated" in tx and t_armed and t >= t_armed), None)
+        by_switch = any("Disarmed by RC switch" in tx or "kill" in tx.lower() and "Disarmed" in tx for _, tx in texts)
+        # a failsafe in the armed window is a loss of Offboard even when the mode never dropped (20 Hz, 5 Nov)
+        kind = ("not armed" if not armed else "void (pilot or kill)" if src and src != "link_loss" or by_switch
+                else "bounce" if src == "link_loss" or t_fs else "survived" if res.get("outcome") == "no_takeover"
+                else f"other:{res.get('outcome')}")
+        t = round(t_fs - t_armed, 1) if t_fs and t_armed else None
+        groups.setdefault(f"{hz:g} Hz" if hz else "?", []).append(dict(run=r["id"], kind=kind, t=t, fs=fs))
     if not groups:
         print("no runs named EXP3... found in", runs_dir)
         return 1
@@ -152,7 +159,7 @@ def exp3(runs_dir: str = "runs") -> int:
         surv = sum(x["kind"] == "survived" for x in valid)
         counts[k] = (surv, len(valid) - surv)
         print(f"{k:6s} runs {len(rs):2d}  valid {len(valid):2d}  survived the hold {surv:2d}  Offboard lost {len(valid) - surv:2d}"
-              f"  (bounce at {[x['t'] for x in valid if x['kind'] == 'bounce']} s after arming)  'Failsafe activated' per run "
+              f"  (bounce at {[x['t'] for x in valid if x['kind'] == 'bounce']} s after arming, first failsafe)  'Failsafe activated' per run "
               f"{statistics.mean(x['fs'] for x in rs):.1f}   other: {[x['kind'] for x in rs if x['kind'] not in ('survived', 'bounce')]}")
     ks = list(counts)
     for i in range(len(ks)):

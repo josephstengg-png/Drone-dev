@@ -1,0 +1,166 @@
+{
+ "id": "20261105-135631",
+ "started": "2026-11-05 13:56:31",
+ "mode": "live",
+ "profile": {
+  "name": "EXP3-C arm and hold 60 s at 20 Hz",
+  "description": "EXPERIMENT 3, props OFF. After arming, HANDS OFF for the 60 s window. 20 Hz. Do not edit between runs.",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "arm",
+  "height_m": 0.8,
+  "hold_s": 5.0,
+  "wait_s": 60.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.08,
+  "final_descent_rate": 0.05,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": 20.0
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-05 13:56:29",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage arm --wait-s 60 --gate-timeout-s 150 --setpoint-hz 20 --trace /tmp/gs_20261105-135631.csv"
+ ],
+ "state": "ended",
+ "result": {
+  "error": "agent exited with code 255: Timeout, server 192.168.144.102 not responding. (ssh could not reach the companion)",
+  "passed": false
+ },
+ "finished": "2026-11-05 13:59:00",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793858191.82,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793858192.44,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793858206.86,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": null,
+    "t_epoch": 1780688371.088
+   }
+  },
+  {
+   "n": 3,
+   "t": 1793858206.86,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "arm"
+   }
+  },
+  {
+   "n": 4,
+   "t": 1793858206.86,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 5,
+   "t": 1793858206.86,
+   "kind": "log",
+   "text": "[ladder] READY for test 'arm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 6,
+   "t": 1793858228.93,
+   "kind": "log",
+   "text": "[vehicle] Connection to ground station lost"
+  },
+  {
+   "n": 7,
+   "t": 1793858229.03,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: No connection to the ground contro"
+  },
+  {
+   "n": 8,
+   "t": 1793858229.14,
+   "kind": "log",
+   "text": "[vehicle] l station"
+  },
+  {
+   "n": 9,
+   "t": 1793858229.14,
+   "kind": "log",
+   "text": "[vehicle] GCS connection regained"
+  },
+  {
+   "n": 10,
+   "t": 1793858247.53,
+   "kind": "log",
+   "text": "[vehicle] Connection to ground station lost"
+  },
+  {
+   "n": 11,
+   "t": 1793858250.41,
+   "kind": "log",
+   "text": "[safety] HOLD: no telemetry for 5.0s (error rate 0.0/min)"
+  },
+  {
+   "n": 12,
+   "t": 1793858250.41,
+   "kind": "log",
+   "text": "[safety] acting: HOLD -> HOLD (on the ground)"
+  },
+  {
+   "n": 13,
+   "t": 1793858250.41,
+   "kind": "event",
+   "data": {
+    "event": "safety",
+    "slot": null,
+    "action": "hold",
+    "carried_out": "hold",
+    "airborne": false,
+    "reasons": [
+     "no telemetry for 5.0s"
+    ],
+    "error_rate": 0.0,
+    "t_epoch": 1780688414.635
+   }
+  },
+  {
+   "n": 14,
+   "t": 1793858340.51,
+   "kind": "log",
+   "text": "Timeout, server 192.168.144.102 not responding."
+  }
+ ]
+}
