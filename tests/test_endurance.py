@@ -333,3 +333,42 @@ def test_the_agent_counts_its_arm_commands_and_guards_after_a_disarm_without_los
     assert 'result["arm_commands_sent"], result["arm_retry_s"] = arms_sent, arm_gap' in src
     assert "if armed_ever[\"on\"] and result.get(\"disarmed\") is True:" in src
     assert "except Exception as exc:       # a dead link here must never cost the result" in src
+
+
+# ---- the downlink profiles (5 Nov 2026, Experiment 4) -----------------------------------------------------------------
+
+def test_outdoors_touches_nothing_and_indoors_keeps_what_the_agent_reads():
+    assert agent.downlink_commands("outdoors") == []
+    assert agent.downlink_commands("anything-else") == []
+    off = {mid for mid, us in agent.downlink_commands("indoors") if us == -1}
+    # HEARTBEAT 0, SYS_STATUS 1, ATTITUDE 30, LOCAL_POSITION_NED 32, RC_CHANNELS 65, DISTANCE_SENSOR 132, BATTERY_STATUS 147,
+    # ESTIMATOR_STATUS 230, EXTENDED_SYS_STATE 245, COMMAND_ACK 77, STATUSTEXT 253: the agent or the guard reads each of these
+    for needed in (0, 1, 30, 32, 65, 77, 132, 147, 230, 245, 253):
+        assert needed not in off, needed
+    assert dict(agent.downlink_commands("indoors"))[30] == int(1e6 / 3.0)       # ATTITUDE slowed, not off
+
+
+def test_the_restore_covers_every_id_indoors_touches_and_sets_the_default():
+    touched = {mid for mid, _ in agent.downlink_commands("indoors")}
+    restored = agent.downlink_restore_commands()
+    assert {mid for mid, _ in restored} == touched
+    assert all(us == 0 for _, us in restored)          # 0 = PX4's default interval
+
+
+def test_the_downlink_flag_defaults_to_outdoors_and_the_gui_profile_maps_to_it():
+    assert core.normalise({})["downlink"] == "outdoors"
+    base = dict(name="Indoors downlink", flight_type="bench", link="radio", stage="arm")
+    assert "--downlink" not in core.agent_argv(core.normalise(base), "/tmp/t.csv")
+    argv = core.agent_argv(core.normalise(dict(base, downlink="indoors")), "/tmp/t.csv")
+    assert argv[argv.index("--downlink") + 1] == "indoors"
+    assert core.validate(core.normalise(dict(base, downlink="sideways")))
+    assert not core.validate(core.normalise(dict(base, downlink="indoors")))
+
+
+def test_sending_the_profile_issues_one_set_message_interval_per_stream():
+    sent = []
+    conn = types.SimpleNamespace(target_system=113, mav=types.SimpleNamespace(
+        command_long_send=lambda *a: sent.append(a)))
+    agent.send_downlink(conn, agent.downlink_commands("indoors"))
+    assert len(sent) == len(agent.downlink_commands("indoors"))
+    assert all(a[2] == agent.mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL for a in sent)

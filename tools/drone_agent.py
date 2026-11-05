@@ -732,6 +732,44 @@ def set_height_feed(conn, hz: float) -> None:
                                LOCAL_POSITION_NED_ID, int(1e6 / hz) if hz else 0, 0, 0, 0, 0, 0)
 
 
+# Downlink profiles (5 Nov 2026, Experiment 4). Over ELRS F500 / telemetry 1:2 (9.9 kbit/s) the aircraft's default ~27 msgs/s used ~86 % of
+# the downlink, and the half-duplex radio then answered commands slowly: median round trip 0.82 s idle / 0.98 s at 3 Hz, 15 s timeouts
+# at 20 Hz. Switching every periodic stream off but the heartbeat gave 0.26 s / 0.24 s (p < 0.001). "outdoors" = PX4's defaults, nothing
+# touched. "indoors" = the streams the offboard-flight verb never reads are switched off and ATTITUDE is slowed. Runtime
+# MAV_CMD_SET_MESSAGE_INTERVAL only: not a parameter, not saved, a reboot or `restore_downlink.py` puts it back.
+DOWNLINK_PROFILES = ("outdoors", "indoors")
+# PING, GPS_RAW_INT, SCALED_PRESSURE, ATTITUDE_QUATERNION, SERVO_OUTPUT_RAW, MISSION_CURRENT, VFR_HUD, ATTITUDE_TARGET,
+# POSITION_TARGET_LOCAL_NED, ALTITUDE, VIBRATION, HOME_POSITION, MOUNT_ORIENTATION, GIMBAL_DEVICE_ATTITUDE_STATUS, CURRENT_MODE,
+# OPEN_DRONE_ID_LOCATION
+DOWNLINK_INDOORS_OFF = (4, 24, 29, 31, 36, 42, 74, 83, 85, 141, 241, 242, 265, 285, 436, 12901)
+DOWNLINK_INDOORS_RATES_HZ = {30: 3.0}      # ATTITUDE (tilt guard): ~4.7 Hz by default
+# Left alone because the agent or the guard reads them: HEARTBEAT, COMMAND_ACK, STATUSTEXT, SYS_STATUS (battery), LOCAL_POSITION_NED
+# (height), RC_CHANNELS (takeover), DISTANCE_SENSOR (rangefinder), EXTENDED_SYS_STATE (airborne), ESTIMATOR_STATUS, BATTERY_STATUS.
+
+
+def downlink_commands(profile: str) -> list[tuple[int, int]]:
+    """(message id, interval in microseconds) for a profile: -1 = off, a positive number = that period. [] = leave PX4's defaults."""
+    if profile != "indoors":
+        return []
+    return ([(mid, -1) for mid in DOWNLINK_INDOORS_OFF]
+            + [(mid, int(1e6 / hz)) for mid, hz in DOWNLINK_INDOORS_RATES_HZ.items()])
+
+
+def downlink_restore_commands() -> list[tuple[int, int]]:
+    """Interval 0 = PX4's default, for every id any profile touches."""
+    return [(mid, 0) for mid in list(DOWNLINK_INDOORS_OFF) + list(DOWNLINK_INDOORS_RATES_HZ)]
+
+
+def send_downlink(conn, commands: list[tuple[int, int]], spacing_s: float = 0.0, pump=None) -> None:
+    for mid, us in commands:
+        conn.mav.command_long_send(conn.target_system, 1, mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, 0,
+                                   mid, us, 0, 0, 0, 0, 0)
+        if pump is not None:
+            pump(spacing_s)
+        elif spacing_s:
+            time.sleep(spacing_s)
+
+
 def height_feed_ready(stamps: list[float], now: float, timeout_s: float, window_s: float = 6.0,
                       min_hz: float = 1.0) -> tuple[bool, float, int]:
     """Is the feed fast enough RIGHT NOW? Judged on the last `window_s` only, so a slow start does not count against it.
@@ -1650,6 +1688,7 @@ def cmd_offboard_flight(args) -> int:
     state = dict(armed=False, mode=None, z=None, vz=None, t_lp=None, tilt=None, yaw=None,
                  roll=None, pitch=None, last_hb=None)
     feed_asked = dict(on=False)       # set once we have asked for a faster height feed, so we put the default back
+    downlink_set = dict(on=False)     # set once the indoors downlink profile was sent, so the defaults go back at the end
     armed_ever = dict(on=False)       # set when the aircraft armed under this agent, to start the stale-ARM watch
     rx = {}
     stdin = dict(pending=[], eof=False)
@@ -1746,6 +1785,15 @@ def cmd_offboard_flight(args) -> int:
     hands_off = lambda: guard.pilot_has_it or guard.stop_streaming  # noqa: E731
     t_start = time.time()
     try:
+        result["downlink"] = getattr(args, "downlink", "outdoors")
+        if result["downlink"] == "indoors" and not sim:
+            cmds = downlink_commands("indoors")
+            log(f"[link] downlink profile INDOORS: {len(DOWNLINK_INDOORS_OFF)} unused streams off, ATTITUDE at "
+                f"{DOWNLINK_INDOORS_RATES_HZ[30]:g} Hz (runtime only; restored at the end)")
+            downlink_set["on"] = True
+            for _ in range(3):        # the uplink drops commands; three passes, each stream read back in the rx counts
+                send_downlink(conn, cmds, 0.12, pump)
+                pump(1.5)
         pump(2.0)
         # Only flight stages need height. ARTEX113's ELRS link carries LOCAL_POSITION_NED at
         # 0.5 Hz (29 Oct), so a 2 s window can miss it, and pre-arm and arm never use it.
@@ -1987,6 +2035,7 @@ def cmd_offboard_flight(args) -> int:
                                                        0, 0, 0, 0, 0, 0, 0, 0))
             except Exception as exc:       # a dead link here must never cost the result (29 Oct: trace lost that way)
                 result["stale_arm"] = dict(error=f"{type(exc).__name__}: {exc}")
+        result["rx_msgs_per_s"] = round(sum(rx.values()) / max(time.time() - t_start, 1.0), 1)
         result["passed"] = (result["outcome"] == "takeover" and result["takeover_stage"] == stage
                             and result["takeover_source"] in ("pilot_switch", "kill_switch")
                             and not result.get("safety"))
@@ -1996,6 +2045,13 @@ def cmd_offboard_flight(args) -> int:
                 set_height_feed(conn, 0)      # the default rate again; best effort, a reboot clears it anyway
             except Exception:
                 pass
+        if downlink_set["on"]:
+            try:
+                for _ in range(2):
+                    send_downlink(conn, downlink_restore_commands(), 0.1)
+                log("[link] downlink profile restored to PX4's defaults")
+            except Exception:
+                log("[link] could not restore the downlink streams; run tools/restore_downlink.py or reboot the flight controller")
 
 
 # COM_FLTMODE<n> values, from PX4 1.16's own parameter metadata
@@ -2200,6 +2256,10 @@ def main() -> int:
                     help="offboard-flight --stage descent: m/s, slow so the stage lasts")
     ap.add_argument("--final-descent-rate", type=float, default=0.05,
                     help="offboard-flight --stage landing: m/s over the last 0.3 m")
+    ap.add_argument("--downlink", choices=DOWNLINK_PROFILES, default="outdoors",
+                    help="offboard-flight: which MAVLink streams the aircraft sends back. outdoors = PX4's defaults (nothing touched). "
+                         "indoors = switch off the streams this verb never reads (GPS, gimbal, servo, ...) so the half-duplex ELRS link "
+                         "answers commands ~3.5x faster (Experiment 4, 5 Nov 2026). Runtime only, restored at the end")
     ap.add_argument("--setpoint-hz", type=float, default=None,
                     help="offboard-flight: setpoint rate (default 20 on USB and in SITL, 3 over a radio: 20 Hz buries "
                          "commands on the ELRS uplink, 4 Nov 2026). 5 Hz made the height loop oscillate in SITL "

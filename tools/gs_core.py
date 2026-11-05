@@ -59,7 +59,8 @@ DEFAULTS = dict(name="", description="", sysid=113, link="radio", flight_type="b
                 height_m=0.8, hold_s=5.0, wait_s=15.0, takeoff_pause_m=0.5,
                 test_descent_rate=0.08, final_descent_rate=0.05,
                 lift_by_climb=True, ground_attitude=True, height_timeout_s=None,
-                battery_hold_pct=None, battery_land_pct=None, setpoint_hz=None)
+                battery_hold_pct=None, battery_land_pct=None, setpoint_hz=None, downlink="outdoors")
+DOWNLINKS = ("outdoors", "indoors")
 FLIGHT_TYPES = ("bench", "tether", "free")
 
 
@@ -113,6 +114,8 @@ def validate(p: dict) -> list[str]:
         e.append("Link must be radio (ELRS) or usb.")
     if p["flight_type"] not in FLIGHT_TYPES:
         e.append("Flight type must be bench, tether or free.")
+    if p["downlink"] not in DOWNLINKS:
+        e.append("Downlink must be outdoors (PX4's default streams) or indoors (lean).")
     if p["stage"] not in STAGES:
         e.append(f"Stage must be one of {', '.join(STAGES)}.")
     # the window only means something up to the stage that uses it (prearm, arm, take-off pause, hold); beyond that
@@ -228,6 +231,8 @@ def agent_argv(p: dict, trace: str) -> list[str]:
          "--wait-s", f"{p['wait_s']:g}", "--gate-timeout-s", "150"]
     if p["setpoint_hz"] is not None:
         a += ["--setpoint-hz", f"{p['setpoint_hz']:g}"]
+    if p["downlink"] != "outdoors":
+        a += ["--downlink", p["downlink"]]
     if flies:
         a += ["--height", f"{p['height_m']:g}", "--hold-s", f"{p['hold_s']:g}",
               "--takeoff-pause-m", f"{p['takeoff_pause_m']:g}",
@@ -436,6 +441,8 @@ def history_block(rec: dict) -> str:
                  f"{res.get('takeover_source') or 'none'}"
                  f"{' after ' + str(res.get('takeover_after_s')) + ' s' if res.get('takeover_after_s') else ''}"
                  f"{'; error: ' + str(res.get('error')) if res.get('error') else ''}.")
+    if res.get("downlink"):
+        lines.append(f"- Downlink profile: {res['downlink']}, {res.get('rx_msgs_per_s')} msgs/s received.")
     if res.get("setpoints"):
         lines.append(f"- Setpoints: {res['setpoints'].get('sent')} sent, {res.get('link_losses')} link losses, "
                      f"max height {res.get('max_height_m')} m.")

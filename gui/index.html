@@ -131,6 +131,7 @@ pre.cmd{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,M
      <label class="f">Final descent (m/s)<input id="f-fdr" type="number" step="0.01"></label>
      <label class="f">Height timeout (s, blank = auto)<input id="f-hto" type="number" step="0.5"></label>
      <label class="f"><span>Setpoint rate (Hz, blank = 3 radio / 20 USB)</span><input id="f-sphz" type="number" step="1"></label>
+     <label class="f"><span>Downlink <span class="e">indoors = lean, ~3.5x faster commands over the radio</span></span><select id="f-dl"><option value="outdoors">Outdoors (all streams)</option><option value="indoors">Indoors (lean)</option></select></label>
     </div>
     <div class="row">
      <label class="f"><span>Guard: battery HOLD at (%, blank = 25)</span><input id="f-bhold" type="number" step="1"></label>
@@ -318,7 +319,7 @@ function edLoad(p) {
   $('f-name').value = p.name; $('f-desc').value = p.description; $('f-sysid').value = p.sysid; $('f-stage').value = p.stage;
   ['height_m', 'hold_s', 'wait_s', 'takeoff_pause_m', 'test_descent_rate', 'final_descent_rate'].forEach(k => $(F[k]).value = p[k]);
   $('f-hto').value = p.height_timeout_s == null ? '' : p.height_timeout_s;
-  $('f-sphz').value = p.setpoint_hz == null ? '' : p.setpoint_hz; $('f-bhold').value = p.battery_hold_pct == null ? '' : p.battery_hold_pct; $('f-bland').value = p.battery_land_pct == null ? '' : p.battery_land_pct;
+  $('f-dl').value = p.downlink || 'outdoors'; $('f-sphz').value = p.setpoint_hz == null ? '' : p.setpoint_hz; $('f-bhold').value = p.battery_hold_pct == null ? '' : p.battery_hold_pct; $('f-bland').value = p.battery_land_pct == null ? '' : p.battery_land_pct;
   $('f-lift').checked = !!p.lift_by_climb; $('f-gatt').checked = !!p.ground_attitude;
   document.querySelectorAll('input[name=f-link]').forEach(i => i.checked = i.value === p.link);
   document.querySelectorAll('input[name=f-type]').forEach(i => i.checked = i.value === p.flight_type);
@@ -329,7 +330,7 @@ function edRead() {
   const num = id => $(id).value === '' ? null : +$(id).value;
   return {name: $('f-name').value, description: $('f-desc').value, sysid: +$('f-sysid').value, stage: $('f-stage').value,
     link: (document.querySelector('input[name=f-link]:checked') || {}).value, flight_type: (document.querySelector('input[name=f-type]:checked') || {}).value,
-    setpoint_hz: num('f-sphz'), battery_hold_pct: num('f-bhold'), battery_land_pct: num('f-bland'),
+    downlink: $('f-dl').value, setpoint_hz: num('f-sphz'), battery_hold_pct: num('f-bhold'), battery_land_pct: num('f-bland'),
     height_m: num('f-height'), hold_s: num('f-hold'), wait_s: num('f-wait'), takeoff_pause_m: num('f-pause'),
     test_descent_rate: num('f-tdr'), final_descent_rate: num('f-fdr'), height_timeout_s: num('f-hto'),
     lift_by_climb: $('f-lift').checked, ground_attitude: $('f-gatt').checked};
@@ -471,7 +472,7 @@ function stopPoll() { clearInterval(poll); poll = null; }
 function showResult(s) {
   const r = s.result || {}, ok = r.passed, b = $('resultBox'); b.hidden = false;
   b.innerHTML = `<h2>Result</h2><div class="verdict"><span class="big">${esc(r.outcome || (r.error ? 'did not run' : '?'))}</span><span class="pill ${ok ? 'GO' : 'NOGO'}">${ok ? 'AGENT PASSED' : 'NOT PASSED'}</span></div>
-   <dl class="kv"><dt>Takeover</dt><dd>${esc(r.takeover_source === 'link_loss' ? 'none: Offboard lost on the link (link_loss), not the pilot' : r.takeover_source || 'none')}${r.takeover_after_s ? ' after ' + esc(r.takeover_after_s) + ' s' : ''}</dd><dt>Setpoints</dt><dd>${r.setpoints ? esc(r.setpoints.sent) + ' sent, ' + esc(r.link_losses) + ' link losses' : '–'}</dd><dt>Max height</dt><dd>${esc(r.max_height_m)}</dd>${r.arm_commands_sent != null ? `<dt>ARM commands</dt><dd>${esc(r.arm_commands_sent)} sent, one every ${esc(r.arm_retry_s)} s</dd>` : ''}${r.stale_arm ? `<dt>Stale-ARM watch</dt><dd>${r.stale_arm.error ? esc(r.stale_arm.error) : r.stale_arm.stale_arm_seen ? '<b>a late ARM arrived and was answered with ' + esc(r.stale_arm.disarms_sent) + ' DISARM</b>' : 'nothing arrived in ' + esc(r.stale_arm.watched_s) + ' s'}</dd>` : ''}${r.error ? `<dt>Error</dt><dd class="err">${esc(r.error)}</dd>` : ''}</dl>
+   <dl class="kv"><dt>Takeover</dt><dd>${esc(r.takeover_source === 'link_loss' ? 'none: Offboard lost on the link (link_loss), not the pilot' : r.takeover_source || 'none')}${r.takeover_after_s ? ' after ' + esc(r.takeover_after_s) + ' s' : ''}</dd><dt>Setpoints</dt><dd>${r.setpoints ? esc(r.setpoints.sent) + ' sent, ' + esc(r.link_losses) + ' link losses' : '–'}</dd><dt>Max height</dt><dd>${esc(r.max_height_m)}</dd>${r.downlink ? `<dt>Downlink</dt><dd>${esc(r.downlink)}${r.rx_msgs_per_s != null ? ', ' + esc(r.rx_msgs_per_s) + ' msgs/s received' : ''}</dd>` : ''}${r.arm_commands_sent != null ? `<dt>ARM commands</dt><dd>${esc(r.arm_commands_sent)} sent, one every ${esc(r.arm_retry_s)} s</dd>` : ''}${r.stale_arm ? `<dt>Stale-ARM watch</dt><dd>${r.stale_arm.error ? esc(r.stale_arm.error) : r.stale_arm.stale_arm_seen ? '<b>a late ARM arrived and was answered with ' + esc(r.stale_arm.disarms_sent) + ' DISARM</b>' : 'nothing arrived in ' + esc(r.stale_arm.watched_s) + ' s'}</dd>` : ''}${r.error ? `<dt>Error</dt><dd class="err">${esc(r.error)}</dd>` : ''}</dl>
    ${r.abort_reason === 'height estimate lost' ? `<div class="blockbox"><b>The controller refused to fly blind.</b> No height reading arrived within ${esc((SNAP && SNAP.profile && SNAP.profile.height_timeout_s) || 3)} s. Over the radio height arrives every 2 to 3 s. It armed, aborted at once and told PX4 to land; the motors did not spool. This is the safeguard working. Use the USB cable for flight stages.</div>` : ''}
    ${r.error && /height arrives too slowly/.test(r.error) ? `<div class="blockbox"><b>Not armed.</b> ${esc(r.error)}</div>` : ''}
    ${r.error && /did not arm/.test(r.error) ? `<div class="blockbox"><b>Check the aircraft.</b> An ARM command can arrive late over the radio. The agent sent DISARM behind it and listened for ${r.armed_late ? 'a late arm: it DID arm after the agent gave up' : '10 s: it did not arm in that time'}. If the aircraft is armed, disarm with ch6 or hold kill 5 s.</div>` : ''}

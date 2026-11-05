@@ -359,6 +359,19 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-05 (night) — Downlink profiles "outdoors" / "indoors" built and deployed (set per profile in the GUI)
+
+After Experiment 4 (see below), the operator asked for the lean downlink to be a named, GUI-controlled choice: **outdoors** = PX4's default streams, nothing touched (the default for every profile, old ones
+included); **indoors** = lean. `drone_agent.py offboard-flight --downlink {outdoors,indoors}`; GUI profile editor has a "Downlink" dropdown; the run card and history block show it and the received msgs/s.
+- indoors switches OFF 16 streams the verb never reads (PING 4, GPS_RAW_INT 24, SCALED_PRESSURE 29, ATTITUDE_QUATERNION 31, SERVO_OUTPUT_RAW 36, MISSION_CURRENT 42, VFR_HUD 74, ATTITUDE_TARGET 83,
+  POSITION_TARGET_LOCAL_NED 85, ALTITUDE 141, VIBRATION 241, HOME_POSITION 242, MOUNT_ORIENTATION 265, GIMBAL_DEVICE_ATTITUDE_STATUS 285, CURRENT_MODE 436, OPEN_DRONE_ID_LOCATION 12901) and slows
+  ATTITUDE (30) to 3 Hz. Kept untouched because the agent or guard reads them: HEARTBEAT, COMMAND_ACK, STATUSTEXT, SYS_STATUS, LOCAL_POSITION_NED, RC_CHANNELS, DISTANCE_SENSOR, EXTENDED_SYS_STATE,
+  ESTIMATOR_STATUS, BATTERY_STATUS. Expect roughly 10 msgs/s received, against 27 (Experiment 4 trimmed to 2.7, which is leaner than a flight can use). Not yet measured with this exact list.
+- Runtime `MAV_CMD_SET_MESSAGE_INTERVAL` only (not parameters). Sent in three passes at start, restored (interval 0 = default) in the agent's `finally`. If a run dies hard the streams stay trimmed until the flight
+  controller reboots or `tools/restore_downlink.py` is run on the Jetson (refuses if armed).
+- Deployed to jetson-2 (drone_agent, safety_rules, offboard_control, restore_downlink, md5-verified, nothing running). Tests: 389 pass. The GUI server must be restarted to see the dropdown.
+- Next: Experiment 5 (props OFF), profile `EXP5 arm and hold 3 Hz indoors downlink`: does Offboard survive the ~10 s armed window with the lean downlink? Compare with Experiment 3 (3 Hz outdoors: 3 of 4 bounced).
+
 ## 2026-11-05 (eve) — Experiment 4: trimming the aircraft's DOWNLINK cuts the command round trip by 70-75 % and removes the loss at 3 Hz
 
 Question (operator's idea): the ELRS link is F500 / telemetry ratio 1:2 (9921 bps). We measured the downlink at ~27 msgs/s = ~1.07 kB/s, ~86 % of that. Does the downlink traffic slow
