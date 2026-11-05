@@ -448,3 +448,11 @@ def test_the_trace_is_written_before_the_link_is_touched_again():
     src = (Path(agent.__file__)).read_text()
     fin = src.index('    finally:\n        tx["on"] = False\n        # The trace first')
     assert src.index("Path(args.trace).write_text", fin) < src.index("pump(guard.classify_s", fin)
+
+
+def test_a_switch_that_was_already_off_is_not_a_pilot_takeover():
+    """5 Nov 2026: bench runs with ch5 off from the start were classed pilot_switch on the absolute reading (ulogs 121-127)."""
+    assert sr.classify_mode_exit([1000, 1000], 1500, [1500], offb_pwm_before=1000) == "link_loss"
+    assert sr.classify_mode_exit([1000], 1500, [1500], offb_pwm_before=2000) == "pilot_switch"     # dropped from on to off
+    assert sr.classify_mode_exit([1000], 1500, [1500], offb_pwm_before=None) == "pilot_switch"     # unknown: old behaviour
+    assert sr.classify_mode_exit([1000], 1500, [1990], offb_pwm_before=1000) == "pilot_switch"     # ch7 still counts

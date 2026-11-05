@@ -1157,22 +1157,29 @@ class Guard:
         if self._exit_at is None or self.takeover_source is not None:
             return
         before = [p for t, p in self._mode_pwm if t < self._exit_at]
+        offb_before = [p for t, p in self._offb_pwm if t < self._exit_at]
         verdict = safety_rules.classify_mode_exit(
             [p for t, p in self._offb_pwm if t >= self._exit_at], before[-1] if before else None,
-            [p for t, p in self._mode_pwm if t >= self._exit_at])
+            [p for t, p in self._mode_pwm if t >= self._exit_at],
+            offb_pwm_before=offb_before[-1] if offb_before else None)
         if verdict != "pilot_switch" and now - self._exit_at < self.classify_s:
             return                      # a switch reading may still be on its way
         self.takeover_source = verdict
         if verdict == "link_loss":
             self.link_losses += 1
             log("[safety] *** OFFBOARD LOST ON THE LINK -- NOT A PILOT TAKEOVER *** the offboard "
-                "switch (ch5) is still on and ch7 has not moved. PX4 failed over and the agent has "
+                f"switch (ch5) {'was already OFF before the exit' if offb_before and offb_before[-1] <= safety_rules.OFFBOARD_SWITCH_ON_ABOVE else 'is still on'} "
+                "and ch7 has not moved. PX4 failed over and the agent has "
                 "stood down for good. PILOT: you have the aircraft -- fly it and land it.")
         else:
             log(f"[safety] PILOT HAS IT ({verdict.replace('_', ' ')}).")
+        after5 = [p for t, p in self._offb_pwm if t >= self._exit_at]
+        after7 = [p for t, p in self._mode_pwm if t >= self._exit_at]
         emit(dict(event="takeover_classified", slot=self.slot, source=verdict,
                   after_s=round(now - self._exit_at, 2), airborne=self.airborne,
-                  t_epoch=round(now, 3)))
+                  t_epoch=round(now, 3),
+                  ch5_before=offb_before[-1] if offb_before else None, ch5_after=[min(after5), max(after5)] if after5 else None,
+                  ch7_before=before[-1] if before else None, ch7_after=[min(after7), max(after7)] if after7 else None))
 
     def operator(self, word: str) -> bool:
         """A command from the ground. Returns False if it was not understood."""
@@ -1859,8 +1866,14 @@ def cmd_offboard_flight(args) -> int:
                 return 2
 
         if args.gate:
-            emit(dict(event="ready", slot=args.slot, sysid=conn.target_system, stage=stage))
+            ch5 = guard._offb_pwm[-1][1] if guard._offb_pwm else None
+            result["offboard_switch_at_ready"] = ch5
+            emit(dict(event="ready", slot=args.slot, sysid=conn.target_system, stage=stage, ch5=ch5))
             log(f"[ladder] READY for test '{stage}' -- type ARM once props/tether/area are confirmed")
+            if ch5 is None or ch5 <= safety_rules.OFFBOARD_SWITCH_ON_ABOVE:
+                log(f"[ladder] WARNING: the offboard switch (ch5) reads {ch5 if ch5 is not None else 'nothing'}, i.e. OFF. "
+                    "Turning it off is the pilot's takeover, so with it already off that takeover is not available, and PX4 is "
+                    "in Offboard only because the agent asked. Switch ch5 ON before ARM (ch7 centre).")
             end, verdict = time.time() + args.gate_timeout_s, None
             while time.time() < end and verdict is None:
                 pump(0.3)

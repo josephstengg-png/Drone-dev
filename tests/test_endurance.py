@@ -207,7 +207,7 @@ def test_a_feed_faster_than_the_timeout_passes_and_the_open_gap_counts():
 
 def test_the_check_runs_before_the_gate_for_real_flight_stages_only():
     src = Path(agent.__file__).read_text()
-    i, j = src.index("height_feed_ready(stamps, time.time(), timeout)"), src.index('emit(dict(event="ready", slot=args.slot, sysid=conn.target_system, stage=stage))')
+    i, j = src.index("height_feed_ready(stamps, time.time(), timeout)"), src.index('emit(dict(event="ready", slot=args.slot, sysid=conn.target_system, stage=stage, ch5=ch5))')
     assert i < j                                                    # before READY, so before any ARM
     assert "if not sim and upto >= oc.STAGES.index(\"takeoff\"):" in src
 

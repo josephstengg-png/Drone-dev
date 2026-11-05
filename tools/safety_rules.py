@@ -360,7 +360,8 @@ MODE_SWITCH_MOVED = 150          # PWM change on channel 7 that counts as a thro
 
 def classify_mode_exit(offb_pwm_after: list[float], mode_pwm_before: float | None,
                        mode_pwm_after: list[float],
-                       on_above=OFFBOARD_SWITCH_ON_ABOVE, moved=MODE_SWITCH_MOVED) -> str:
+                       on_above=OFFBOARD_SWITCH_ON_ABOVE, moved=MODE_SWITCH_MOVED,
+                       offb_pwm_before: float | None = None) -> str:
     """Why did the aircraft leave OFFBOARD for a hand-flown mode?
 
     Readings are RC_CHANNELS SINCE the mode change: `offb_pwm_after` the offboard switch,
@@ -373,7 +374,10 @@ def classify_mode_exit(offb_pwm_after: list[float], mode_pwm_before: float | Non
     "pilot_switch" | "link_loss" | "unknown" (no RC reading arrived: the caller treats
     that as a takeover, because standing down is safe in both cases).
     """
-    if any(p <= on_above for p in offb_pwm_after):
+    # 5 Nov 2026: a switch that was ALREADY off cannot have been dropped. Seven bench runs with ch5 off from the start were
+    # called "pilot_switch" on the absolute reading alone (ulogs 121-127). Unknown (None) keeps the old behaviour.
+    was_on = offb_pwm_before is None or offb_pwm_before > on_above
+    if was_on and any(p <= on_above for p in offb_pwm_after):
         return "pilot_switch"
     if mode_pwm_before is not None and any(abs(p - mode_pwm_before) > moved
                                            for p in mode_pwm_after):

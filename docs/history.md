@@ -359,6 +359,24 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-05 (late) — Experiment 5 + controls read from the ulogs: lean downlink works; but ch5 was OFF in seven runs and the classifier mistook that for a takeover
+
+Pulled ulogs 118-127 over USB (copies in `fc-backups/2026-11-05/ulg/`; `tools/ulog_failsafes.py`, plus the RC input record). Mapping by time: 119 = `154650`, 120 = `155027`, 121 = `155157`, 122 = `155434`, 123 = `155645`
+(EXP5, Indoors, 3 Hz); 124-127 = `160022`, `160154`, `160308`, `160426` (EXP3-A controls, Outdoors, 3 Hz). Armed ~11 s each (PX4 auto-disarm).
+- **PX4's own record agrees with the run records and explains them.** Indoors clean runs (119, 121, 122, 123): no `offboard_control_signal_lost` at all, longest gap between OFFBOARD_CONTROL_MODE messages
+  **0.64, 0.81, 1.02, 0.78 s**, 34-40 messages in ~11 s. Outdoors controls (124-127): 2-4 Offboard losses each (first at 2.6, 4.3, 1.4, 3.7 s), longest gap **1.64-2.13 s**, 14-36 messages. PX4 declares loss at
+  `COM_OF_LOSS_T` 1.0 s, so the lean downlink keeps the setpoint stream just under that and the default one runs over it. Mechanism confirmed at PX4, not only at the agent.
+- **A confound found in the RC input: ch5 (offboard switch) read 1000 = OFF for the whole armed window in logs 121-127** (all of the remaining Experiment 5 runs and all four controls). Logs 104-119 (Experiment 3 and the first
+  Experiment 5 run) had it ON (2000). Log 120 shows ch5 going 2000 -> 1000 during the run (the run that was classified `pilot_switch` and disarmed by RC switch): from there on the switch stayed off. It matters because
+  taking over = turning ch5 off, so with it already off that takeover is not available, and PX4 was in Offboard only because the agent commanded it. The protocol said ch5 on for every run; nothing checked it.
+- **Result is unchanged by it, because it holds within the stratum:** ch5 OFF: Indoors 3 clean of 3 (121-123) against Outdoors 0 clean of 4 (124-127), Fisher exact p = 0.029. ch5 ON: Indoors 1 of 1 (119); the default-downlink runs
+  today (Experiment 3, ch5 on) had 1 clean of ~13 armed holds. Overall, no failsafe in the armed window: Indoors 4/4 against Outdoors 1/8, p = 0.010 (not stratified).
+- **Classifier bug (fixed, deployed):** `classify_mode_exit` called any ch5 reading <= 1750 a pilot switch, so runs with ch5 off from the start (`160022`, `160154`, `160426`) were reported `pilot_switch` although nobody touched anything. Now a switch
+  that was already off cannot have been dropped (`offb_pwm_before`; unknown keeps the old behaviour); the takeover event carries the ch5/ch7 readings before and after; READY logs a WARNING and the GUI shows it if ch5 reads OFF.
+  Tests: 390 pass. md5-verified on jetson-2. The GUI server needs a restart for the READY warning.
+- **Open:** who or what moved ch5 in run 120 (the operator says the controls were not touched; the log says the switch moved). Radio glitch or a bump: not known. The agent should probably refuse to go READY for a props-on run with ch5 off; not done.
+- Still not shown: that a flight holds. This is props-off, ~10 s armed on the ground.
+
 ## 2026-11-05 (night) — Downlink profiles "outdoors" / "indoors" built and deployed (set per profile in the GUI)
 
 After Experiment 4 (see below), the operator asked for the lean downlink to be a named, GUI-controlled choice: **outdoors** = PX4's default streams, nothing touched (the default for every profile, old ones
