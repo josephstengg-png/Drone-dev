@@ -151,6 +151,9 @@ Responsibility is the operator's to accept for risks (listed in `tools/gs_core.p
 props-on over the radio without a fresh Preflight GO). First live run 4 Nov 2026 (props off, passed).
 Endurance hover (4 Nov): `--max-height-m` up to 2.0 m, holds up to 2 h, guard battery thresholds in the profile; ARTEX113 has no
 current sensor, so battery use is volts and a voltage-based percent only. Not yet flown.
+Fleet page (10 Nov 2026): multi-aircraft waypoint runs, `tools/gs_fleet.py` + `FleetRun` in gs_server. Resident `prepare` per aircraft,
+READY barrier, ARM ALL, START ALL within 8 s (PX4 disarms a grounded armed aircraft at ~10 s), others HOLD on a fault, one pilot per
+aircraft. Indoors the agent's contract refuses READY (no GPS), so real aircraft indoors only do "upload". Demo: `tools/fake_resident_agent.py`.
 
 ## Known-unfinished, so nobody assumes otherwise
 
