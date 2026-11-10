@@ -1,0 +1,475 @@
+{
+ "id": "20261110-143634",
+ "started": "2026-11-10 14:36:34",
+ "mode": "live",
+ "profile": {
+  "name": "artex113 GUI test",
+  "description": "Props OFF, to arm only over radio test GUI pipeline",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "disarm",
+  "height_m": 1.0,
+  "hold_s": 30.0,
+  "wait_s": 20.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.06,
+  "final_descent_rate": 0.04,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": null,
+  "downlink": "outdoors"
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-10 14:36:24",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage disarm --wait-s 20 --gate-timeout-s 150 --height 1 --hold-s 30 --takeoff-pause-m 0.5 --test-descent-rate 0.06 --final-descent-rate 0.04 --lift-by-climb --ground-attitude --allow-radio-flight --height-timeout-s 3 --trace /tmp/gs_20261110-143634.csv"
+ ],
+ "arm_requested": "2026-11-10 14:37:04",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "disarm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": "takeover",
+  "takeover_source": "kill_switch",
+  "takeover_stage": "takeoff",
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "downlink": "outdoors",
+  "rx_hz": {
+   "ATTITUDE": 4.5,
+   "RC_CHANNELS": 1.8,
+   "HEARTBEAT": 0.9,
+   "LOCAL_POSITION_NED": 0.5
+  },
+  "height_feed_requested_hz": 10,
+  "height_feed": {
+   "readings_last_6s": 15,
+   "longest_gap_s": 0.8,
+   "timeout_s": 3.0,
+   "waited_s": 6.0,
+   "ok": true
+  },
+  "offboard_switch_at_ready": 1000,
+  "vehicle_text": [
+   "Armed by external command",
+   "[logger] /fs/microsd/log/2026-11-10/06_37_04.ulg",
+   "Takeoff detected",
+   "Kill engaged",
+   "Preflight Fail: Flight termination active",
+   "Failsafe activated",
+   "Failsafe activated",
+   "Preflight Fail: Flight termination active",
+   "Failsafe activated",
+   "Disarmed by kill-switch",
+   "Preflight Fail: heading estimate not stable",
+   "Preflight Fail: Kill switch engaged",
+   "Preflight Fail: Flight termination active",
+   "Preflight Fail: Kill switch engaged",
+   "Preflight Fail: Flight termination active",
+   "Preflight Fail: Kill switch engaged",
+   "Preflight Fail: Flight termination active"
+  ],
+  "arm_commands_sent": 1,
+  "arm_retry_s": 8.0,
+  "profile": {
+   "target_height_m": 1.0,
+   "hold_s": 30.0,
+   "descent_rate_ms": 0.3,
+   "final_descent_rate_ms": 0.3
+  },
+  "takeover_after_s": 5.32,
+  "takeover_height_m": 0.0,
+  "takeover_tilt_deg": 1.5,
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 66,
+   "dropped_sim": 0,
+   "hz": 3.0
+  },
+  "max_height_m": 0.0,
+  "disarmed": true,
+  "stale_arm": {
+   "stale_arm_seen": false,
+   "disarms_sent": 0,
+   "watched_s": 20.0
+  },
+  "rx_msgs_per_s": 24.1,
+  "passed": false
+ },
+ "finished": "2026-11-10 14:37:36",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1794292595.34,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1794292596.21,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1794292611.06,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 3,
+   "t": 1794292611.06,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 1780723740.003
+   }
+  },
+  {
+   "n": 4,
+   "t": 1794292612.17,
+   "kind": "log",
+   "text": "[ladder] waiting up to 40 s for a height feed the controller can live on (a reading every 3 s, 1 Hz or better); asked the aircraft for 10 Hz"
+  },
+  {
+   "n": 5,
+   "t": 1794292618.2,
+   "kind": "log",
+   "text": "[ladder] READY for test 'disarm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 6,
+   "t": 1794292618.2,
+   "kind": "log",
+   "text": "[ladder] WARNING: the offboard switch (ch5) reads 1000, i.e. OFF. Turning it off is the pilot's takeover, so with it already off that takeover is not available, and PX4 is in Offboard only because the agent asked. Switch ch5 ON before ARM (ch7 centre)."
+  },
+  {
+   "n": 7,
+   "t": 1794292618.2,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "disarm",
+    "ch5": 1000
+   }
+  },
+  {
+   "n": 8,
+   "t": 1794292624.46,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 9,
+   "t": 1794292624.57,
+   "kind": "log",
+   "text": "[ladder] stage: arm"
+  },
+  {
+   "n": 10,
+   "t": 1794292624.57,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 1780723753.514
+   }
+  },
+  {
+   "n": 11,
+   "t": 1794292625.33,
+   "kind": "log",
+   "text": "[vehicle] Armed by external command"
+  },
+  {
+   "n": 12,
+   "t": 1794292625.64,
+   "kind": "log",
+   "text": "[vehicle] [logger] /fs/microsd/log/2026-11-10/06_37_04.ulg"
+  },
+  {
+   "n": 13,
+   "t": 1794292626.05,
+   "kind": "event",
+   "data": {
+    "event": "armed",
+    "slot": null,
+    "sysid": 113,
+    "armed_epoch": 1780723754.993
+   }
+  },
+  {
+   "n": 14,
+   "t": 1794292626.11,
+   "kind": "log",
+   "text": "[ladder] stage: takeoff"
+  },
+  {
+   "n": 15,
+   "t": 1794292626.11,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "takeoff",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 1780723755.054
+   }
+  },
+  {
+   "n": 16,
+   "t": 1794292627.25,
+   "kind": "log",
+   "text": "[vehicle] Takeoff detected"
+  },
+  {
+   "n": 17,
+   "t": 1794292631.43,
+   "kind": "log",
+   "text": "[vehicle] Kill engaged"
+  },
+  {
+   "n": 18,
+   "t": 1794292631.43,
+   "kind": "log",
+   "text": "[safety] PILOT KILLED IT (Kill engaged). Standing down -- no setpoints, no mode changes, no commands."
+  },
+  {
+   "n": 19,
+   "t": 1794292631.43,
+   "kind": "event",
+   "data": {
+    "event": "rc_takeover",
+    "slot": null,
+    "via": "kill_switch",
+    "text": "Kill engaged",
+    "airborne": true,
+    "t_epoch": 1780723760.373
+   }
+  },
+  {
+   "n": 20,
+   "t": 1794292631.49,
+   "kind": "log",
+   "text": "[safety] kill switch engaged -- PX4 disarms by itself after COM_KILL_DISARM. The agent sends nothing."
+  },
+  {
+   "n": 21,
+   "t": 1794292632.17,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: Flight termination active"
+  },
+  {
+   "n": 22,
+   "t": 1794292632.5,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 23,
+   "t": 1794292632.91,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 24,
+   "t": 1794292636.06,
+   "kind": "log",
+   "text": "[safety] aircraft disarmed (by the pilot or PX4) after 4.6 s"
+  },
+  {
+   "n": 25,
+   "t": 1794292636.06,
+   "kind": "log",
+   "text": "[safety] disarmed; watching 20 s for a stale ARM arriving late"
+  },
+  {
+   "n": 26,
+   "t": 1794292636.06,
+   "kind": "event",
+   "data": {
+    "event": "pilot_disarmed",
+    "slot": null,
+    "waited_s": 4.6
+   }
+  },
+  {
+   "n": 27,
+   "t": 1794292638.07,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: Flight termination active"
+  },
+  {
+   "n": 28,
+   "t": 1794292638.37,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 29,
+   "t": 1794292638.77,
+   "kind": "log",
+   "text": "[vehicle] Disarmed by kill-switch"
+  },
+  {
+   "n": 30,
+   "t": 1794292638.98,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: heading estimate not stable"
+  },
+  {
+   "n": 31,
+   "t": 1794292639.89,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: Kill switch engaged"
+  },
+  {
+   "n": 32,
+   "t": 1794292640.33,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: Flight termination active"
+  },
+  {
+   "n": 33,
+   "t": 1794292640.73,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: Kill switch engaged"
+  },
+  {
+   "n": 34,
+   "t": 1794292641.04,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: Flight termination active"
+  },
+  {
+   "n": 35,
+   "t": 1794292641.14,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: Kill switch engaged"
+  },
+  {
+   "n": 36,
+   "t": 1794292641.85,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: Flight termination active"
+  },
+  {
+   "n": 37,
+   "t": 1794292656.25,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "disarm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": "takeover",
+    "takeover_source": "kill_switch",
+    "takeover_stage": "takeoff",
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "downlink": "outdoors",
+    "rx_hz": {
+     "ATTITUDE": 4.5,
+     "RC_CHANNELS": 1.8,
+     "HEARTBEAT": 0.9,
+     "LOCAL_POSITION_NED": 0.5
+    },
+    "height_feed_requested_hz": 10,
+    "height_feed": {
+     "readings_last_6s": 15,
+     "longest_gap_s": 0.8,
+     "timeout_s": 3.0,
+     "waited_s": 6.0,
+     "ok": true
+    },
+    "offboard_switch_at_ready": 1000,
+    "vehicle_text": [
+     "Armed by external command",
+     "[logger] /fs/microsd/log/2026-11-10/06_37_04.ulg",
+     "Takeoff detected",
+     "Kill engaged",
+     "Preflight Fail: Flight termination active",
+     "Failsafe activated",
+     "Failsafe activated",
+     "Preflight Fail: Flight termination active",
+     "Failsafe activated",
+     "Disarmed by kill-switch",
+     "Preflight Fail: heading estimate not stable",
+     "Preflight Fail: Kill switch engaged",
+     "Preflight Fail: Flight termination active",
+     "Preflight Fail: Kill switch engaged",
+     "Preflight Fail: Flight termination active",
+     "Preflight Fail: Kill switch engaged",
+     "Preflight Fail: Flight termination active"
+    ],
+    "arm_commands_sent": 1,
+    "arm_retry_s": 8.0,
+    "profile": {
+     "target_height_m": 1.0,
+     "hold_s": 30.0,
+     "descent_rate_ms": 0.3,
+     "final_descent_rate_ms": 0.3
+    },
+    "takeover_after_s": 5.32,
+    "takeover_height_m": 0.0,
+    "takeover_tilt_deg": 1.5,
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 66,
+     "dropped_sim": 0,
+     "hz": 3.0
+    },
+    "max_height_m": 0.0,
+    "disarmed": true,
+    "stale_arm": {
+     "stale_arm_seen": false,
+     "disarms_sent": 0,
+     "watched_s": 20.0
+    },
+    "rx_msgs_per_s": 24.1,
+    "passed": false
+   }
+  }
+ ]
+}
