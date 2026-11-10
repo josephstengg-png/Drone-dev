@@ -1,0 +1,424 @@
+{
+ "id": "20261110-145105",
+ "kind": "fleet",
+ "started": "2026-11-10 14:51:05",
+ "mode": "live",
+ "profile": {
+  "name": "Seletar pair - arm all then disarm",
+  "description": "Props OFF, outdoors with GPS: prepare, READY barrier, ARM ALL, hold 5 s, DISARM ALL. Proves the gates. Indoors it stops at NOT READY.",
+  "mode": "arm",
+  "flight_type": "bench",
+  "arm_hold_s": 5.0,
+  "failsafe_s": 60.0,
+  "aircraft": [
+   {
+    "sysid": 113,
+    "plan": "missions/seletar/mission_drones/drone-2.plan",
+    "link": "radio"
+   },
+   {
+    "sysid": 115,
+    "plan": "missions/seletar/mission_drones/drone-1.plan",
+    "link": "radio"
+   }
+  ]
+ },
+ "operator": "joseph",
+ "pilots": {
+  "113": "joseph",
+  "115": "sean"
+ },
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113 and ARTEX115",
+  "Hands and tools are clear of every rotor",
+  "This is a bench run: the indoor configuration may make the preflight contract refuse, which is fine"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113,ARTEX115",
+ "authorised": "2026-11-10 14:51:02",
+ "commands": {
+  "113": [
+   "ssh",
+   "-o",
+   "ConnectTimeout=8",
+   "-o",
+   "BatchMode=yes",
+   "-o",
+   "StrictHostKeyChecking=accept-new",
+   "jetson-2",
+   "cd ~/FlightPlanner && python3 tools/drone_agent.py prepare --link udpout://127.0.0.1:14540 --slot 113 --plan missions/seletar/mission_drones/drone-2.plan --run-id gs20261110-145105 --failsafe-s 60 --resident --expect-sysid 113"
+  ],
+  "115": [
+   "ssh",
+   "-o",
+   "ConnectTimeout=8",
+   "-o",
+   "BatchMode=yes",
+   "-o",
+   "StrictHostKeyChecking=accept-new",
+   "jetson-1",
+   "cd ~/FlightPlanner && python3 tools/drone_agent.py prepare --link udpout://127.0.0.1:14540 --slot 115 --plan missions/seletar/mission_drones/drone-1.plan --run-id gs20261110-145105 --failsafe-s 60 --resident --expect-sysid 115"
+  ]
+ },
+ "state": "ended",
+ "result": {
+  "outcome": "not every aircraft READY -- NOBODY armed",
+  "passed": false,
+  "aircraft": {
+   "113": {
+    "sysid": 113,
+    "plan": "missions/seletar/mission_drones/drone-2.plan",
+    "link": "radio",
+    "ready": false,
+    "items": 11,
+    "checks": [
+     {
+      "name": "identity",
+      "ok": true,
+      "detail": "vehicle answers as sysid 113, slot expects 113"
+     },
+     {
+      "name": "mission_uploaded",
+      "ok": true,
+      "detail": "11 items on board, 11 in the plan"
+     },
+     {
+      "name": "fence_ceiling",
+      "ok": false,
+      "detail": "GF_MAX_VER_DIST=3.0 (0=off), mission tops out at 32.0 m; GF_ACTION=5"
+     },
+     {
+      "name": "rtl_altitude",
+      "ok": false,
+      "detail": "RTL_RETURN_ALT=2.0, mission tops out at 32.0 m"
+     },
+     {
+      "name": "rc_loss_action",
+      "ok": false,
+      "detail": "NAV_RCL_ACT=3 (3=Land in place, 2=Return)"
+     },
+     {
+      "name": "gps_fix",
+      "ok": true,
+      "detail": "fix_type=3, satellites=6"
+     },
+     {
+      "name": "position_estimate",
+      "ok": false,
+      "detail": "no GLOBAL_POSITION_INT"
+     },
+     {
+      "name": "battery",
+      "ok": true,
+      "detail": "battery_remaining=98% (-1 = not reported)"
+     }
+    ],
+    "armed": false,
+    "started": false,
+    "held": false,
+    "fault": null,
+    "finished": false,
+    "status": null,
+    "misses": 0,
+    "error": null,
+    "top_alt_m": 32.0
+   },
+   "115": {
+    "sysid": 115,
+    "plan": "missions/seletar/mission_drones/drone-1.plan",
+    "link": "radio",
+    "ready": false,
+    "items": 13,
+    "checks": [
+     {
+      "name": "identity",
+      "ok": true,
+      "detail": "vehicle answers as sysid 115, slot expects 115"
+     },
+     {
+      "name": "mission_uploaded",
+      "ok": true,
+      "detail": "13 items on board, 13 in the plan"
+     },
+     {
+      "name": "fence_ceiling",
+      "ok": false,
+      "detail": "GF_MAX_VER_DIST=3.0 (0=off), mission tops out at 30.0 m; GF_ACTION=5"
+     },
+     {
+      "name": "rtl_altitude",
+      "ok": false,
+      "detail": "RTL_RETURN_ALT=2.0, mission tops out at 30.0 m"
+     },
+     {
+      "name": "rc_loss_action",
+      "ok": false,
+      "detail": "NAV_RCL_ACT=3 (3=Land in place, 2=Return)"
+     },
+     {
+      "name": "gps_fix",
+      "ok": true,
+      "detail": "fix_type=3, satellites=9"
+     },
+     {
+      "name": "position_estimate",
+      "ok": false,
+      "detail": "no GLOBAL_POSITION_INT"
+     },
+     {
+      "name": "battery",
+      "ok": true,
+      "detail": "battery_remaining=99% (-1 = not reported)"
+     }
+    ],
+    "armed": false,
+    "started": false,
+    "held": false,
+    "fault": null,
+    "finished": false,
+    "status": null,
+    "misses": 0,
+    "error": null,
+    "top_alt_m": 30.0
+   }
+  }
+ },
+ "finished": "2026-11-10 14:51:50",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1794293466.79,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1794293466.84,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1794293466.84,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[plan] drone-2.plan: 11 items, top altitude 32.0 m"
+  },
+  {
+   "n": 3,
+   "t": 1794293467.38,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 4,
+   "t": 1794293467.89,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[link] connected, vehicle is sysid 115"
+  },
+  {
+   "n": 5,
+   "t": 1794293467.89,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[plan] drone-1.plan: 13 items, top altitude 30.0 m"
+  },
+  {
+   "n": 6,
+   "t": 1794293479.55,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[plan] uploaded 13 items, current index reset to 0"
+  },
+  {
+   "n": 7,
+   "t": 1794293488.54,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[check] PASS  identity: vehicle answers as sysid 115, slot expects 115"
+  },
+  {
+   "n": 8,
+   "t": 1794293488.54,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[check] PASS  mission_uploaded: 13 items on board, 13 in the plan"
+  },
+  {
+   "n": 9,
+   "t": 1794293488.54,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[check] FAIL  fence_ceiling: GF_MAX_VER_DIST=3.0 (0=off), mission tops out at 30.0 m; GF_ACTION=5"
+  },
+  {
+   "n": 10,
+   "t": 1794293488.54,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[check] FAIL  rtl_altitude: RTL_RETURN_ALT=2.0, mission tops out at 30.0 m"
+  },
+  {
+   "n": 11,
+   "t": 1794293488.54,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[check] FAIL  rc_loss_action: NAV_RCL_ACT=3 (3=Land in place, 2=Return)"
+  },
+  {
+   "n": 12,
+   "t": 1794293488.54,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[check] PASS  gps_fix: fix_type=3, satellites=9"
+  },
+  {
+   "n": 13,
+   "t": 1794293488.54,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[check] FAIL  position_estimate: no GLOBAL_POSITION_INT"
+  },
+  {
+   "n": 14,
+   "t": 1794293488.54,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[check] PASS  battery: battery_remaining=99% (-1 = not reported)"
+  },
+  {
+   "n": 15,
+   "t": 1794293488.54,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[resident] safety guard on: HOLD at 8.0/min, LAND at 14.0/min, ABORT flag ABORT"
+  },
+  {
+   "n": 16,
+   "t": 1794293488.54,
+   "kind": "log",
+   "sysid": 115,
+   "text": "[resident] holding link, token gs20261110-145105:cb6b9c4a6942, failsafe 60s"
+  },
+  {
+   "n": 17,
+   "t": 1794293499.25,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[plan] uploaded 11 items, current index reset to 0"
+  },
+  {
+   "n": 18,
+   "t": 1794293509.73,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[check] PASS  identity: vehicle answers as sysid 113, slot expects 113"
+  },
+  {
+   "n": 19,
+   "t": 1794293509.73,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[check] PASS  mission_uploaded: 11 items on board, 11 in the plan"
+  },
+  {
+   "n": 20,
+   "t": 1794293509.73,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[check] FAIL  fence_ceiling: GF_MAX_VER_DIST=3.0 (0=off), mission tops out at 32.0 m; GF_ACTION=5"
+  },
+  {
+   "n": 21,
+   "t": 1794293509.73,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[check] FAIL  rtl_altitude: RTL_RETURN_ALT=2.0, mission tops out at 32.0 m"
+  },
+  {
+   "n": 22,
+   "t": 1794293509.73,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[check] FAIL  rc_loss_action: NAV_RCL_ACT=3 (3=Land in place, 2=Return)"
+  },
+  {
+   "n": 23,
+   "t": 1794293509.73,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[check] PASS  gps_fix: fix_type=3, satellites=6"
+  },
+  {
+   "n": 24,
+   "t": 1794293509.73,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[check] FAIL  position_estimate: no GLOBAL_POSITION_INT"
+  },
+  {
+   "n": 25,
+   "t": 1794293509.73,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[check] PASS  battery: battery_remaining=98% (-1 = not reported)"
+  },
+  {
+   "n": 26,
+   "t": 1794293509.73,
+   "kind": "note",
+   "sysid": 113,
+   "text": "ARTEX113: NOT READY -- fence_ceiling, rtl_altitude, rc_loss_action, position_estimate (11 items on board check: 11 items on board, 11 in the plan)",
+   "bad": true
+  },
+  {
+   "n": 27,
+   "t": 1794293509.73,
+   "kind": "note",
+   "sysid": 115,
+   "text": "ARTEX115: NOT READY -- fence_ceiling, rtl_altitude, rc_loss_action, position_estimate (13 items on board check: 13 items on board, 13 in the plan)",
+   "bad": true
+  },
+  {
+   "n": 28,
+   "t": 1794293509.73,
+   "kind": "note",
+   "sysid": null,
+   "text": "RUN ENDED: not every aircraft READY -- NOBODY armed",
+   "bad": true
+  },
+  {
+   "n": 29,
+   "t": 1794293509.73,
+   "kind": "sent",
+   "sysid": 113,
+   "text": "QUIT"
+  },
+  {
+   "n": 30,
+   "t": 1794293509.73,
+   "kind": "sent",
+   "sysid": 115,
+   "text": "QUIT"
+  },
+  {
+   "n": 31,
+   "t": 1794293509.73,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[resident] safety guard on: HOLD at 8.0/min, LAND at 14.0/min, ABORT flag ABORT"
+  },
+  {
+   "n": 32,
+   "t": 1794293509.73,
+   "kind": "log",
+   "sysid": 113,
+   "text": "[resident] holding link, token gs20261110-145105:31601e99e8ae, failsafe 60s"
+  }
+ ]
+}
