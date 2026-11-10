@@ -1,0 +1,346 @@
+{
+ "id": "20261104-132601",
+ "started": "2026-11-04 13:26:01",
+ "mode": "live",
+ "profile": {
+  "name": "artex113 GUI test",
+  "description": "Props OFF, to arm only over radio test GUI pipeline",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "arm",
+  "height_m": 0.8,
+  "hold_s": 5.0,
+  "wait_s": 20.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.08,
+  "final_descent_rate": 0.05,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null
+ },
+ "operator": "Joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-04 13:25:59",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage arm --wait-s 20 --gate-timeout-s 150 --trace /tmp/gs_20261104-132601.csv"
+ ],
+ "arm_requested": "2026-11-04 13:26:25",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "arm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": "takeover",
+  "takeover_source": "pilot_switch",
+  "takeover_stage": "arm",
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "rx_hz": {
+   "ATTITUDE": 4.9,
+   "RC_CHANNELS": 2.0,
+   "HEARTBEAT": 1.0,
+   "LOCAL_POSITION_NED": 0.5
+  },
+  "takeover_after_s": 12.8,
+  "takeover_height_m": 0.01,
+  "takeover_tilt_deg": 1.1,
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 355,
+   "dropped_sim": 0,
+   "hz": 20.0
+  },
+  "max_height_m": null,
+  "vehicle_text": [
+   "Armed by external command",
+   "Failsafe activated",
+   "Connection to ground station lost",
+   "Failsafe activated",
+   "GCS connection regained",
+   "Disarmed by RC switch"
+  ],
+  "disarmed": true,
+  "passed": true
+ },
+ "finished": "2026-11-04 13:26:45",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793769962.34,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793769963.69,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793769979.34,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 3,
+   "t": 1793769979.34,
+   "kind": "log",
+   "text": "[ladder] READY for test 'arm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 4,
+   "t": 1793769979.34,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 12417.798
+   }
+  },
+  {
+   "n": 5,
+   "t": 1793769979.34,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "arm"
+   }
+  },
+  {
+   "n": 6,
+   "t": 1793769986.0,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 7,
+   "t": 1793769986.07,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": true,
+    "height_m": -0.01,
+    "t_epoch": 12424.53
+   }
+  },
+  {
+   "n": 8,
+   "t": 1793769986.07,
+   "kind": "log",
+   "text": "[ladder] stage: arm <- the stage under test"
+  },
+  {
+   "n": 9,
+   "t": 1793769995.95,
+   "kind": "event",
+   "data": {
+    "event": "armed",
+    "slot": null,
+    "sysid": 113,
+    "armed_epoch": 12434.415
+   }
+  },
+  {
+   "n": 10,
+   "t": 1793769998.87,
+   "kind": "log",
+   "text": "[safety] LEFT OUR MODE: main mode 6 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne."
+  },
+  {
+   "n": 11,
+   "t": 1793769998.87,
+   "kind": "event",
+   "data": {
+    "event": "rc_takeover",
+    "slot": null,
+    "from_mode": 6,
+    "to_mode": 2,
+    "airborne": false,
+    "t_epoch": 12437.331
+   }
+  },
+  {
+   "n": 12,
+   "t": 1793769999.61,
+   "kind": "event",
+   "data": {
+    "event": "rc_handback_requested",
+    "slot": null,
+    "from_mode": 2,
+    "to_mode": 6,
+    "resumed": false,
+    "airborne": false,
+    "t_epoch": 12438.07
+   }
+  },
+  {
+   "n": 13,
+   "t": 1793769999.61,
+   "kind": "log",
+   "text": "[safety] switch requested OFFBOARD after a pilot takeover. The agent is NOT resuming: offboard flight is not implemented (the stream is zero thrust). PX4 will still select OFFBOARD; with no setpoints and the aircraft armed, its offboard-loss failsafe acts after COM_OF_LOSS_T (COM_OBL_RC_ACT)."
+  },
+  {
+   "n": 14,
+   "t": 1793770000.37,
+   "kind": "log",
+   "text": "[safety] PILOT HAS IT (pilot switch)."
+  },
+  {
+   "n": 15,
+   "t": 1793770000.37,
+   "kind": "log",
+   "text": "[safety] *** AIRCRAFT IS STILL ARMED *** The pilot has it and the agent will not disarm it. Disarm with the ARM SWITCH (channel 6) or the KILL SWITCH (channel 8)."
+  },
+  {
+   "n": 16,
+   "t": 1793770000.37,
+   "kind": "event",
+   "data": {
+    "event": "takeover_classified",
+    "slot": null,
+    "source": "pilot_switch",
+    "after_s": 1.5,
+    "airborne": false,
+    "t_epoch": 12438.829
+   }
+  },
+  {
+   "n": 17,
+   "t": 1793770000.37,
+   "kind": "event",
+   "data": {
+    "event": "still_armed",
+    "slot": null,
+    "waited_s": 0.0
+   }
+  },
+  {
+   "n": 18,
+   "t": 1793770001.43,
+   "kind": "log",
+   "text": "[vehicle] Armed by external command"
+  },
+  {
+   "n": 19,
+   "t": 1793770001.53,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 20,
+   "t": 1793770001.85,
+   "kind": "log",
+   "text": "[vehicle] Connection to ground station lost"
+  },
+  {
+   "n": 21,
+   "t": 1793770002.56,
+   "kind": "log",
+   "text": "[vehicle] Failsafe activated"
+  },
+  {
+   "n": 22,
+   "t": 1793770002.98,
+   "kind": "log",
+   "text": "[vehicle] GCS connection regained"
+  },
+  {
+   "n": 23,
+   "t": 1793770004.5,
+   "kind": "log",
+   "text": "[vehicle] Disarmed by RC switch"
+  },
+  {
+   "n": 24,
+   "t": 1793770004.95,
+   "kind": "log",
+   "text": "[safety] aircraft disarmed (by the pilot or PX4) after 4.6 s"
+  },
+  {
+   "n": 25,
+   "t": 1793770004.95,
+   "kind": "event",
+   "data": {
+    "event": "pilot_disarmed",
+    "slot": null,
+    "waited_s": 4.6
+   }
+  },
+  {
+   "n": 26,
+   "t": 1793770004.95,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "arm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": "takeover",
+    "takeover_source": "pilot_switch",
+    "takeover_stage": "arm",
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "rx_hz": {
+     "ATTITUDE": 4.9,
+     "RC_CHANNELS": 2.0,
+     "HEARTBEAT": 1.0,
+     "LOCAL_POSITION_NED": 0.5
+    },
+    "takeover_after_s": 12.8,
+    "takeover_height_m": 0.01,
+    "takeover_tilt_deg": 1.1,
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 355,
+     "dropped_sim": 0,
+     "hz": 20.0
+    },
+    "max_height_m": null,
+    "vehicle_text": [
+     "Armed by external command",
+     "Failsafe activated",
+     "Connection to ground station lost",
+     "Failsafe activated",
+     "GCS connection regained",
+     "Disarmed by RC switch"
+    ],
+    "disarmed": true,
+    "passed": true
+   }
+  }
+ ]
+}

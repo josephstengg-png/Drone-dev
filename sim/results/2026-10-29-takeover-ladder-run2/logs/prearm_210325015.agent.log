@@ -1,0 +1,4 @@
+[link] udpin:0.0.0.0:14540 -- waiting for heartbeat
+[link] connected, vehicle is sysid 1
+[ladder] stage: prearm <- the stage under test
+[safety] PILOT KILLED IT (kill switch on (channel 8 = 2000)). Standing down -- no setpoints, no mode changes, no commands.

@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ground Station Mockup 3</title>
+<style>
+:root{--bg:#eef1f4;--panel:#fff;--ink:#16202a;--mute:#5b6b7a;--line:#d5dce3;--go:#1c7a46;--gob:#dff3e6;--no:#b3261e;--nob:#fbe3e1;
+--stale:#8a5a00;--staleb:#fdf0d2;--idle:#4a5a69;--idleb:#e3e8ed;--abort:#c4121a;--accent:#0b5cab;--view:#f7f9fb;--grid:#d9e0e7;--path:#0b5cab;--fence:#b3261e;--trail:#1c7a46}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141a;--panel:#161e26;--ink:#e6edf3;--mute:#93a4b4;--line:#2a3642;--go:#5fd08a;--gob:#12301f;--no:#ff8a80;--nob:#3a1513;
+--stale:#f0c05a;--staleb:#33270a;--idle:#a9b8c6;--idleb:#232d37;--abort:#e5333b;--accent:#7db7ff;--view:#0b1117;--grid:#26323d;--path:#7db7ff;--fence:#ff8a80;--trail:#5fd08a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;padding:16px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:14px}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1{font-size:18px;margin:0}.sub{color:var(--mute);font-size:13px}
+.mock{font-size:12px;color:var(--stale);background:var(--staleb);padding:3px 8px;border-radius:4px}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--mute);border-radius:6px;padding:8px 16px;cursor:pointer;font-weight:600}
+nav button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.page{display:none}.page.on{display:grid;gap:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+.panel h2{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;letter-spacing:.03em}
+.GO{background:var(--gob);color:var(--go)}.NOGO{background:var(--nob);color:var(--no)}.STALE{background:var(--staleb);color:var(--stale)}.NOTRUN{background:var(--idleb);color:var(--idle)}
+table{width:100%;border-collapse:collapse}
+td,th{padding:8px 6px;border-top:1px solid var(--line);text-align:left;vertical-align:top;font-size:14px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);border-top:0}
+.e{color:var(--mute);font-size:12px}
+.verdict{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.big{font-size:20px;font-weight:800}
+.btn{font:inherit;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+.confirm{display:flex;gap:10px;align-items:flex-start;margin:6px 0}
+.confirm input{margin-top:4px;width:18px;height:18px}
+/* live */
+.live{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:14px}
+@media(max-width:900px){.live{grid-template-columns:1fr}}
+.tele{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px;margin-bottom:10px}
+.tele div{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-variant-numeric:tabular-nums}
+.tele b{display:block;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.chip{font:inherit;border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:13px;color:var(--mute);background:transparent;cursor:pointer}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+canvas{width:100%;height:400px;display:block;background:var(--view);border:1px solid var(--line);border-radius:6px;cursor:grab;touch-action:none}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.op{font:inherit;display:block;width:100%;border:0;border-radius:8px;padding:14px 8px;font-weight:800;font-size:15px;letter-spacing:.03em;color:#fff;cursor:pointer;text-align:center}
+.op small{display:block;font-weight:500;font-size:11px;opacity:.9;margin-top:2px;letter-spacing:0}
+.op:disabled{background:var(--idleb)!important;color:var(--mute);cursor:not-allowed}
+.op.arm{background:#8a5a00}.op.take{background:#0b5cab}.op.start{background:#1c7a46}.op.hold{background:#6b4fa0}.op.cont{background:#1c7a46}
+.op.land{background:#0b5cab}.op.dis{background:#4a5a69}
+.estop{margin-top:12px;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;border:2px solid var(--abort);border-radius:10px;padding:10px}
+.estop button{width:112px;height:112px;border-radius:50%;border:6px solid #f5c400;background:var(--abort);color:#fff;font:inherit;font-weight:900;font-size:14px;letter-spacing:.04em;cursor:pointer;box-shadow:0 4px 0 #7a0a10}
+.estop button:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.estop button:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #7a0a10}
+.estop .t{font-weight:800;color:var(--abort)}
+.estop .d{font-size:12px;color:var(--mute)}
+.banner{border-radius:6px;padding:8px 10px;font-weight:700;margin-bottom:10px;display:none}
+.banner.show{display:block}
+.banner.warn{background:var(--staleb);color:var(--stale);border:1px solid var(--stale)}
+.banner.bad{background:var(--nob);color:var(--no);border:1px solid var(--no)}
+.log{font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--mute);margin:8px 0 0;padding:0;list-style:none;max-height:130px;overflow:auto}
+.log li{padding:2px 0;border-top:1px dashed var(--line)}
+.bs{font-size:10px;font-weight:700;margin-top:3px;letter-spacing:.04em}
+.hideBs .bs{display:none}
+.note{font-size:12px;color:var(--mute);margin-top:8px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-top:6px}
+.sw{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px}
+</style></head>
+<body><div class="wrap" id="app">
+<header>
+ <div><h1>Ground Station <span class="mock">MOCKUP 3, example data</span></h1>
+ <div class="sub">mlops-X6AF559Y &middot; 192.168.144.51 &middot; fleet: ARTEX115, ARTEX113</div></div>
+ <nav>
+  <button data-p="pre" class="on">1 &middot; Preflight</button>
+  <button data-p="test">2 &middot; Safety tests</button>
+  <button data-p="live">3 &middot; Live operations</button>
+ </nav>
+</header>
+
+<!-- ============ PAGE 1 ============ -->
+<section class="page on" id="pre">
+ <div class="panel verdict">
+  <span class="big">PREFLIGHT: NO-GO</span><span class="pill NOGO">2 blockers</span><span class="pill STALE">2 stale</span><span class="pill NOTRUN">2 not run</span>
+  <span class="e" style="margin-left:auto">Last full run 14:52 &middot; <button class="btn" type="button">Re-run all</button></span>
+ </div>
+ <div class="grid2">
+  <div class="panel"><h2>Link and ground station</h2>
+   <table>
+    <tr><td><span class="pill GO">GO</span></td><td>Ground LAN<div class="e">192.168.144.51, wired</div></td></tr>
+    <tr><td><span class="pill GO">GO</span></td><td>One relay per companion<div class="e">115: 1, 113: 1</div></td></tr>
+    <tr><td><span class="pill GO">GO</span></td><td>Link quality, sampled twice<div class="e">115: 0.4% / 690 ms &middot; 113: 1.1% / 720 ms</div></td></tr>
+    <tr><td><span class="pill GO">GO</span></td><td>QGC held off by agent priority<div class="e">floor 5 s on both relays</div></td></tr>
+   </table></div>
+  <div class="panel"><h2>Aircraft</h2>
+   <table>
+    <tr><td><span class="pill STALE">STALE</span></td><td>Companion payload<div class="e">tools copied by hand after last commit; verify</div></td></tr>
+    <tr><td><span class="pill GO">GO</span></td><td>Sensor calibration<div class="e">IMU, mag, baro on both</div></td></tr>
+    <tr><td><span class="pill NOTRUN">NOT RUN</span></td><td>Battery voltage and cells<div class="e">no reading this session</div></td></tr>
+    <tr><td><span class="pill NOTRUN">NOT RUN</span></td><td>Rangefinder at height<div class="e">only ground reads so far</div></td></tr>
+    <tr><td><span class="pill STALE">STALE</span></td><td>Estimator state matches site<div class="e">indoor expects 0x00e5 (no horizontal); both read GNSS-aided</div></td></tr>
+   </table></div>
+  <div class="panel"><h2>Safety configuration</h2>
+   <table>
+    <tr><td><span class="pill GO">GO</span></td><td>Pilot takeover map<div class="e">ch7: Altitude / Offboard (bench) / Position</div></td></tr>
+    <tr><td><span class="pill NOGO">NO-GO</span></td><td>Failsafe baseline matches<div class="e">NAV_DLL_ACT 0 vs 3, GF_ACTION 2 vs 5</div></td></tr>
+    <tr><td><span class="pill NOGO">NO-GO</span></td><td>Fence works without a position<div class="e">GF_ACTION Hold needs one; indoors unverified</div></td></tr>
+    <tr><td><span class="pill GO">GO</span></td><td>No stale abort flag<div class="e">cleared</div></td></tr>
+   </table></div>
+  <div class="panel"><h2>People and place (confirm, per flight)</h2>
+   <label class="confirm"><input type="checkbox"><span>Props are off <b>or</b> aircraft is tethered, as the flight stage requires</span></label>
+   <label class="confirm"><input type="checkbox"><span>Area is clear of people not on the crew</span></label>
+   <label class="confirm"><input type="checkbox"><span>Named pilot is holding the handset, kill switch reachable</span></label>
+   <label class="confirm"><input type="checkbox"><span>Spotter is in place</span></label>
+   <div class="note">These expire when the flight ends. They are never remembered.</div></div>
+ </div>
+</section>
+
+<!-- ============ PAGE 2 ============ -->
+<section class="page" id="test">
+ <div class="panel"><h2>Safety control tests</h2>
+  <div class="e">Run each control on the bench, per aircraft, and keep the evidence. A control that has never passed is shown NOT RUN on the live page.</div>
+  <label class="confirm"><input type="checkbox"><span><b>Props are off and the area is clear</b>, for tests started now</span></label>
+ </div>
+ <div class="panel" style="overflow-x:auto">
+  <table>
+   <tr><th>Control</th><th>ARTEX115</th><th>ARTEX113</th><th>What it proves</th><th></th></tr>
+   <tr><td><b>Pilot takeover</b> (ch7 to Altitude)</td><td><span class="pill GO">PASS</span></td><td><span class="pill GO">PASS</span></td><td class="e">Computer stops commanding, pilot has the aircraft</td><td><button class="btn" type="button">Run</button></td></tr>
+   <tr><td><b>No resume after takeover</b></td><td><span class="pill GO">PASS</span></td><td><span class="pill GO">PASS</span></td><td class="e">Hand-back request is refused</td><td><button class="btn" type="button">Run</button></td></tr>
+   <tr><td><b>Arm switch disarm</b> (ch6)</td><td><span class="pill GO">PASS</span></td><td><span class="pill NOTRUN">NOT RUN</span></td><td class="e">Pilot disarms an agent-armed aircraft</td><td><button class="btn" type="button">Run</button></td></tr>
+   <tr><td><b>Kill switch</b> (ch8)</td><td><span class="pill NOTRUN">NOT RUN</span></td><td><span class="pill GO">PASS</span></td><td class="e">Motors cut, disarm 5 s later</td><td><button class="btn" type="button">Run</button></td></tr>
+   <tr><td><b>STILL ARMED warning</b></td><td><span class="pill GO">PASS</span></td><td><span class="pill NOTRUN">NOT RUN</span></td><td class="e">Agent sends no disarm, warns every 5 s</td><td><button class="btn" type="button">Run</button></td></tr>
+   <tr><td><b>Abort: land on the spot, then disarm</b></td><td><span class="pill NOTRUN">NOT BUILT</span></td><td><span class="pill NOTRUN">NOT BUILT</span></td><td class="e">The red button. Never run in the air; indoors with no position it is unobserved</td><td><button class="btn" type="button" disabled>Run</button></td></tr>
+   <tr><td><b>Offboard-loss failsafe</b></td><td><span class="pill NOTRUN">NOT RUN</span></td><td><span class="pill NOTRUN">NOT RUN</span></td><td class="e">What PX4 does 1 s after the stream stops, indoors</td><td><button class="btn" type="button">Run</button></td></tr>
+   <tr><td><b>Link-loss action</b></td><td><span class="pill NOTRUN">NOT RUN</span></td><td><span class="pill NOGO">DISABLED</span></td><td class="e">NAV_DLL_ACT is 0 on 113</td><td><button class="btn" type="button">Show</button></td></tr>
+   <tr><td><b>Per-motor response</b></td><td><span class="pill GO">PASS</span></td><td><span class="pill GO">PASS</span></td><td class="e">Each motor answers on its own channel</td><td><button class="btn" type="button">Run</button></td></tr>
+   <tr><td><b>No-GPS estimator state</b></td><td><span class="pill GO">PASS</span></td><td><span class="pill GO">PASS</span></td><td class="e">Parameter restored and verified after</td><td><button class="btn" type="button">Run</button></td></tr>
+  </table>
+ </div>
+</section>
+
+<!-- ============ PAGE 3 ============ -->
+<section class="page" id="liveP">
+ <div class="live">
+  <div class="panel">
+   <h2>Mission view &middot; <span id="acName">ARTEX115</span></h2>
+   <div class="chips">
+    <button class="chip on" id="envIn" type="button">Indoor</button><button class="chip" id="envOut" type="button">Outdoor</button>
+    <span style="width:10px"></span>
+    <button class="chip on" id="vp" type="button">3D</button><button class="chip" id="vt" type="button">Top</button><button class="chip" id="vs" type="button">Side</button>
+    <span class="e" style="margin-left:auto">drag to orbit &middot; wheel to zoom</span>
+   </div>
+   <canvas id="cv"></canvas>
+   <div class="legend">
+    <span><i class="sw" style="background:var(--path)"></i>planned</span>
+    <span><i class="sw" style="background:var(--trail)"></i>flown</span>
+    <span><i class="sw" style="background:var(--fence)"></i>fence</span>
+    <span id="bgnote"></span>
+   </div>
+  </div>
+
+  <div class="panel">
+   <div class="tele">
+    <div><b>State</b><span id="tState">DISARMED</span></div>
+    <div><b>Height</b><span id="tAlt">0.0 m</span></div>
+    <div><b>Progress</b><span id="tProg">0%</span></div>
+    <div><b>Ch7</b><span id="tCh7">&minus;100</span></div>
+   </div>
+   <div class="banner warn" id="bnWarn"></div>
+   <div class="banner bad" id="bnBad"></div>
+   <div class="cgrid" id="hideBs">
+    <button class="op arm" id="bArm" type="button">ARM<small>fresh confirmation</small><div class="bs">BUILD: proven on bench</div></button>
+    <button class="op take" id="bTake" type="button">TAKE OFF<small>to 1.5 m</small><div class="bs">BUILD: not implemented</div></button>
+    <button class="op start" id="bStart" type="button">START MISSION<small>from waypoint 1</small><div class="bs">BUILD: not implemented</div></button>
+    <button class="op hold" id="bHold" type="button">HOLD<small>pause, stay put</small><div class="bs">BUILD: not implemented</div></button>
+    <button class="op cont" id="bCont" type="button">CONTINUE MISSION<small>resume from hold</small><div class="bs">BUILD: not implemented</div></button>
+    <button class="op land" id="bLand" type="button">LAND<small>here, normal rate</small><div class="bs">BUILD: not implemented</div></button>
+    <button class="op dis" id="bDis" type="button" style="grid-column:1/-1">DISARM<small>on the ground only</small><div class="bs">BUILD: proven on bench</div></button>
+   </div>
+   <div class="estop">
+    <button id="bAbort" type="button">ABORT<br>LAND +<br>DISARM</button>
+    <div><div class="t">EMERGENCY LAND</div>
+     <div class="d">Lands on the spot, then disarms on touchdown. Not the kill switch: that stays on the handset.</div>
+     <div class="bs" style="color:var(--stale)">BUILD: not implemented, untested in the air</div></div>
+   </div>
+   <label class="confirm" style="margin-top:10px"><input type="checkbox" id="ok"><span><b>Props / tether / area confirmed</b> for this flight</span></label>
+   <label class="confirm"><input type="checkbox" id="demo" checked><span class="e">Mock only: treat preflight as GO</span></label>
+   <label class="confirm"><input type="checkbox" id="bsToggle" checked><span class="e">Mock only: show build status under each button</span></label>
+   <button class="btn" id="bPilot" type="button">Mock: simulate pilot takeover (ch7)</button>
+   <ul class="log" id="log"></ul>
+  </div>
+ </div>
+</section>
+</div>
+
+<script>
+(function(){
+/* ---------- tabs ---------- */
+var pages={pre:'pre',test:'test',live:'liveP'};
+function showPage(k){
+ document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-p')===k);});
+ ['pre','test','liveP'].forEach(function(id){document.getElementById(id).classList.toggle('on',id===pages[k]);});
+ if(k==='live')redraw();
+}
+document.querySelectorAll('nav button').forEach(function(b){b.addEventListener('click',function(){showPage(b.getAttribute('data-p'));});});
+
+/* ---------- mission geometry (metres: x east, y north, z up) ---------- */
+var W=12,D=8,H=3;
+var P=[[0,0,0],[0,0,1.5],[3,0,1.5],[3,3,1.5],[-3,3,1.5],[-3,-2,1.5],[0,-2,1.5],[0,0,1.5],[0,0,0]];
+var cum=[0];for(var i=1;i<P.length;i++){var a=P[i-1],b=P[i];cum.push(cum[i-1]+Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2]));}
+var MS=cum[1],ME=cum[7];
+function atDist(d){for(var i=2;i<=7;i++){if(d<=cum[i]){var t=(d-cum[i-1])/(cum[i]-cum[i-1]||1),a=P[i-1],b=P[i];return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,1.5];}}return[0,0,1.5];}
+
+/* ---------- state machine ---------- */
+var S={st:'disarmed',x:0,y:0,z:0,md:MS,started:false,pilot:false,trail:[]};
+var $=function(id){return document.getElementById(id);};
+function log(m){var li=document.createElement('li');var t=new Date();li.textContent=t.toTimeString().slice(0,8)+'  '+m;$('log').insertBefore(li,$('log').firstChild);}
+function set(st,msg){S.st=st;if(msg)log(msg);ui();redraw();}
+function ready(){return $('ok').checked&&$('demo').checked;}
+function ui(){
+ var s=S.st,air=(s==='hover'||s==='mission'||s==='hold'||s==='takeoff'),gnd=(s==='armed'||s==='disarmed');
+ var locked=S.pilot;
+ $('bArm').disabled=locked||s!=='disarmed'||!ready();
+ $('bTake').disabled=locked||s!=='armed';
+ $('bStart').disabled=locked||s!=='hover'||S.started;
+ $('bHold').disabled=locked||s!=='mission';
+ $('bCont').disabled=locked||s!=='hold';
+ $('bLand').disabled=locked||!(s==='hover'||s==='hold'||s==='mission');
+ $('bDis').disabled=locked||s!=='armed';
+ $('bAbort').disabled=locked||s==='disarmed';
+ var names={disarmed:'DISARMED',armed:'ARMED',takeoff:'CLIMBING',hover:'HOVER',mission:'MISSION',hold:'HOLD',landing:'LANDING',abort:'ABORT LANDING'};
+ $('tState').textContent=S.pilot?'PILOT':names[s];
+ $('tAlt').textContent=S.z.toFixed(1)+' m';
+ $('tProg').textContent=Math.round(100*(S.md-MS)/(ME-MS))+'%';
+ $('tCh7').textContent=S.pilot?'−100 (takeover)':'−100';
+ var w=$('bnWarn'),bd=$('bnBad');
+ w.className='banner warn';bd.className='banner bad';
+ if(S.pilot){bd.textContent='PILOT HAS THE AIRCRAFT. Computer is silent. Still armed: pilot disarms with arm switch or kill.';bd.classList.add('show');}
+ else if(s==='abort'){bd.textContent='ABORT: landing on the spot. Disarms on touchdown.';bd.classList.add('show');}
+ else if(!$('ok').checked&&s==='disarmed'){w.textContent='Tick the flight confirmation to enable ARM.';w.classList.add('show');}
+ if(s==='abort'||s==='landing'||air||s==='armed')document.body.setAttribute('data-air','1');
+}
+function tick(dt){
+ var s=S.st;
+ if(S.pilot)return;
+ if(s==='takeoff'){S.z=Math.min(1.5,S.z+0.6*dt);if(S.z>=1.5){set('hover','Reached 1.5 m, holding position');}}
+ else if(s==='mission'){S.md=Math.min(ME,S.md+1.1*dt);var p=atDist(S.md);S.x=p[0];S.y=p[1];S.z=p[2];
+  if(S.md>=ME){S.started=false;S.md=MS;set('hover','Mission complete, holding at home');}}
+ else if(s==='landing'||s==='abort'){S.z=Math.max(0,S.z-0.6*dt);
+  if(S.z<=0){S.z=0;S.started=false;S.md=MS;set('armed','Touchdown');setTimeout(function(){if(S.st==='armed'){set('disarmed','Disarmed on touchdown');}},1200);}}
+ S.trail.push([S.x,S.y,S.z]);if(S.trail.length>600)S.trail.shift();
+ if(s!=='armed'&&s!=='disarmed'&&s!=='hover'&&s!=='hold')ui();
+}
+$('bArm').onclick=function(){set('armed','ARM sent, confirmed armed');};
+$('bTake').onclick=function(){S.trail=[];set('takeoff','TAKE OFF to 1.5 m');};
+$('bStart').onclick=function(){S.started=true;S.md=MS;set('mission','START MISSION, 7 waypoints');};
+$('bHold').onclick=function(){set('hold','HOLD at '+S.x.toFixed(1)+', '+S.y.toFixed(1));};
+$('bCont').onclick=function(){set('mission','CONTINUE MISSION');};
+$('bLand').onclick=function(){set('landing','LAND here');};
+$('bDis').onclick=function(){set('disarmed','DISARM sent, confirmed');};
+$('bAbort').onclick=function(){
+ if(S.st==='armed'){set('disarmed','ABORT while on ground: disarmed');return;}
+ set('abort','ABORT pressed: landing on the spot, then disarm');};
+$('bPilot').onclick=function(){S.pilot=!S.pilot;log(S.pilot?'ch7 to -100: pilot takeover, computer silent':'mock: pilot released');ui();redraw();};
+$('ok').addEventListener('change',ui);$('demo').addEventListener('change',ui);
+$('bsToggle').addEventListener('change',function(){$('hideBs').classList.toggle('hideBs',!$('bsToggle').checked);});
+
+/* ---------- 3D view ---------- */
+var cv=$('cv'),cx=cv.getContext('2d'),yaw=-0.6,pitch=0.55,zoom=1,mode='p',outdoor=false;
+function col(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function scene(w,h){
+ var g=col('--grid'),ink=col('--ink'),path=col('--path'),fence=col('--fence'),mute=col('--mute'),trail=col('--trail');
+ var sc=Math.min(w/(W*1.5),h/(D*1.7))*zoom;
+ function pr(p){var x=p[0],y=p[1],z=p[2];
+  if(mode==='t')return[w/2+x*sc,h/2-y*sc];
+  if(mode==='s')return[w/2+x*sc,h*0.75-z*sc*1.4];
+  var cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+  var x1=x*cy-y*sy,y1=x*sy+y*cy;
+  return[w/2+x1*sc,h*0.62-(y1*sp+z*cp)*sc];}
+ function ln(a,b,c,lw,d){var p=pr(a),q=pr(b);cx.beginPath();cx.moveTo(p[0],p[1]);cx.lineTo(q[0],q[1]);cx.strokeStyle=c;cx.lineWidth=lw;cx.setLineDash(d||[]);cx.stroke();cx.setLineDash([]);}
+ var x0=-W/2,x1=W/2,y0=-D/2,y1=D/2,i;
+ if(outdoor){ // placeholder for satellite imagery: tinted ground with parcel outline
+  var c0=pr([x0-2,y0-2,0]),c1=pr([x1+2,y0-2,0]),c2=pr([x1+2,y1+2,0]),c3=pr([x0-2,y1+2,0]);
+  cx.beginPath();cx.moveTo(c0[0],c0[1]);cx.lineTo(c1[0],c1[1]);cx.lineTo(c2[0],c2[1]);cx.lineTo(c3[0],c3[1]);cx.closePath();
+  cx.fillStyle='rgba(60,110,70,0.25)';cx.fill();}
+ for(i=0;i<=W;i++)ln([x0+i,y0,0],[x0+i,y1,0],g,1);
+ for(i=0;i<=D;i++)ln([x0,y0+i,0],[x1,y0+i,0],g,1);
+ var c=[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
+ for(i=0;i<4;i++){var a=c[i],b=c[(i+1)%4];ln([a[0],a[1],0],[b[0],b[1],0],fence,2);ln([a[0],a[1],H],[b[0],b[1],H],fence,1.5,[5,4]);ln([a[0],a[1],0],[a[0],a[1],H],fence,1,[3,4]);}
+ for(i=2;i<=7;i++){ln(P[i-1],P[i],path,3);}
+ cx.font='12px system-ui,sans-serif';cx.textAlign='center';
+ for(i=1;i<=7;i++){var q=pr(P[i]);cx.fillStyle=path;cx.beginPath();cx.arc(q[0],q[1],7,0,6.283);cx.fill();cx.fillStyle='#fff';cx.fillText(String(i),q[0],q[1]+4);}
+ for(i=1;i<S.trail.length;i++)ln(S.trail[i-1],S.trail[i],trail,2.5);
+ ln([S.x,S.y,0],[S.x,S.y,S.z],ink,1,[3,3]);
+ var ap=pr([S.x,S.y,S.z]);cx.fillStyle=S.pilot?col('--no'):ink;cx.beginPath();cx.arc(ap[0],ap[1],7,0,6.283);cx.fill();
+ var h0=pr([0,0,0]);cx.fillStyle=mute;cx.fillText('HOME',h0[0],h0[1]+18);
+}
+function redraw(){
+ var r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w)return;
+ if(cv.width!==Math.round(w*r)){cv.width=Math.round(w*r);cv.height=Math.round(h*r);}
+ cx.setTransform(r,0,0,r,0,0);cx.clearRect(0,0,w,h);scene(w,h);}
+var drag=null;
+cv.addEventListener('pointerdown',function(e){drag=[e.clientX,e.clientY];cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointerup',function(){drag=null;});
+cv.addEventListener('pointermove',function(e){if(!drag||mode!=='p')return;yaw+=(e.clientX-drag[0])*0.01;pitch=Math.max(0.1,Math.min(1.4,pitch+(e.clientY-drag[1])*0.01));drag=[e.clientX,e.clientY];redraw();});
+cv.addEventListener('wheel',function(e){e.preventDefault();zoom=Math.max(0.5,Math.min(2.5,zoom*(e.deltaY<0?1.1:0.9)));redraw();},{passive:false});
+function setMode(m,id){mode=m;['vp','vt','vs'].forEach(function(k){$(k).classList.toggle('on',k===id);});redraw();}
+$('vp').onclick=function(){setMode('p','vp');};$('vt').onclick=function(){setMode('t','vt');};$('vs').onclick=function(){setMode('s','vs');};
+function setEnv(o){outdoor=o;$('envIn').classList.toggle('on',!o);$('envOut').classList.toggle('on',o);
+ $('bgnote').textContent=o?'backdrop: satellite imagery (placeholder tint)':'backdrop: floor-plan image you supply (placeholder grid)';redraw();}
+$('envIn').onclick=function(){setEnv(false);};$('envOut').onclick=function(){setEnv(true);};
+window.addEventListener('resize',redraw);
+if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);
+
+var last=Date.now();
+setInterval(function(){var n=Date.now(),dt=Math.min(0.25,(n-last)/1000);last=n;tick(dt);if($('liveP').classList.contains('on'))redraw();},100);
+setEnv(false);ui();log('Live page opened, ARTEX115 selected');
+if(location.hash==='#live')showPage('live');else if(location.hash==='#test')showPage('test');
+})();
+</script></body></html>

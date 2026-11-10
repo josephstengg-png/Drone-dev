@@ -1,0 +1,129 @@
+{
+ "started": "2026-10-29 16:19:10",
+ "outage": "",
+ "rc_params": {
+  "RC_MAP_ROLL": 1,
+  "RC_MAP_PITCH": 2,
+  "RC_MAP_THROTTLE": 3,
+  "RC_MAP_YAW": 4,
+  "RC_MAP_FLTMODE": 7,
+  "RC_MAP_KILL_SW": 8,
+  "COM_FLTMODE1": 1,
+  "COM_FLTMODE4": 7,
+  "COM_FLTMODE6": 2,
+  "COM_RC_IN_MODE": 0,
+  "COM_OF_LOSS_T": 1.0,
+  "COM_OBL_RC_ACT": 0,
+  "RC_CHAN_CNT": 8
+ },
+ "boot_params": {
+  "EKF2_GPS_CTRL": 0,
+  "CBRK_FLIGHTTERM": 0,
+  "FD_FAIL_P": 60,
+  "FD_FAIL_R": 60,
+  "FD_FAIL_P_TTRI": 1.0,
+  "FD_FAIL_R_TTRI": 1.0,
+  "COM_FAIL_ACT_T": 0,
+  "NAV_DLL_ACT": 3,
+  "NAV_RCL_ACT": 3,
+  "GF_ACTION": 5,
+  "COM_RC_IN_MODE": 3,
+  "COM_RC_LOSS_T": 0.5,
+  "COM_DISARM_PRFLT": 10,
+  "COM_DL_LOSS_T": 5
+ },
+ "cases": [
+  {
+   "scenario": "no_takeover",
+   "seed": 1029224485,
+   "outage": null,
+   "flipped": null,
+   "flip_height_m": null,
+   "px4_latency_s": null,
+   "agent_outcome": "landed_px4_disarmed",
+   "takeover_source": null,
+   "takeover_stage": null,
+   "link_losses": 0,
+   "guard_actions": [],
+   "passed_by_agent": false,
+   "abort_reason": null,
+   "setpoints": {
+    "sent": 471,
+    "dropped_sim": 0,
+    "hz": 20.0
+   },
+   "max_height_m": 0.319,
+   "true_max_tilt": 0.0,
+   "true_max_height_m": 0.39,
+   "true_max_drift_m": 0.04,
+   "crashed": false,
+   "disarmed": true,
+   "error": null,
+   "classified": [],
+   "stages": [
+    "prearm",
+    "arm",
+    "takeoff",
+    "hold",
+    "landing",
+    "disarm"
+   ],
+   "texts": [
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "duration_s": 36.3,
+   "verdict": "PASS",
+   "instance": 1
+  },
+  {
+   "scenario": "no_takeover",
+   "seed": 194827946,
+   "outage": null,
+   "flipped": null,
+   "flip_height_m": null,
+   "px4_latency_s": null,
+   "agent_outcome": "landed_px4_disarmed",
+   "takeover_source": null,
+   "takeover_stage": null,
+   "link_losses": 0,
+   "guard_actions": [],
+   "passed_by_agent": false,
+   "abort_reason": null,
+   "setpoints": {
+    "sent": 459,
+    "dropped_sim": 0,
+    "hz": 20.0
+   },
+   "max_height_m": 0.313,
+   "true_max_tilt": 0.0,
+   "true_max_height_m": 0.0,
+   "true_max_drift_m": 0.0,
+   "crashed": false,
+   "disarmed": true,
+   "error": null,
+   "classified": [],
+   "stages": [
+    "prearm",
+    "arm",
+    "takeoff",
+    "hold",
+    "landing",
+    "disarm"
+   ],
+   "texts": [
+    "GCS connection regained",
+    "GCS connection regained",
+    "Preflight Fail: No connection to the ground contro",
+    "GCS connection regained"
+   ],
+   "duration_s": 35.6,
+   "verdict": "PASS",
+   "instance": 2
+  }
+ ]
+}

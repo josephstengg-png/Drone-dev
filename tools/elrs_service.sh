@@ -26,7 +26,17 @@ set -uo pipefail
 
 UNIT=/etc/systemd/system/elrs-link.service
 SERVICE=elrs-link.service
+DEFAULTS=/etc/default/elrs-link
 AGENT_PORT="${ELRS_AGENT_PORT:-14540}"
+
+# The relay's flags live in /etc/default/elrs-link, not baked into the unit, so the
+# mirror can be reconfigured without reinstalling.
+#
+# Two-way with agent priority is the default since 14 Oct 2026. Observe-only made QGC
+# useless (every request fails), and plain two-way made QGC a second commander that had
+# to be closed before every test. --mirror-floor-s 5 holds QGC off while an agent is
+# talking and gives the link back afterwards.
+DEFAULT_ARGS="--agent-port ${AGENT_PORT} --mirror 127.0.0.1:14551 --mirror-control --mirror-floor-s 5 --report-s 15"
 
 note() { echo "[elrs-service] $*"; }
 die()  { echo "ERROR: $*" >&2; exit 1; }
@@ -77,6 +87,19 @@ for pid in $(pgrep -f "tools/elrs_link\.py" || true); do
     kill "$pid" 2>/dev/null
 done
 
+if [ ! -f "$DEFAULTS" ]; then
+    cat > "$DEFAULTS" <<DEFEOF
+# Arguments for tools/elrs_link.py, read by elrs-link.service.
+# --mirror-control lets the mirrored ground station COMMAND the aircraft; with
+# --mirror-floor-s it is held off while an agent is talking. Remove --mirror-control
+# for a strictly observe-only mirror.
+ELRS_ARGS="${DEFAULT_ARGS}"
+DEFEOF
+    note "wrote $DEFAULTS"
+else
+    note "keeping existing $DEFAULTS"
+fi
+
 cat > "$UNIT" <<UNITEOF
 [Unit]
 Description=ELRS backpack <-> MAVLink agent relay (FlightPlanner)
@@ -88,7 +111,8 @@ Wants=network-online.target
 Type=simple
 User=$RUN_USER
 WorkingDirectory=$WORKDIR
-ExecStart=$PY $WORKDIR/tools/elrs_link.py --agent-port $AGENT_PORT --report-s 15
+EnvironmentFile=$DEFAULTS
+ExecStart=/bin/sh -c '$PY $WORKDIR/tools/elrs_link.py \$ELRS_ARGS'
 Restart=always
 RestartSec=2
 

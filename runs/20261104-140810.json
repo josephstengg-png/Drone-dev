@@ -1,0 +1,165 @@
+{
+ "id": "20261104-140810",
+ "started": "2026-11-04 14:08:10",
+ "mode": "live",
+ "profile": {
+  "name": "Bench - take-off stage over radio",
+  "description": "Props OFF. Spools in Offboard; takeover with ch5 off or kill. The 3 Nov radio test.",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "takeoff",
+  "height_m": 0.8,
+  "hold_s": 5.0,
+  "wait_s": 15.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.08,
+  "final_descent_rate": 0.05,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": null
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-04 14:08:08",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage takeoff --wait-s 15 --gate-timeout-s 150 --height 0.8 --hold-s 5 --takeoff-pause-m 0.5 --test-descent-rate 0.08 --final-descent-rate 0.05 --lift-by-climb --ground-attitude --allow-radio-flight --height-timeout-s 3 --trace /tmp/gs_20261104-140810.csv"
+ ],
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "takeoff",
+  "slot": null,
+  "sysid": 113,
+  "outcome": null,
+  "takeover_source": null,
+  "takeover_stage": null,
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "rx_hz": {
+   "HEARTBEAT": 1.5,
+   "ATTITUDE": 5.0,
+   "RC_CHANNELS": 1.5,
+   "LOCAL_POSITION_NED": 0.5
+  },
+  "height_feed": {
+   "readings": 4,
+   "longest_gap_s": 5.0,
+   "timeout_s": 3.0
+  },
+  "error": "refusing to arm: height arrives too slowly to fly. Longest gap in 10 s was 5.0 s against a 3 s timeout, so the controller would abort at once. Over the radio this is expected; use the USB cable",
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 202,
+   "dropped_sim": 0,
+   "hz": 20.0
+  },
+  "max_height_m": null,
+  "disarmed": true,
+  "passed": false
+ },
+ "finished": "2026-11-04 14:08:38",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793772490.71,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793772492.26,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793772507.39,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 14945.834
+   }
+  },
+  {
+   "n": 3,
+   "t": 1793772507.39,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 4,
+   "t": 1793772507.39,
+   "kind": "log",
+   "text": "[ladder] watching the height feed for 10 s (the controller needs a reading every 3 s)"
+  },
+  {
+   "n": 5,
+   "t": 1793772517.63,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "takeoff",
+    "slot": null,
+    "sysid": 113,
+    "outcome": null,
+    "takeover_source": null,
+    "takeover_stage": null,
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "rx_hz": {
+     "HEARTBEAT": 1.5,
+     "ATTITUDE": 5.0,
+     "RC_CHANNELS": 1.5,
+     "LOCAL_POSITION_NED": 0.5
+    },
+    "height_feed": {
+     "readings": 4,
+     "longest_gap_s": 5.0,
+     "timeout_s": 3.0
+    },
+    "error": "refusing to arm: height arrives too slowly to fly. Longest gap in 10 s was 5.0 s against a 3 s timeout, so the controller would abort at once. Over the radio this is expected; use the USB cable",
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 202,
+     "dropped_sim": 0,
+     "hz": 20.0
+    },
+    "max_height_m": null,
+    "disarmed": true,
+    "passed": false
+   }
+  }
+ ]
+}

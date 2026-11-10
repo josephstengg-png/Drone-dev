@@ -1,0 +1,204 @@
+{
+ "id": "20261105-143500",
+ "started": "2026-11-05 14:35:00",
+ "mode": "live",
+ "profile": {
+  "name": "EXP3-B arm and hold 60 s at 2 Hz",
+  "description": "EXPERIMENT 3, props OFF. After arming, HANDS OFF for the 60 s window. 2 Hz. Do not edit between runs.",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "arm",
+  "height_m": 0.8,
+  "hold_s": 5.0,
+  "wait_s": 60.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.08,
+  "final_descent_rate": 0.05,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": 2.0
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-05 14:35:00",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage arm --wait-s 60 --gate-timeout-s 150 --setpoint-hz 2 --trace /tmp/gs_20261105-143500.csv"
+ ],
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "arm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": "takeover",
+  "takeover_source": null,
+  "takeover_stage": null,
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "safety": [
+   {
+    "event": "safety",
+    "slot": null,
+    "action": "land",
+    "carried_out": "land",
+    "airborne": null,
+    "reasons": [
+     "operator: ABORT flag ABORT left over from before this run (land)"
+    ],
+    "error_rate": 0.0,
+    "t_epoch": 1780690686.031
+   }
+  ],
+  "rx_hz": {
+   "ATTITUDE": 4.5,
+   "HEARTBEAT": 1.0,
+   "RC_CHANNELS": 1.5,
+   "LOCAL_POSITION_NED": 0.5
+  },
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 1,
+   "dropped_sim": 0,
+   "hz": 2.0
+  },
+  "max_height_m": null,
+  "disarmed": true,
+  "passed": false
+ },
+ "finished": "2026-11-05 14:35:24",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793860501.33,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793860502.2,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793860521.85,
+   "kind": "log",
+   "text": "[safety] LAND: operator: ABORT flag ABORT left over from before this run (land) (error rate 0.0/min)"
+  },
+  {
+   "n": 3,
+   "t": 1793860521.85,
+   "kind": "log",
+   "text": "[safety] acting: LAND -> LAND (position unknown)"
+  },
+  {
+   "n": 4,
+   "t": 1793860521.85,
+   "kind": "event",
+   "data": {
+    "event": "safety",
+    "slot": null,
+    "action": "land",
+    "carried_out": "land",
+    "airborne": null,
+    "reasons": [
+     "operator: ABORT flag ABORT left over from before this run (land)"
+    ],
+    "error_rate": 0.0,
+    "t_epoch": 1780690686.031
+   }
+  },
+  {
+   "n": 5,
+   "t": 1793860523.85,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 6,
+   "t": 1793860523.85,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 1780690688.03
+   }
+  },
+  {
+   "n": 7,
+   "t": 1793860523.85,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "arm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": "takeover",
+    "takeover_source": null,
+    "takeover_stage": null,
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "safety": [
+     {
+      "event": "safety",
+      "slot": null,
+      "action": "land",
+      "carried_out": "land",
+      "airborne": null,
+      "reasons": [
+       "operator: ABORT flag ABORT left over from before this run (land)"
+      ],
+      "error_rate": 0.0,
+      "t_epoch": 1780690686.031
+     }
+    ],
+    "rx_hz": {
+     "ATTITUDE": 4.5,
+     "HEARTBEAT": 1.0,
+     "RC_CHANNELS": 1.5,
+     "LOCAL_POSITION_NED": 0.5
+    },
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 1,
+     "dropped_sim": 0,
+     "hz": 2.0
+    },
+    "max_height_m": null,
+    "disarmed": true,
+    "passed": false
+   }
+  }
+ ]
+}

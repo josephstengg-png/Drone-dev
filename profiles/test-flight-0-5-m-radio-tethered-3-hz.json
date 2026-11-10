@@ -1,0 +1,20 @@
+{
+ "name": "TEST FLIGHT 0.5 m - radio tethered 3 Hz",
+ "description": "Props ON, tethered, over ELRS, setpoints 3 Hz. Take off, hover 0.5 m for 10 s, land, disarm. First props-on radio test flight.",
+ "sysid": 113,
+ "link": "radio",
+ "flight_type": "tether",
+ "stage": "disarm",
+ "height_m": 0.5,
+ "hold_s": 10.0,
+ "wait_s": 15.0,
+ "takeoff_pause_m": 0.5,
+ "test_descent_rate": 0.08,
+ "final_descent_rate": 0.05,
+ "lift_by_climb": true,
+ "ground_attitude": true,
+ "height_timeout_s": null,
+ "battery_hold_pct": null,
+ "battery_land_pct": null,
+ "setpoint_hz": 3.0
+}

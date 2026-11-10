@@ -1,0 +1,3 @@
+[ 1] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=0.319 tilt=0.0
+[ 2] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=0.313 tilt=0.0
+DONE /tmp/fix3.json

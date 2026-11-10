@@ -7,10 +7,20 @@ name = "multi-agent-flight-planner"
 version = "0.1.0"
 description = "KML to multi-drone QGroundControl plan generator"
 requires-python = ">=3.10"
-dependencies = []
+# These were undeclared until 13 Oct 2026: the workstation's venv happened to contain
+# them from months of ad-hoc installs, so `pip install -e .` on a fresh machine produced
+# an environment in which every flight tool failed at `import pymavlink`. Declared now,
+# because the repo is meant to be clonable onto a laptop and simply work.
+dependencies = [
+    "pymavlink>=2.4",    # every agent, relay and orchestration tool
+    "PyYAML>=6",         # fleet files, companions.yaml, artex-registry.yaml
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "PyYAML>=6"]
+# Planning and visualisation only -- the flight path does not need these, so a field
+# laptop can skip them.
+plot = ["matplotlib>=3.5"]
+dev = ["pytest>=7"]
 
 [project.scripts]
 flight-planner = "flight_planner.cli:main"

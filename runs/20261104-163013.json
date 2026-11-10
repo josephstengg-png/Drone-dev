@@ -1,0 +1,202 @@
+{
+ "id": "20261104-163013",
+ "started": "2026-11-04 16:30:13",
+ "mode": "live",
+ "profile": {
+  "name": "EXP2-A arm stage 20 Hz",
+  "description": "EXPERIMENT 2, props OFF. The OLD radio setpoint rate. Compare with EXP2-B. Do not edit between runs.",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "arm",
+  "height_m": 0.8,
+  "hold_s": 5.0,
+  "wait_s": 15.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.08,
+  "final_descent_rate": 0.05,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": 20.0
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-04 16:30:12",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage arm --wait-s 15 --gate-timeout-s 150 --setpoint-hz 20 --trace /tmp/gs_20261104-163013.csv"
+ ],
+ "arm_requested": "2026-11-04 16:30:40",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "arm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": null,
+  "takeover_source": null,
+  "takeover_stage": null,
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "rx_hz": {
+   "ATTITUDE": 4.0,
+   "RC_CHANNELS": 1.5,
+   "LOCAL_POSITION_NED": 0.5,
+   "HEARTBEAT": 0.5
+  },
+  "arm_withdrawn": true,
+  "armed_late": false,
+  "error": "vehicle did not arm",
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 680,
+   "dropped_sim": 0,
+   "hz": 20.0
+  },
+  "max_height_m": null,
+  "disarmed": true,
+  "passed": false
+ },
+ "finished": "2026-11-04 16:31:11",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793781014.13,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793781015.15,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793781031.37,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 23469.512
+   }
+  },
+  {
+   "n": 3,
+   "t": 1793781031.37,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "arm"
+   }
+  },
+  {
+   "n": 4,
+   "t": 1793781031.37,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 5,
+   "t": 1793781031.37,
+   "kind": "log",
+   "text": "[ladder] READY for test 'arm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 6,
+   "t": 1793781040.14,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 7,
+   "t": 1793781040.23,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": true,
+    "height_m": 0.02,
+    "t_epoch": 23478.373
+   }
+  },
+  {
+   "n": 8,
+   "t": 1793781040.23,
+   "kind": "log",
+   "text": "[ladder] stage: arm <- the stage under test"
+  },
+  {
+   "n": 9,
+   "t": 1793781060.52,
+   "kind": "log",
+   "text": "[ladder] gave up waiting for the arm; sending DISARM behind any ARM still queued in the link"
+  },
+  {
+   "n": 10,
+   "t": 1793781070.62,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "arm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": null,
+    "takeover_source": null,
+    "takeover_stage": null,
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "rx_hz": {
+     "ATTITUDE": 4.0,
+     "RC_CHANNELS": 1.5,
+     "LOCAL_POSITION_NED": 0.5,
+     "HEARTBEAT": 0.5
+    },
+    "arm_withdrawn": true,
+    "armed_late": false,
+    "error": "vehicle did not arm",
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 680,
+     "dropped_sim": 0,
+     "hz": 20.0
+    },
+    "max_height_m": null,
+    "disarmed": true,
+    "passed": false
+   }
+  }
+ ]
+}

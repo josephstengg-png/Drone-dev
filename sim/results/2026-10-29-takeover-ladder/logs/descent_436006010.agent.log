@@ -1,0 +1,19 @@
+[link] udpin:0.0.0.0:14540 -- waiting for heartbeat
+[link] connected, vehicle is sysid 1
+[ladder] stage: prearm
+[ladder] stage: arm
+[vehicle] Armed by external command
+[ladder] stage: takeoff
+[vehicle] Takeoff detected
+[ladder] stage: hold
+[ladder] stage: abort
+[ladder] controller abort: above the 1.5 m ceiling (1.69 m) -> PX4 LAND
+[vehicle] Landing at current position
+[vehicle] Failsafe activated
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] LAND: PX4 failsafe: Failsafe activated; stage 1: height 2.26 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] acting: LAND -> LAND (airborne)
+[vehicle] Landing at current position
+[safety] on the ground -- disarming
+[vehicle] Landing detected
+[vehicle] Disarmed by external command

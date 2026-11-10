@@ -67,6 +67,11 @@ def main() -> int:
                          "alongside the agent -- two commanders on one airframe. Without "
                          "this, QGC's mission/geofence/rally/parameter requests all fail, "
                          "because every one of them needs a packet to reach the vehicle.")
+    ap.add_argument("--mirror-floor-s", type=float, default=0.0,
+                    help="agent priority. With --mirror-control, drop the mirror's uplink for "
+                         "this many seconds after the last agent packet, so a test run has the "
+                         "link to itself and QGC does not have to be closed first. 0 = off, "
+                         "QGC always forwarded. Recommended: 5")
     ap.add_argument("--agent-ttl-s", type=float, default=30.0,
                     help="how long an agent address keeps receiving downlink after its "
                          "last packet")
@@ -102,7 +107,8 @@ def main() -> int:
     module = (args.module_ip, args.module_listen)
     agents: dict[tuple[str, int], float] = {}
     up = down = dropped = unreachable = 0
-    mirror_up = mirror_blocked = 0
+    mirror_up = mirror_blocked = mirror_floored = 0
+    last_agent_up = 0.0
     last = time.time()
 
     print(f"[elrs] agent udp/{args.agent_port} <-> module {module[0]}:{module[1]} "
@@ -110,8 +116,11 @@ def main() -> int:
     if mirrors:
         where = ", ".join(f"{h}:{p}" for h, p in mirrors)
         if args.mirror_control:
+            floor = (f"; agent priority {args.mirror_floor_s:g} s (QGC is held off while an "
+                     f"agent is talking)") if args.mirror_floor_s > 0 else \
+                    "; NO agent priority -- close QGC before arming runs"
             print(f"[elrs] mirroring downlink to {where} -- TWO-WAY: that station can "
-                  f"command this aircraft, alongside the agent", flush=True)
+                  f"command this aircraft, alongside the agent{floor}", flush=True)
         else:
             print(f"[elrs] mirroring downlink to {where} (observe only, nothing it sends "
                   f"is forwarded)", flush=True)
@@ -128,6 +137,13 @@ def main() -> int:
                 if not args.mirror_control:
                     mirror_blocked += 1    # drained and discarded on purpose -- see above
                     continue
+                # Agent priority. QGC is a second commander on a link that cannot carry two:
+                # its parameter and mission retries starved the agent's setpoint stream
+                # (12 Oct). Rather than make the operator close QGC before every test, hand
+                # the floor to the agent while it is talking and give it back afterwards.
+                if args.mirror_floor_s > 0 and time.time() - last_agent_up < args.mirror_floor_s:
+                    mirror_floored += 1
+                    continue
                 try:
                     radio.sendto(data, module)
                 except OSError:
@@ -136,7 +152,7 @@ def main() -> int:
                     mirror_up += 1
                 continue
             if s is agent:
-                agents[addr] = time.time()
+                agents[addr] = last_agent_up = time.time()
                 try:
                     radio.sendto(data, module)
                 except OSError as exc:
@@ -173,7 +189,7 @@ def main() -> int:
             print(f"[elrs] up={up} down={down} no-agent-drop={dropped} "
                   f"uplink-unreachable={unreachable} agents={len(agents)} "
                   f"mirrors={len(mirrors)} mirror-up={mirror_up} "
-                  f"mirror-blocked={mirror_blocked} module={c}", flush=True)
+                  f"mirror-blocked={mirror_blocked} mirror-floored={mirror_floored} module={c}", flush=True)
             last = now
 
 

@@ -1,0 +1,17 @@
+[link] udpin:0.0.0.0:14540 -- waiting for heartbeat
+[link] connected, vehicle is sysid 1
+[ladder] stage: prearm
+[ladder] stage: arm
+[vehicle] Armed by external command
+[ladder] stage: takeoff <- the stage under test
+[vehicle] Takeoff detected
+[ladder] stage: hold
+[vehicle] Kill engaged
+[safety] PILOT KILLED IT (Kill engaged). Standing down -- no setpoints, no mode changes, no commands.
+[safety] kill switch engaged -- PX4 disarms by itself after COM_KILL_DISARM. The agent sends nothing.
+[vehicle] Preflight Fail: Flight termination active
+[vehicle] Failsafe activated
+[vehicle] Disarmed by kill-switch
+[vehicle] Preflight Fail: Kill switch engaged
+[vehicle] Preflight Fail: Flight termination active
+[safety] aircraft disarmed (by the pilot or PX4) after 5.5 s

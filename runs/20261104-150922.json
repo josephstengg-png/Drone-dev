@@ -1,0 +1,316 @@
+{
+ "id": "20261104-150922",
+ "started": "2026-11-04 15:09:22",
+ "mode": "live",
+ "profile": {
+  "name": "artex113 HOVER ENDURANCE test",
+  "description": "Props ON, to FLY and test ENDURANCE",
+  "sysid": 113,
+  "link": "radio",
+  "flight_type": "bench",
+  "stage": "disarm",
+  "height_m": 1.0,
+  "hold_s": 1200.0,
+  "wait_s": 20.0,
+  "takeoff_pause_m": 0.5,
+  "test_descent_rate": 0.06,
+  "final_descent_rate": 0.03,
+  "lift_by_climb": true,
+  "ground_attitude": true,
+  "height_timeout_s": null,
+  "battery_hold_pct": null,
+  "battery_land_pct": null,
+  "setpoint_hz": null
+ },
+ "operator": "joseph",
+ "accepted": [],
+ "confirmations": [
+  "Propellers are OFF on ARTEX113",
+  "Hands and tools are clear of the rotors"
+ ],
+ "phrase": "I TAKE RESPONSIBILITY FOR THIS RUN",
+ "aircraft_typed": "ARTEX113",
+ "authorised": "2026-11-04 15:09:20",
+ "command": [
+  "ssh",
+  "-o",
+  "ConnectTimeout=8",
+  "-o",
+  "BatchMode=yes",
+  "-o",
+  "StrictHostKeyChecking=accept-new",
+  "jetson-2",
+  "cd ~/FlightPlanner && python3 tools/drone_agent.py offboard-flight --link udpout://127.0.0.1:14540 --expect-sysid 113 --real-aircraft --gate --stage disarm --wait-s 20 --gate-timeout-s 150 --height 1 --hold-s 1200 --takeoff-pause-m 0.5 --test-descent-rate 0.06 --final-descent-rate 0.03 --lift-by-climb --ground-attitude --allow-radio-flight --height-timeout-s 3 --trace /tmp/gs_20261104-150922.csv"
+ ],
+ "arm_requested": "2026-11-04 15:10:11",
+ "state": "done",
+ "result": {
+  "verb": "offboard-flight",
+  "stage": "disarm",
+  "slot": null,
+  "sysid": 113,
+  "outcome": null,
+  "takeover_source": null,
+  "takeover_stage": null,
+  "simulator": false,
+  "geofence": {
+   "action": 5,
+   "max_ver_dist": 3.0
+  },
+  "hover_thrust": 0.41999998688697815,
+  "com_disarm_land_s": 1.0,
+  "rx_hz": {
+   "ATTITUDE": 5.0,
+   "RC_CHANNELS": 1.5,
+   "HEARTBEAT": 0.5,
+   "LOCAL_POSITION_NED": 0.5
+  },
+  "height_feed_requested_hz": 10,
+  "vehicle_text": [
+   "Connection to ground station lost",
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "GCS connection regained",
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "GCS connection regained"
+  ],
+  "height_feed": {
+   "readings_last_6s": 6,
+   "longest_gap_s": 2.4,
+   "timeout_s": 3.0,
+   "waited_s": 21.5,
+   "ok": true
+  },
+  "arm_withdrawn": true,
+  "armed_late": false,
+  "error": "vehicle did not arm",
+  "link_losses": 0,
+  "setpoints": {
+   "sent": 1050,
+   "dropped_sim": 0,
+   "hz": 20.0
+  },
+  "max_height_m": null,
+  "disarmed": true,
+  "passed": false
+ },
+ "finished": "2026-11-04 15:10:42",
+ "feed": [
+  {
+   "n": 0,
+   "t": 1793776163.19,
+   "kind": "log",
+   "text": "[link] udpout://127.0.0.1:14540 -- waiting for heartbeat"
+  },
+  {
+   "n": 1,
+   "t": 1793776163.32,
+   "kind": "log",
+   "text": "[link] connected, vehicle is sysid 113"
+  },
+  {
+   "n": 2,
+   "t": 1793776180.51,
+   "kind": "log",
+   "text": "[ladder] stage: prearm"
+  },
+  {
+   "n": 3,
+   "t": 1793776180.51,
+   "kind": "log",
+   "text": "[ladder] waiting up to 40 s for a height feed the controller can live on (a reading every 3 s, 1 Hz or better); asked the aircraft for 10 Hz"
+  },
+  {
+   "n": 4,
+   "t": 1793776180.51,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "prearm",
+    "under_test": false,
+    "height_m": 0.0,
+    "t_epoch": 18618.799
+   }
+  },
+  {
+   "n": 5,
+   "t": 1793776195.58,
+   "kind": "log",
+   "text": "[vehicle] Connection to ground station lost"
+  },
+  {
+   "n": 6,
+   "t": 1793776196.19,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: No connection to the ground contro"
+  },
+  {
+   "n": 7,
+   "t": 1793776196.29,
+   "kind": "log",
+   "text": "[vehicle] l station"
+  },
+  {
+   "n": 8,
+   "t": 1793776196.49,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: No connection to the ground contro"
+  },
+  {
+   "n": 9,
+   "t": 1793776196.59,
+   "kind": "log",
+   "text": "[vehicle] l station"
+  },
+  {
+   "n": 10,
+   "t": 1793776196.69,
+   "kind": "log",
+   "text": "[vehicle] GCS connection regained"
+  },
+  {
+   "n": 11,
+   "t": 1793776201.97,
+   "kind": "event",
+   "data": {
+    "event": "ready",
+    "slot": null,
+    "sysid": 113,
+    "stage": "disarm"
+   }
+  },
+  {
+   "n": 12,
+   "t": 1793776201.97,
+   "kind": "log",
+   "text": "[ladder] READY for test 'disarm' -- type ARM once props/tether/area are confirmed"
+  },
+  {
+   "n": 13,
+   "t": 1793776211.69,
+   "kind": "sent",
+   "text": "ARM"
+  },
+  {
+   "n": 14,
+   "t": 1793776211.77,
+   "kind": "event",
+   "data": {
+    "event": "stage",
+    "slot": null,
+    "stage": "arm",
+    "under_test": false,
+    "height_m": 0.09,
+    "t_epoch": 18650.063
+   }
+  },
+  {
+   "n": 15,
+   "t": 1793776211.77,
+   "kind": "log",
+   "text": "[ladder] stage: arm"
+  },
+  {
+   "n": 16,
+   "t": 1793776232.07,
+   "kind": "log",
+   "text": "[ladder] gave up waiting for the arm; sending DISARM behind any ARM still queued in the link"
+  },
+  {
+   "n": 17,
+   "t": 1793776235.66,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: No connection to the ground contro"
+  },
+  {
+   "n": 18,
+   "t": 1793776235.76,
+   "kind": "log",
+   "text": "[vehicle] l station"
+  },
+  {
+   "n": 19,
+   "t": 1793776235.98,
+   "kind": "log",
+   "text": "[vehicle] Preflight Fail: No connection to the ground contro"
+  },
+  {
+   "n": 20,
+   "t": 1793776236.35,
+   "kind": "log",
+   "text": "[vehicle] l station"
+  },
+  {
+   "n": 21,
+   "t": 1793776236.42,
+   "kind": "log",
+   "text": "[vehicle] GCS connection regained"
+  },
+  {
+   "n": 22,
+   "t": 1793776242.19,
+   "kind": "result",
+   "data": {
+    "verb": "offboard-flight",
+    "stage": "disarm",
+    "slot": null,
+    "sysid": 113,
+    "outcome": null,
+    "takeover_source": null,
+    "takeover_stage": null,
+    "simulator": false,
+    "geofence": {
+     "action": 5,
+     "max_ver_dist": 3.0
+    },
+    "hover_thrust": 0.41999998688697815,
+    "com_disarm_land_s": 1.0,
+    "rx_hz": {
+     "ATTITUDE": 5.0,
+     "RC_CHANNELS": 1.5,
+     "HEARTBEAT": 0.5,
+     "LOCAL_POSITION_NED": 0.5
+    },
+    "height_feed_requested_hz": 10,
+    "vehicle_text": [
+     "Connection to ground station lost",
+     "Preflight Fail: No connection to the ground contro",
+     "l station",
+     "Preflight Fail: No connection to the ground contro",
+     "l station",
+     "GCS connection regained",
+     "Preflight Fail: No connection to the ground contro",
+     "l station",
+     "Preflight Fail: No connection to the ground contro",
+     "l station",
+     "GCS connection regained"
+    ],
+    "height_feed": {
+     "readings_last_6s": 6,
+     "longest_gap_s": 2.4,
+     "timeout_s": 3.0,
+     "waited_s": 21.5,
+     "ok": true
+    },
+    "arm_withdrawn": true,
+    "armed_late": false,
+    "error": "vehicle did not arm",
+    "link_losses": 0,
+    "setpoints": {
+     "sent": 1050,
+     "dropped_sim": 0,
+     "hz": 20.0
+    },
+    "max_height_m": null,
+    "disarmed": true,
+    "passed": false
+   }
+  }
+ ]
+}

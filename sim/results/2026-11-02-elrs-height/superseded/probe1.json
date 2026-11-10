@@ -1,0 +1,119 @@
+{
+ "joystick_first": {
+  "first": "joystick",
+  "altitude_mode": true,
+  "armed": true,
+  "height_after_stick_up_m": 0.13,
+  "killed_by_ch8": false,
+  "kill_latency_s": null,
+  "ch7_changed_mode": false,
+  "kill_after_joystick_stopped": true,
+  "texts": [
+   "Takeoff detected",
+   "Kill engaged",
+   "Preflight Fail: Flight termination active",
+   "Preflight Fail: ESC failure detected",
+   "Preflight Fail: Flight termination active",
+   "Disarmed by kill-switch",
+   "Preflight Fail: Kill switch engaged",
+   "Preflight Fail: Flight termination active"
+  ]
+ },
+ "rc_first": {
+  "first": "rc",
+  "altitude_mode": false,
+  "armed": false,
+  "height_after_stick_up_m": 0.0,
+  "killed_by_ch8": true,
+  "kill_latency_s": 0.0,
+  "texts": [
+   "GCS connection regained",
+   "Connection to ground station lost",
+   "Preflight Fail: No connection to the ground contro",
+   "l station",
+   "GCS connection regained"
+  ]
+ },
+ "vz_clean_kill": {
+  "action": "kill",
+  "link": {
+   "hz": 20.0,
+   "delay_s": 0.0,
+   "outage": null,
+   "tele_s": 0.05
+  },
+  "offboard": true,
+  "armed": false,
+  "texts": [
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t"
+  ]
+ },
+ "vz_elrs_kill": {
+  "action": "kill",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "offboard": true,
+  "armed": false,
+  "texts": [
+   "GCS connection regained"
+  ]
+ },
+ "vz_elrs_altitude": {
+  "action": "altitude",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "offboard": true,
+  "armed": false,
+  "texts": [
+   "GCS connection regained"
+  ]
+ },
+ "vz_elrs_land": {
+  "action": "land",
+  "link": {
+   "hz": 5.0,
+   "delay_s": 0.35,
+   "outage": [
+    10.0,
+    0.5,
+    1.5
+   ],
+   "tele_s": 2.0
+  },
+  "offboard": true,
+  "armed": false,
+  "texts": [
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t",
+   "Arming denied: Resolve system health failures firs",
+   "t"
+  ]
+ }
+}

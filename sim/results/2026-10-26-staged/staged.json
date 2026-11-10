@@ -1,0 +1,4977 @@
+{
+ "started": "2026-10-26 14:07:55",
+ "boot_params": {
+  "EKF2_GPS_CTRL": 0,
+  "CBRK_FLIGHTTERM": 0,
+  "FD_FAIL_P": 60,
+  "FD_FAIL_R": 60,
+  "FD_FAIL_P_TTRI": 1.0,
+  "FD_FAIL_R_TTRI": 1.0,
+  "COM_FAIL_ACT_T": 0,
+  "NAV_DLL_ACT": 3,
+  "NAV_RCL_ACT": 3,
+  "GF_ACTION": 5,
+  "COM_RC_IN_MODE": 3,
+  "COM_RC_LOSS_T": 0.5,
+  "COM_DISARM_PRFLT": 10,
+  "COM_DL_LOSS_T": 5
+ },
+ "cases": [
+  {
+   "scenario": "healthy_hover",
+   "reached": true,
+   "disturbance": {},
+   "t_disturbance": 24.33,
+   "height_before": 0.94,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.98,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 34.06,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.11,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.02,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/healthy_hover_1792994908.log",
+   "instance": 1
+  },
+  {
+   "scenario": "pilot_maneuvers",
+   "reached": true,
+   "disturbance": {
+    "sticks": "roll, pitch, yaw full; climb/descend"
+   },
+   "t_disturbance": 24.23,
+   "height_before": 0.88,
+   "guard": [],
+   "max_tilt": 21.6,
+   "max_height": 1.05,
+   "fastest_fall": -0.63,
+   "motor_max": 0.58,
+   "disarmed_at": 26.21,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.04,
+    "vz": -0.0,
+    "roll": 0.2,
+    "pitch": 0.06,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.98,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/pilot_maneuvers_1792995010.log",
+   "instance": 1
+  },
+  {
+   "scenario": "gust",
+   "reached": true,
+   "disturbance": {
+    "force_N": 4.25,
+    "dir_deg": 102
+   },
+   "t_disturbance": 20.96,
+   "height_before": 1.08,
+   "guard": [],
+   "max_tilt": 5.1,
+   "max_height": 1.09,
+   "fastest_fall": -0.64,
+   "motor_max": 0.47,
+   "disarmed_at": 33.49,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.11,
+    "vz": -0.0,
+    "roll": 0.73,
+    "pitch": 1.56,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.76,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/gust_1792995106.log",
+   "instance": 1
+  },
+  {
+   "scenario": "weak_motor",
+   "reached": true,
+   "disturbance": {
+    "motor": 1,
+    "max_speed_fraction": 0.71,
+    "cap_rad_s": 2122
+   },
+   "t_disturbance": 24.23,
+   "height_before": 0.82,
+   "guard": [],
+   "max_tilt": 10.6,
+   "max_height": 0.88,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 35.24,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.13,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": -0.03,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.94,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/weak_motor_1792995206.log",
+   "instance": 1
+  },
+  {
+   "scenario": "motor_out",
+   "reached": true,
+   "disturbance": {
+    "motor": 1,
+    "max_speed_fraction": 0.0,
+    "cap_rad_s": 150
+   },
+   "t_disturbance": 22.73,
+   "height_before": 1.01,
+   "guard": [
+    {
+     "t": 0.33,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 66 deg >= 60.0 deg",
+      "stage 1: height 2.14 m above ceiling 2.0 m"
+     ]
+    },
+    {
+     "t": 1.84,
+     "action": "kill",
+     "did": "kill",
+     "why": [
+      "stage 1: tilt 175 deg >= 30 for 1.6s; stage 2: tilt 175 deg >= 45 for 1.5s"
+     ]
+    }
+   ],
+   "max_tilt": 180.0,
+   "max_height": 1.01,
+   "fastest_fall": -4.55,
+   "motor_max": 1.0,
+   "disarmed_at": 2.73,
+   "final": {
+    "armed": false,
+    "mode": "10.0",
+    "z": 0.03,
+    "vz": -0.02,
+    "roll": 179.67,
+    "pitch": 0.94,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 180.0,
+   "estimator_height_max": 1.04,
+   "texts": [
+    "Preflight Fail: Attitude failure (roll)",
+    "Failsafe activated",
+    "Disarmed by external command",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: Flight termination active"
+   ],
+   "px4_terminated": true,
+   "pilot_has_it": true,
+   "countdown": [
+    3.0,
+    2.0
+   ],
+   "cut_by": "guard",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/motor_out_1792995308.log",
+   "instance": 1
+  },
+  {
+   "scenario": "tumble",
+   "reached": true,
+   "disturbance": {
+    "torque_Nm": 1.27,
+    "axis_deg": 339,
+    "dur_s": 0.14
+   },
+   "t_disturbance": 24.21,
+   "height_before": 0.86,
+   "guard": [
+    {
+     "t": 0.16,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 133 deg >= 60.0 deg"
+     ]
+    }
+   ],
+   "max_tilt": 133.0,
+   "max_height": 0.9,
+   "fastest_fall": -3.84,
+   "motor_max": 1.0,
+   "disarmed_at": 8.27,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.06,
+    "vz": -0.0,
+    "roll": 0.01,
+    "pitch": 0.02,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.93,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (recovered upright, no cut needed)",
+   "log": "/tmp/staged_logs/tumble_1792995389.log",
+   "instance": 1
+  },
+  {
+   "scenario": "surge",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 3.78,
+    "dur_s": 2.5
+   },
+   "t_disturbance": 17.8,
+   "height_before": 1.22,
+   "guard": [
+    {
+     "t": 1.06,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.04 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 2.7,
+   "max_height": 2.32,
+   "fastest_fall": -1.55,
+   "motor_max": 0.76,
+   "disarmed_at": 7.65,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.02,
+    "vz": -0.01,
+    "roll": 1.0,
+    "pitch": 0.57,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.74,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    4.0,
+    3.0,
+    2.0,
+    1.0
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/surge_1792995471.log",
+   "instance": 1
+  },
+  {
+   "scenario": "ceiling",
+   "reached": true,
+   "disturbance": {
+    "stick": 0.85
+   },
+   "t_disturbance": 23.48,
+   "height_before": 0.88,
+   "guard": [
+    {
+     "t": 2.81,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.02 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 0.3,
+   "max_height": 2.06,
+   "fastest_fall": -0.66,
+   "motor_max": 0.49,
+   "disarmed_at": 8.97,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.18,
+    "vz": -0.0,
+    "roll": 0.09,
+    "pitch": -0.26,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 2.25,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    4.0,
+    3.0,
+    2.0,
+    1.0
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/ceiling_1792995550.log",
+   "instance": 1
+  },
+  {
+   "scenario": "runaway",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.44,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 17.6,
+   "height_before": 1.28,
+   "guard": [],
+   "max_tilt": 2.5,
+   "max_height": 1.28,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 45.79,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.16,
+    "vz": -0.0,
+    "roll": -0.04,
+    "pitch": 0.93,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.67,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "MISSED (no cut)",
+   "log": "/tmp/staged_logs/runaway_1792995631.log",
+   "instance": 1
+  },
+  {
+   "scenario": "runaway_pilot",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.21,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 24.14,
+   "height_before": 0.91,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.92,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 48.28,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.08,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.79,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/runaway_pilot_1792995741.log",
+   "instance": 1
+  },
+  {
+   "scenario": "healthy_hover",
+   "reached": true,
+   "disturbance": {},
+   "t_disturbance": 21.96,
+   "height_before": 1.03,
+   "guard": [],
+   "max_tilt": 2.6,
+   "max_height": 1.11,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 33.48,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.02,
+    "vz": -0.0,
+    "roll": 1.15,
+    "pitch": 0.55,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.92,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/healthy_hover_1792995857.log",
+   "instance": 2
+  },
+  {
+   "scenario": "pilot_maneuvers",
+   "reached": true,
+   "disturbance": {
+    "sticks": "roll, pitch, yaw full; climb/descend"
+   },
+   "t_disturbance": 23.29,
+   "height_before": 0.91,
+   "guard": [],
+   "max_tilt": 21.6,
+   "max_height": 1.22,
+   "fastest_fall": -0.65,
+   "motor_max": 0.58,
+   "disarmed_at": 26.16,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.12,
+    "vz": -0.0,
+    "roll": 0.22,
+    "pitch": 0.07,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.98,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/pilot_maneuvers_1792995957.log",
+   "instance": 2
+  },
+  {
+   "scenario": "gust",
+   "reached": true,
+   "disturbance": {
+    "force_N": 5.78,
+    "dir_deg": 350
+   },
+   "t_disturbance": 23.39,
+   "height_before": 0.87,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.96,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 35.08,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.05,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.91,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/gust_1792996053.log",
+   "instance": 2
+  },
+  {
+   "scenario": "weak_motor",
+   "reached": true,
+   "disturbance": {
+    "motor": 2,
+    "max_speed_fraction": 0.7,
+    "cap_rad_s": 2097
+   },
+   "t_disturbance": 23.24,
+   "height_before": 0.95,
+   "guard": [],
+   "max_tilt": 11.3,
+   "max_height": 0.98,
+   "fastest_fall": -0.64,
+   "motor_max": 0.46,
+   "disarmed_at": 33.25,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.09,
+    "vz": -0.0,
+    "roll": 0.18,
+    "pitch": -0.06,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.88,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/weak_motor_1792996155.log",
+   "instance": 2
+  },
+  {
+   "scenario": "motor_out",
+   "reached": true,
+   "disturbance": {
+    "motor": 4,
+    "max_speed_fraction": 0.0,
+    "cap_rad_s": 150
+   },
+   "t_disturbance": 20.48,
+   "height_before": 0.99,
+   "guard": [
+    {
+     "t": 0.32,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 79 deg >= 60.0 deg"
+     ]
+    },
+    {
+     "t": 1.8,
+     "action": "kill",
+     "did": "kill",
+     "why": [
+      "stage 1: tilt 168 deg >= 30 for 1.6s; stage 2: tilt 168 deg >= 45 for 1.5s"
+     ]
+    }
+   ],
+   "max_tilt": 180.0,
+   "max_height": 0.99,
+   "fastest_fall": -3.68,
+   "motor_max": 0.5,
+   "disarmed_at": 1.97,
+   "final": {
+    "armed": false,
+    "mode": "10.0",
+    "z": 0.04,
+    "vz": -0.01,
+    "roll": 179.41,
+    "pitch": 0.3,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 180.0,
+   "estimator_height_max": 0.87,
+   "texts": [
+    "Preflight Fail: Attitude failure (roll)",
+    "Failsafe activated",
+    "Disarmed by external command",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: Flight termination active"
+   ],
+   "px4_terminated": true,
+   "pilot_has_it": true,
+   "countdown": [
+    3.0
+   ],
+   "cut_by": "guard",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/motor_out_1792996256.log",
+   "instance": 2
+  },
+  {
+   "scenario": "tumble",
+   "reached": true,
+   "disturbance": {
+    "torque_Nm": 1.17,
+    "axis_deg": 348,
+    "dur_s": 0.12
+   },
+   "t_disturbance": 18.38,
+   "height_before": 1.11,
+   "guard": [],
+   "max_tilt": 2.0,
+   "max_height": 1.11,
+   "fastest_fall": -0.65,
+   "motor_max": 0.45,
+   "disarmed_at": 32.1,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.13,
+    "vz": -0.0,
+    "roll": 0.54,
+    "pitch": -0.38,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.54,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (recovered upright, no cut needed)",
+   "log": "/tmp/staged_logs/tumble_1792996334.log",
+   "instance": 2
+  },
+  {
+   "scenario": "surge",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 3.08,
+    "dur_s": 2.5
+   },
+   "t_disturbance": 23.44,
+   "height_before": 0.88,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.94,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 37.01,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.04,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.94,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (PX4 held height)",
+   "log": "/tmp/staged_logs/surge_1792996431.log",
+   "instance": 2
+  },
+  {
+   "scenario": "ceiling",
+   "reached": true,
+   "disturbance": {
+    "stick": 0.85
+   },
+   "t_disturbance": 22.27,
+   "height_before": 1.05,
+   "guard": [
+    {
+     "t": 2.5,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.05 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 1.2,
+   "max_height": 2.09,
+   "fastest_fall": -0.68,
+   "motor_max": 0.55,
+   "disarmed_at": 10.16,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.18,
+    "vz": 0.0,
+    "roll": -0.37,
+    "pitch": 1.09,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.83,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    4.0,
+    3.0,
+    2.0,
+    1.0
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/ceiling_1792996535.log",
+   "instance": 2
+  },
+  {
+   "scenario": "runaway",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.45,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 24.31,
+   "height_before": 0.92,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.94,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 48.15,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.0,
+    "vz": 0.0,
+    "roll": 0.0,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.9,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "MISSED (no cut)",
+   "log": "/tmp/staged_logs/runaway_1792996616.log",
+   "instance": 2
+  },
+  {
+   "scenario": "runaway_pilot",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.31,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 24.32,
+   "height_before": 0.97,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.97,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 48.16,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.1,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.84,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/runaway_pilot_1792996732.log",
+   "instance": 2
+  },
+  {
+   "scenario": "healthy_hover",
+   "reached": true,
+   "disturbance": {},
+   "t_disturbance": 18.01,
+   "height_before": 1.1,
+   "guard": [],
+   "max_tilt": 3.0,
+   "max_height": 1.1,
+   "fastest_fall": -0.63,
+   "motor_max": 0.47,
+   "disarmed_at": 32.48,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.05,
+    "vz": -0.03,
+    "roll": 0.87,
+    "pitch": 0.57,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.78,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/healthy_hover_1792996849.log",
+   "instance": 3
+  },
+  {
+   "scenario": "pilot_maneuvers",
+   "reached": true,
+   "disturbance": {
+    "sticks": "roll, pitch, yaw full; climb/descend"
+   },
+   "t_disturbance": 24.33,
+   "height_before": 0.99,
+   "guard": [],
+   "max_tilt": 21.6,
+   "max_height": 1.15,
+   "fastest_fall": -0.64,
+   "motor_max": 0.58,
+   "disarmed_at": 26.16,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.09,
+    "vz": -0.0,
+    "roll": 0.25,
+    "pitch": 0.08,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.04,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/pilot_maneuvers_1792996945.log",
+   "instance": 3
+  },
+  {
+   "scenario": "gust",
+   "reached": true,
+   "disturbance": {
+    "force_N": 4.3,
+    "dir_deg": 293
+   },
+   "t_disturbance": 23.35,
+   "height_before": 0.89,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.93,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 35.09,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.03,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.93,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/gust_1792997041.log",
+   "instance": 3
+  },
+  {
+   "scenario": "weak_motor",
+   "reached": true,
+   "disturbance": {
+    "motor": 4,
+    "max_speed_fraction": 0.68,
+    "cap_rad_s": 2037
+   },
+   "t_disturbance": 23.44,
+   "height_before": 0.83,
+   "guard": [],
+   "max_tilt": 12.1,
+   "max_height": 0.89,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 35.06,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.07,
+    "vz": -0.0,
+    "roll": 0.02,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.94,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/weak_motor_1792997143.log",
+   "instance": 3
+  },
+  {
+   "scenario": "motor_out",
+   "reached": true,
+   "disturbance": {
+    "motor": 2,
+    "max_speed_fraction": 0.0,
+    "cap_rad_s": 150
+   },
+   "t_disturbance": 24.32,
+   "height_before": 0.93,
+   "guard": [
+    {
+     "t": 0.33,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 73 deg >= 60.0 deg"
+     ]
+    },
+    {
+     "t": 1.78,
+     "action": "kill",
+     "did": "kill",
+     "why": [
+      "stage 1: tilt 161 deg >= 30 for 1.6s; stage 2: tilt 161 deg >= 45 for 1.5s"
+     ]
+    }
+   ],
+   "max_tilt": 180.0,
+   "max_height": 0.93,
+   "fastest_fall": -3.39,
+   "motor_max": 0.75,
+   "disarmed_at": 2.17,
+   "final": {
+    "armed": false,
+    "mode": "10.0",
+    "z": -0.12,
+    "vz": -0.03,
+    "roll": 179.75,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 180.0,
+   "estimator_height_max": 0.86,
+   "texts": [
+    "Preflight Fail: Attitude failure (roll)",
+    "Failsafe activated",
+    "Disarmed by external command",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: Flight termination active"
+   ],
+   "px4_terminated": true,
+   "pilot_has_it": true,
+   "countdown": [
+    3.0,
+    2.0
+   ],
+   "cut_by": "guard",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/motor_out_1792997245.log",
+   "instance": 3
+  },
+  {
+   "scenario": "tumble",
+   "reached": true,
+   "disturbance": {
+    "torque_Nm": 1.27,
+    "axis_deg": 347,
+    "dur_s": 0.08
+   },
+   "t_disturbance": 23.33,
+   "height_before": 0.9,
+   "guard": [],
+   "max_tilt": 0.5,
+   "max_height": 0.92,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 34.13,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.04,
+    "vz": -0.0,
+    "roll": 0.29,
+    "pitch": -0.08,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.92,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (recovered upright, no cut needed)",
+   "log": "/tmp/staged_logs/tumble_1792997327.log",
+   "instance": 3
+  },
+  {
+   "scenario": "surge",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 3.78,
+    "dur_s": 2.5
+   },
+   "t_disturbance": 23.33,
+   "height_before": 1.01,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 1.03,
+   "fastest_fall": -0.65,
+   "motor_max": 0.45,
+   "disarmed_at": 34.15,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.08,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.9,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (PX4 held height)",
+   "log": "/tmp/staged_logs/surge_1792997429.log",
+   "instance": 3
+  },
+  {
+   "scenario": "ceiling",
+   "reached": true,
+   "disturbance": {
+    "stick": 0.85
+   },
+   "t_disturbance": 21.73,
+   "height_before": 0.99,
+   "guard": [
+    {
+     "t": 2.45,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.02 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 0.1,
+   "max_height": 2.06,
+   "fastest_fall": -0.67,
+   "motor_max": 0.49,
+   "disarmed_at": 9.73,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.06,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": -0.02,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.86,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    4.0,
+    3.0,
+    2.0,
+    1.0
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/ceiling_1792997533.log",
+   "instance": 3
+  },
+  {
+   "scenario": "runaway",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.4,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 24.31,
+   "height_before": 0.96,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.98,
+   "fastest_fall": -0.65,
+   "motor_max": 0.45,
+   "disarmed_at": 46.14,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.06,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.9,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "MISSED (no cut)",
+   "log": "/tmp/staged_logs/runaway_1792997613.log",
+   "instance": 3
+  },
+  {
+   "scenario": "runaway_pilot",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.4,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 23.31,
+   "height_before": 0.91,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.93,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 48.13,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.01,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.91,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/runaway_pilot_1792997729.log",
+   "instance": 3
+  },
+  {
+   "scenario": "healthy_hover",
+   "reached": true,
+   "disturbance": {},
+   "t_disturbance": 24.29,
+   "height_before": 0.95,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 1.0,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 32.2,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.02,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.94,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/healthy_hover_1792997845.log",
+   "instance": 4
+  },
+  {
+   "scenario": "pilot_maneuvers",
+   "reached": true,
+   "disturbance": {
+    "sticks": "roll, pitch, yaw full; climb/descend"
+   },
+   "t_disturbance": 23.34,
+   "height_before": 0.97,
+   "guard": [],
+   "max_tilt": 21.6,
+   "max_height": 1.13,
+   "fastest_fall": -0.63,
+   "motor_max": 0.56,
+   "disarmed_at": 26.16,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.04,
+    "vz": -0.0,
+    "roll": 0.05,
+    "pitch": 0.09,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.09,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/pilot_maneuvers_1792997947.log",
+   "instance": 4
+  },
+  {
+   "scenario": "gust",
+   "reached": true,
+   "disturbance": {
+    "force_N": 3.97,
+    "dir_deg": 37
+   },
+   "t_disturbance": 23.43,
+   "height_before": 0.82,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.89,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 35.04,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.16,
+    "vz": -0.0,
+    "roll": 0.01,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.02,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/gust_1792998042.log",
+   "instance": 4
+  },
+  {
+   "scenario": "weak_motor",
+   "reached": true,
+   "disturbance": {
+    "motor": 4,
+    "max_speed_fraction": 0.72,
+    "cap_rad_s": 2157
+   },
+   "t_disturbance": 17.57,
+   "height_before": 1.39,
+   "guard": [],
+   "max_tilt": 11.0,
+   "max_height": 1.39,
+   "fastest_fall": -0.65,
+   "motor_max": 0.45,
+   "disarmed_at": 31.94,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.02,
+    "vz": 0.0,
+    "roll": -0.82,
+    "pitch": 0.91,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.63,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/weak_motor_1792998145.log",
+   "instance": 4
+  },
+  {
+   "scenario": "motor_out",
+   "reached": true,
+   "disturbance": {
+    "motor": 1,
+    "max_speed_fraction": 0.0,
+    "cap_rad_s": 150
+   },
+   "t_disturbance": 24.3,
+   "height_before": 0.94,
+   "guard": [
+    {
+     "t": 0.33,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 76 deg >= 60.0 deg"
+     ]
+    },
+    {
+     "t": 1.79,
+     "action": "kill",
+     "did": "kill",
+     "why": [
+      "stage 1: tilt 173 deg >= 30 for 1.5s; stage 2: tilt 173 deg >= 45 for 1.5s"
+     ]
+    }
+   ],
+   "max_tilt": 180.0,
+   "max_height": 0.94,
+   "fastest_fall": -3.61,
+   "motor_max": 0.5,
+   "disarmed_at": 2.18,
+   "final": {
+    "armed": false,
+    "mode": "10.0",
+    "z": -0.1,
+    "vz": -0.02,
+    "roll": 179.9,
+    "pitch": -0.05,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 180.0,
+   "estimator_height_max": 0.92,
+   "texts": [
+    "Preflight Fail: Attitude failure (roll)",
+    "Failsafe activated",
+    "Disarmed by external command",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: Flight termination active"
+   ],
+   "px4_terminated": true,
+   "pilot_has_it": true,
+   "countdown": [
+    3.0
+   ],
+   "cut_by": "guard",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/motor_out_1792998239.log",
+   "instance": 4
+  },
+  {
+   "scenario": "tumble",
+   "reached": true,
+   "disturbance": {
+    "torque_Nm": 1.19,
+    "axis_deg": 166,
+    "dur_s": 0.12
+   },
+   "t_disturbance": 23.42,
+   "height_before": 0.89,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.95,
+   "fastest_fall": -0.62,
+   "motor_max": 0.45,
+   "disarmed_at": 35.02,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.01,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.93,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (recovered upright, no cut needed)",
+   "log": "/tmp/staged_logs/tumble_1792998322.log",
+   "instance": 4
+  },
+  {
+   "scenario": "surge",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 3.76,
+    "dur_s": 2.5
+   },
+   "t_disturbance": 24.29,
+   "height_before": 0.9,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.94,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 37.2,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.07,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.94,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (PX4 held height)",
+   "log": "/tmp/staged_logs/surge_1792998423.log",
+   "instance": 4
+  },
+  {
+   "scenario": "ceiling",
+   "reached": true,
+   "disturbance": {
+    "stick": 0.85
+   },
+   "t_disturbance": 23.33,
+   "height_before": 0.8,
+   "guard": [
+    {
+     "t": 2.95,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.02 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 0.1,
+   "max_height": 2.07,
+   "fastest_fall": -0.65,
+   "motor_max": 0.48,
+   "disarmed_at": 10.12,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.18,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 2.23,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    4.0,
+    3.0,
+    2.0,
+    1.0
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/ceiling_1792998528.log",
+   "instance": 4
+  },
+  {
+   "scenario": "runaway",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.44,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 23.43,
+   "height_before": 0.91,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.96,
+   "fastest_fall": -0.62,
+   "motor_max": 0.45,
+   "disarmed_at": 48.03,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.07,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.99,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "MISSED (no cut)",
+   "log": "/tmp/staged_logs/runaway_1792998610.log",
+   "instance": 4
+  },
+  {
+   "scenario": "runaway_pilot",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.26,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 23.35,
+   "height_before": 0.95,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.98,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 48.1,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.04,
+    "vz": 0.0,
+    "roll": 0.01,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.91,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/runaway_pilot_1792998726.log",
+   "instance": 4
+  },
+  {
+   "scenario": "healthy_hover",
+   "reached": true,
+   "disturbance": {},
+   "t_disturbance": 24.29,
+   "height_before": 0.9,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.9,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 34.19,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.0,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.89,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/healthy_hover_1792998841.log",
+   "instance": 5
+  },
+  {
+   "scenario": "pilot_maneuvers",
+   "reached": true,
+   "disturbance": {
+    "sticks": "roll, pitch, yaw full; climb/descend"
+   },
+   "t_disturbance": 23.23,
+   "height_before": 0.99,
+   "guard": [],
+   "max_tilt": 21.6,
+   "max_height": 1.14,
+   "fastest_fall": -0.64,
+   "motor_max": 0.58,
+   "disarmed_at": 26.25,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.16,
+    "vz": -0.0,
+    "roll": 0.22,
+    "pitch": 0.08,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.91,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/pilot_maneuvers_1792998944.log",
+   "instance": 5
+  },
+  {
+   "scenario": "gust",
+   "reached": true,
+   "disturbance": {
+    "force_N": 3.61,
+    "dir_deg": 143
+   },
+   "t_disturbance": 23.35,
+   "height_before": 0.9,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.94,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 35.1,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.03,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.92,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/gust_1792999039.log",
+   "instance": 5
+  },
+  {
+   "scenario": "weak_motor",
+   "reached": true,
+   "disturbance": {
+    "motor": 2,
+    "max_speed_fraction": 0.73,
+    "cap_rad_s": 2190
+   },
+   "t_disturbance": 23.38,
+   "height_before": 0.98,
+   "guard": [],
+   "max_tilt": 9.3,
+   "max_height": 1.0,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 32.09,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.01,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": 0.03,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.96,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/weak_motor_1792999141.log",
+   "instance": 5
+  },
+  {
+   "scenario": "motor_out",
+   "reached": true,
+   "disturbance": {
+    "motor": 1,
+    "max_speed_fraction": 0.0,
+    "cap_rad_s": 150
+   },
+   "t_disturbance": 23.35,
+   "height_before": 0.92,
+   "guard": [
+    {
+     "t": 0.33,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 75 deg >= 60.0 deg",
+      "stage 1: height 2.64 m above ceiling 2.0 m"
+     ]
+    },
+    {
+     "t": 1.79,
+     "action": "kill",
+     "did": "kill",
+     "why": [
+      "stage 1: tilt 174 deg >= 30 for 1.6s; stage 2: tilt 174 deg >= 45 for 1.5s"
+     ]
+    }
+   ],
+   "max_tilt": 180.0,
+   "max_height": 0.92,
+   "fastest_fall": -3.99,
+   "motor_max": 0.46,
+   "disarmed_at": 2.12,
+   "final": {
+    "armed": false,
+    "mode": "10.0",
+    "z": -0.06,
+    "vz": -0.02,
+    "roll": 179.9,
+    "pitch": -0.06,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 180.0,
+   "estimator_height_max": 0.94,
+   "texts": [
+    "Preflight Fail: Attitude failure (roll)",
+    "Failsafe activated",
+    "Disarmed by external command",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: Flight termination active"
+   ],
+   "px4_terminated": true,
+   "pilot_has_it": true,
+   "countdown": [
+    3.0,
+    2.0
+   ],
+   "cut_by": "guard",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/motor_out_1792999242.log",
+   "instance": 5
+  },
+  {
+   "scenario": "tumble",
+   "reached": true,
+   "disturbance": {
+    "torque_Nm": 1.24,
+    "axis_deg": 359,
+    "dur_s": 0.15
+   },
+   "t_disturbance": 24.31,
+   "height_before": 0.87,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.91,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 34.17,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.08,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.94,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (recovered upright, no cut needed)",
+   "log": "/tmp/staged_logs/tumble_1792999324.log",
+   "instance": 5
+  },
+  {
+   "scenario": "surge",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 3.74,
+    "dur_s": 2.5
+   },
+   "t_disturbance": 24.29,
+   "height_before": 0.9,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.91,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 37.07,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.05,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.94,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (PX4 held height)",
+   "log": "/tmp/staged_logs/surge_1792999426.log",
+   "instance": 5
+  },
+  {
+   "scenario": "ceiling",
+   "reached": true,
+   "disturbance": {
+    "stick": 0.85
+   },
+   "t_disturbance": 17.43,
+   "height_before": 1.28,
+   "guard": [
+    {
+     "t": 1.84,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.02 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 2.2,
+   "max_height": 2.04,
+   "fastest_fall": -0.74,
+   "motor_max": 0.5,
+   "disarmed_at": 9.06,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.0,
+    "vz": -0.01,
+    "roll": 0.34,
+    "pitch": 1.12,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.45,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    4.0,
+    3.0,
+    2.0,
+    1.0
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/ceiling_1792999532.log",
+   "instance": 5
+  },
+  {
+   "scenario": "runaway",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.19,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 24.35,
+   "height_before": 0.83,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.89,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 48.13,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.25,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.06,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "MISSED (no cut)",
+   "log": "/tmp/staged_logs/runaway_1792999607.log",
+   "instance": 5
+  },
+  {
+   "scenario": "runaway_pilot",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.3,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 18.58,
+   "height_before": 1.2,
+   "guard": [],
+   "max_tilt": 2.0,
+   "max_height": 1.2,
+   "fastest_fall": -0.62,
+   "motor_max": 0.45,
+   "disarmed_at": 45.95,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.09,
+    "vz": 0.01,
+    "roll": 0.51,
+    "pitch": -1.53,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.76,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/runaway_pilot_1792999724.log",
+   "instance": 5
+  },
+  {
+   "scenario": "healthy_hover",
+   "reached": true,
+   "disturbance": {},
+   "t_disturbance": 23.34,
+   "height_before": 0.88,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.94,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 34.12,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.03,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.92,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/healthy_hover_1792999834.log",
+   "instance": 6
+  },
+  {
+   "scenario": "pilot_maneuvers",
+   "reached": true,
+   "disturbance": {
+    "sticks": "roll, pitch, yaw full; climb/descend"
+   },
+   "t_disturbance": 24.27,
+   "height_before": 0.95,
+   "guard": [],
+   "max_tilt": 21.6,
+   "max_height": 1.11,
+   "fastest_fall": -0.64,
+   "motor_max": 0.58,
+   "disarmed_at": 26.24,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.09,
+    "vz": -0.0,
+    "roll": 0.23,
+    "pitch": 0.08,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.97,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/pilot_maneuvers_1792999935.log",
+   "instance": 6
+  },
+  {
+   "scenario": "gust",
+   "reached": true,
+   "disturbance": {
+    "force_N": 5.94,
+    "dir_deg": 82
+   },
+   "t_disturbance": 23.42,
+   "height_before": 0.84,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.91,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 35.02,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.12,
+    "vz": 0.0,
+    "roll": -0.0,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.01,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/gust_1793000031.log",
+   "instance": 6
+  },
+  {
+   "scenario": "weak_motor",
+   "reached": true,
+   "disturbance": {
+    "motor": 1,
+    "max_speed_fraction": 0.68,
+    "cap_rad_s": 2048
+   },
+   "t_disturbance": 24.33,
+   "height_before": 0.94,
+   "guard": [],
+   "max_tilt": 12.1,
+   "max_height": 0.94,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 35.19,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.04,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": -0.06,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.87,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/weak_motor_1793000133.log",
+   "instance": 6
+  },
+  {
+   "scenario": "motor_out",
+   "reached": true,
+   "disturbance": {
+    "motor": 2,
+    "max_speed_fraction": 0.0,
+    "cap_rad_s": 150
+   },
+   "t_disturbance": 23.35,
+   "height_before": 0.94,
+   "guard": [
+    {
+     "t": 0.33,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 73 deg >= 60.0 deg",
+      "stage 1: height 2.88 m above ceiling 2.0 m"
+     ]
+    },
+    {
+     "t": 1.79,
+     "action": "kill",
+     "did": "kill",
+     "why": [
+      "stage 1: tilt 177 deg >= 30 for 1.5s; stage 2: tilt 177 deg >= 45 for 1.5s"
+     ]
+    }
+   ],
+   "max_tilt": 180.0,
+   "max_height": 0.94,
+   "fastest_fall": -3.56,
+   "motor_max": 0.55,
+   "disarmed_at": 2.12,
+   "final": {
+    "armed": false,
+    "mode": "10.0",
+    "z": -0.12,
+    "vz": -0.02,
+    "roll": -179.95,
+    "pitch": 0.06,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 180.0,
+   "estimator_height_max": 0.9,
+   "texts": [
+    "Preflight Fail: Attitude failure (roll)",
+    "Failsafe activated",
+    "Disarmed by external command",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: Flight termination active"
+   ],
+   "px4_terminated": true,
+   "pilot_has_it": true,
+   "countdown": [
+    3.0,
+    2.0
+   ],
+   "cut_by": "guard",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/motor_out_1793000235.log",
+   "instance": 6
+  },
+  {
+   "scenario": "tumble",
+   "reached": true,
+   "disturbance": {
+    "torque_Nm": 1.13,
+    "axis_deg": 33,
+    "dur_s": 0.09
+   },
+   "t_disturbance": 13.0,
+   "height_before": 0.97,
+   "guard": [],
+   "max_tilt": 5.0,
+   "max_height": 0.97,
+   "fastest_fall": -0.66,
+   "motor_max": 0.49,
+   "disarmed_at": 32.47,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 2.05,
+    "vz": 0.02,
+    "roll": 0.68,
+    "pitch": -2.37,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 2.52,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (recovered upright, no cut needed)",
+   "log": "/tmp/staged_logs/tumble_1793000316.log",
+   "instance": 6
+  },
+  {
+   "scenario": "surge",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 3.26,
+    "dur_s": 2.5
+   },
+   "t_disturbance": 23.43,
+   "height_before": 0.93,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.93,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 37.06,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.05,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.95,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (PX4 held height)",
+   "log": "/tmp/staged_logs/surge_1793000408.log",
+   "instance": 6
+  },
+  {
+   "scenario": "ceiling",
+   "reached": true,
+   "disturbance": {
+    "stick": 0.85
+   },
+   "t_disturbance": 17.65,
+   "height_before": 1.22,
+   "guard": [
+    {
+     "t": 1.94,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.03 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 5.1,
+   "max_height": 2.07,
+   "fastest_fall": -0.71,
+   "motor_max": 0.56,
+   "disarmed_at": 8.81,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 1.05,
+    "vz": 0.02,
+    "roll": 1.96,
+    "pitch": -0.37,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 2.59,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    3.9,
+    2.9,
+    2.0,
+    1.0
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/ceiling_1793000512.log",
+   "instance": 6
+  },
+  {
+   "scenario": "runaway",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.18,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 24.3,
+   "height_before": 0.93,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.95,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 48.14,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.05,
+    "vz": 0.0,
+    "roll": -0.01,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.89,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "MISSED (no cut)",
+   "log": "/tmp/staged_logs/runaway_1793000586.log",
+   "instance": 6
+  },
+  {
+   "scenario": "runaway_pilot",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.37,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 22.11,
+   "height_before": 1.05,
+   "guard": [],
+   "max_tilt": 1.8,
+   "max_height": 1.07,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 46.38,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.14,
+    "vz": -0.0,
+    "roll": -1.19,
+    "pitch": 0.65,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.04,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/runaway_pilot_1793000703.log",
+   "instance": 6
+  },
+  {
+   "scenario": "healthy_hover",
+   "reached": true,
+   "disturbance": {},
+   "t_disturbance": 23.36,
+   "height_before": 0.92,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.95,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 34.13,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.06,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.98,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/healthy_hover_1793000817.log",
+   "instance": 7
+  },
+  {
+   "scenario": "pilot_maneuvers",
+   "reached": true,
+   "disturbance": {
+    "sticks": "roll, pitch, yaw full; climb/descend"
+   },
+   "t_disturbance": 23.38,
+   "height_before": 0.84,
+   "guard": [],
+   "max_tilt": 21.6,
+   "max_height": 1.02,
+   "fastest_fall": -0.64,
+   "motor_max": 0.53,
+   "disarmed_at": 26.04,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.09,
+    "vz": -0.0,
+    "roll": 0.24,
+    "pitch": 0.08,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.05,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/pilot_maneuvers_1793000918.log",
+   "instance": 7
+  },
+  {
+   "scenario": "gust",
+   "reached": true,
+   "disturbance": {
+    "force_N": 4.81,
+    "dir_deg": 256
+   },
+   "t_disturbance": 24.28,
+   "height_before": 0.85,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.9,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 35.16,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.08,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.95,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/gust_1793001013.log",
+   "instance": 7
+  },
+  {
+   "scenario": "weak_motor",
+   "reached": true,
+   "disturbance": {
+    "motor": 4,
+    "max_speed_fraction": 0.69,
+    "cap_rad_s": 2072
+   },
+   "t_disturbance": 19.52,
+   "height_before": 1.31,
+   "guard": [],
+   "max_tilt": 8.9,
+   "max_height": 1.31,
+   "fastest_fall": -0.64,
+   "motor_max": 0.5,
+   "disarmed_at": 32.99,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.05,
+    "vz": 0.01,
+    "roll": 1.34,
+    "pitch": 0.73,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.61,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/weak_motor_1793001116.log",
+   "instance": 7
+  },
+  {
+   "scenario": "motor_out",
+   "reached": true,
+   "disturbance": {
+    "motor": 3,
+    "max_speed_fraction": 0.0,
+    "cap_rad_s": 150
+   },
+   "t_disturbance": 24.19,
+   "height_before": 0.92,
+   "guard": [
+    {
+     "t": 0.39,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 102 deg >= 60.0 deg"
+     ]
+    },
+    {
+     "t": 1.84,
+     "action": "kill",
+     "did": "kill",
+     "why": [
+      "stage 1: tilt 180 deg >= 30 for 1.6s; stage 2: tilt 180 deg >= 45 for 1.5s"
+     ]
+    }
+   ],
+   "max_tilt": 180.0,
+   "max_height": 0.92,
+   "fastest_fall": -3.34,
+   "motor_max": 1.0,
+   "disarmed_at": 2.29,
+   "final": {
+    "armed": false,
+    "mode": "10.0",
+    "z": -0.03,
+    "vz": -0.02,
+    "roll": -180.0,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 180.0,
+   "estimator_height_max": 0.96,
+   "texts": [
+    "Preflight Fail: Attitude failure (roll)",
+    "Failsafe activated",
+    "Disarmed by external command",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: Flight termination active"
+   ],
+   "px4_terminated": true,
+   "pilot_has_it": true,
+   "countdown": [
+    3.0,
+    2.0
+   ],
+   "cut_by": "guard",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/motor_out_1793001214.log",
+   "instance": 7
+  },
+  {
+   "scenario": "tumble",
+   "reached": true,
+   "disturbance": {
+    "torque_Nm": 1.14,
+    "axis_deg": 284,
+    "dur_s": 0.07
+   },
+   "t_disturbance": 23.34,
+   "height_before": 0.91,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.95,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 34.11,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.08,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.97,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (recovered upright, no cut needed)",
+   "log": "/tmp/staged_logs/tumble_1793001296.log",
+   "instance": 7
+  },
+  {
+   "scenario": "surge",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 3.74,
+    "dur_s": 2.5
+   },
+   "t_disturbance": 24.28,
+   "height_before": 1.02,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 1.05,
+   "fastest_fall": -0.62,
+   "motor_max": 0.45,
+   "disarmed_at": 35.16,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.11,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.92,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (PX4 held height)",
+   "log": "/tmp/staged_logs/surge_1793001398.log",
+   "instance": 7
+  },
+  {
+   "scenario": "ceiling",
+   "reached": true,
+   "disturbance": {
+    "stick": 0.85
+   },
+   "t_disturbance": 23.34,
+   "height_before": 0.95,
+   "guard": [
+    {
+     "t": 2.62,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.03 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 0.7,
+   "max_height": 2.07,
+   "fastest_fall": -0.66,
+   "motor_max": 0.49,
+   "disarmed_at": 9.13,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.02,
+    "vz": -0.0,
+    "roll": -0.01,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 2.01,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    4.0,
+    3.0,
+    2.0,
+    1.0
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/ceiling_1793001503.log",
+   "instance": 7
+  },
+  {
+   "scenario": "runaway",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.09,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 24.28,
+   "height_before": 0.92,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.94,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 48.17,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.05,
+    "vz": 0.0,
+    "roll": 0.0,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.95,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "MISSED (no cut)",
+   "log": "/tmp/staged_logs/runaway_1793001584.log",
+   "instance": 7
+  },
+  {
+   "scenario": "runaway_pilot",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.06,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 23.5,
+   "height_before": 0.92,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.98,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 45.97,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.12,
+    "vz": 0.0,
+    "roll": 0.0,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.08,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/runaway_pilot_1793001701.log",
+   "instance": 7
+  },
+  {
+   "scenario": "healthy_hover",
+   "reached": true,
+   "disturbance": {},
+   "t_disturbance": 18.12,
+   "height_before": 1.09,
+   "guard": [],
+   "max_tilt": 3.8,
+   "max_height": 1.09,
+   "fastest_fall": -0.61,
+   "motor_max": 0.74,
+   "disarmed_at": 32.38,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.0,
+    "vz": -0.02,
+    "roll": 0.1,
+    "pitch": -0.53,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.53,
+   "texts": [
+    "l station",
+    "Preflight Fail: heading estimate not stable",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/healthy_hover_1793001817.log",
+   "instance": 8
+  },
+  {
+   "scenario": "pilot_maneuvers",
+   "reached": true,
+   "disturbance": {
+    "sticks": "roll, pitch, yaw full; climb/descend"
+   },
+   "t_disturbance": 22.49,
+   "height_before": 0.99,
+   "guard": [],
+   "max_tilt": 21.5,
+   "max_height": 1.1,
+   "fastest_fall": -0.63,
+   "motor_max": 0.53,
+   "disarmed_at": 26.0,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.14,
+    "vz": -0.0,
+    "roll": 0.22,
+    "pitch": 0.08,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.89,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/pilot_maneuvers_1793001913.log",
+   "instance": 8
+  },
+  {
+   "scenario": "gust",
+   "reached": true,
+   "disturbance": {
+    "force_N": 4.24,
+    "dir_deg": 68
+   },
+   "t_disturbance": 22.77,
+   "height_before": 0.96,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.98,
+   "fastest_fall": -0.62,
+   "motor_max": 0.45,
+   "disarmed_at": 34.69,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.03,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.97,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/gust_1793002007.log",
+   "instance": 8
+  },
+  {
+   "scenario": "weak_motor",
+   "reached": true,
+   "disturbance": {
+    "motor": 3,
+    "max_speed_fraction": 0.69,
+    "cap_rad_s": 2078
+   },
+   "t_disturbance": 23.42,
+   "height_before": 0.9,
+   "guard": [],
+   "max_tilt": 11.3,
+   "max_height": 0.94,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 35.08,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.01,
+    "vz": -0.0,
+    "roll": -0.05,
+    "pitch": 0.06,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.92,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/weak_motor_1793002109.log",
+   "instance": 8
+  },
+  {
+   "scenario": "motor_out",
+   "reached": true,
+   "disturbance": {
+    "motor": 2,
+    "max_speed_fraction": 0.0,
+    "cap_rad_s": 150
+   },
+   "t_disturbance": 24.3,
+   "height_before": 0.89,
+   "guard": [
+    {
+     "t": 0.33,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 79 deg >= 60.0 deg"
+     ]
+    },
+    {
+     "t": 1.84,
+     "action": "kill",
+     "did": "kill",
+     "why": [
+      "stage 1: tilt 171 deg >= 30 for 1.6s; stage 2: tilt 171 deg >= 45 for 1.5s"
+     ]
+    }
+   ],
+   "max_tilt": 180.0,
+   "max_height": 0.89,
+   "fastest_fall": -3.63,
+   "motor_max": 1.0,
+   "disarmed_at": 2.18,
+   "final": {
+    "armed": false,
+    "mode": "10.0",
+    "z": -0.04,
+    "vz": -0.02,
+    "roll": -179.87,
+    "pitch": 0.09,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 180.0,
+   "estimator_height_max": 0.9,
+   "texts": [
+    "Preflight Fail: Attitude failure (roll)",
+    "Failsafe activated",
+    "Disarmed by external command",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: Flight termination active"
+   ],
+   "px4_terminated": true,
+   "pilot_has_it": true,
+   "countdown": [
+    3.0,
+    2.0
+   ],
+   "cut_by": "guard",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/motor_out_1793002210.log",
+   "instance": 8
+  },
+  {
+   "scenario": "tumble",
+   "reached": true,
+   "disturbance": {
+    "torque_Nm": 1.05,
+    "axis_deg": 109,
+    "dur_s": 0.06
+   },
+   "t_disturbance": 19.3,
+   "height_before": 0.96,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.96,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 32.16,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.16,
+    "vz": -0.0,
+    "roll": 0.01,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.99,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (recovered upright, no cut needed)",
+   "log": "/tmp/staged_logs/tumble_1793002292.log",
+   "instance": 8
+  },
+  {
+   "scenario": "surge",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 3.04,
+    "dur_s": 2.5
+   },
+   "t_disturbance": 23.46,
+   "height_before": 0.8,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.89,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 37.01,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.17,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.02,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (PX4 held height)",
+   "log": "/tmp/staged_logs/surge_1793002389.log",
+   "instance": 8
+  },
+  {
+   "scenario": "ceiling",
+   "reached": true,
+   "disturbance": {
+    "stick": 0.85
+   },
+   "t_disturbance": 24.29,
+   "height_before": 0.81,
+   "guard": [
+    {
+     "t": 2.88,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.02 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 0.1,
+   "max_height": 2.05,
+   "fastest_fall": -0.64,
+   "motor_max": 0.48,
+   "disarmed_at": 9.2,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.12,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 2.17,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    3.9,
+    2.9,
+    1.9,
+    0.9
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/ceiling_1793002493.log",
+   "instance": 8
+  },
+  {
+   "scenario": "runaway",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.33,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 24.36,
+   "height_before": 0.89,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.91,
+   "fastest_fall": -0.65,
+   "motor_max": 0.45,
+   "disarmed_at": 48.05,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.16,
+    "vz": -0.0,
+    "roll": 0.01,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.04,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "MISSED (no cut)",
+   "log": "/tmp/staged_logs/runaway_1793002574.log",
+   "instance": 8
+  },
+  {
+   "scenario": "runaway_pilot",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.14,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 24.32,
+   "height_before": 0.88,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.93,
+   "fastest_fall": -0.65,
+   "motor_max": 0.45,
+   "disarmed_at": 48.12,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.06,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.92,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/runaway_pilot_1793002691.log",
+   "instance": 8
+  },
+  {
+   "scenario": "healthy_hover",
+   "reached": true,
+   "disturbance": {},
+   "t_disturbance": 23.87,
+   "height_before": 0.96,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 1.02,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 31.58,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.11,
+    "vz": -0.0,
+    "roll": 0.01,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.06,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/healthy_hover_1793002808.log",
+   "instance": 9
+  },
+  {
+   "scenario": "pilot_maneuvers",
+   "reached": true,
+   "disturbance": {
+    "sticks": "roll, pitch, yaw full; climb/descend"
+   },
+   "t_disturbance": 23.52,
+   "height_before": 1.04,
+   "guard": [],
+   "max_tilt": 23.1,
+   "max_height": 1.5,
+   "fastest_fall": -0.63,
+   "motor_max": 0.58,
+   "disarmed_at": 26.97,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.05,
+    "vz": -0.0,
+    "roll": 0.32,
+    "pitch": 1.02,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.27,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/pilot_maneuvers_1793002910.log",
+   "instance": 9
+  },
+  {
+   "scenario": "gust",
+   "reached": true,
+   "disturbance": {
+    "force_N": 3.59,
+    "dir_deg": 2
+   },
+   "t_disturbance": 23.35,
+   "height_before": 0.98,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 1.01,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 33.11,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.08,
+    "vz": 0.0,
+    "roll": -0.02,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.89,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/gust_1793003004.log",
+   "instance": 9
+  },
+  {
+   "scenario": "weak_motor",
+   "reached": true,
+   "disturbance": {
+    "motor": 2,
+    "max_speed_fraction": 0.67,
+    "cap_rad_s": 2005
+   },
+   "t_disturbance": 24.29,
+   "height_before": 0.92,
+   "guard": [],
+   "max_tilt": 13.1,
+   "max_height": 0.94,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 35.2,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.05,
+    "vz": -0.0,
+    "roll": -0.02,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.95,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/weak_motor_1793003106.log",
+   "instance": 9
+  },
+  {
+   "scenario": "motor_out",
+   "reached": true,
+   "disturbance": {
+    "motor": 3,
+    "max_speed_fraction": 0.0,
+    "cap_rad_s": 150
+   },
+   "t_disturbance": 23.32,
+   "height_before": 0.94,
+   "guard": [
+    {
+     "t": 0.34,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 77 deg >= 60.0 deg",
+      "stage 1: height 3.15 m above ceiling 2.0 m"
+     ]
+    },
+    {
+     "t": 1.79,
+     "action": "kill",
+     "did": "kill",
+     "why": [
+      "stage 1: tilt 170 deg >= 30 for 1.5s; stage 2: tilt 170 deg >= 45 for 1.5s"
+     ]
+    }
+   ],
+   "max_tilt": 180.0,
+   "max_height": 0.94,
+   "fastest_fall": -3.91,
+   "motor_max": 0.46,
+   "disarmed_at": 2.13,
+   "final": {
+    "armed": false,
+    "mode": "10.0",
+    "z": -0.1,
+    "vz": -0.02,
+    "roll": -179.86,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 180.0,
+   "estimator_height_max": 0.9,
+   "texts": [
+    "Preflight Fail: Attitude failure (roll)",
+    "Failsafe activated",
+    "Disarmed by external command",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: Flight termination active"
+   ],
+   "px4_terminated": true,
+   "pilot_has_it": true,
+   "countdown": [
+    3.0,
+    2.0
+   ],
+   "cut_by": "guard",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/motor_out_1793003209.log",
+   "instance": 9
+  },
+  {
+   "scenario": "tumble",
+   "reached": true,
+   "disturbance": {
+    "torque_Nm": 1.37,
+    "axis_deg": 37,
+    "dur_s": 0.13
+   },
+   "t_disturbance": 23.34,
+   "height_before": 0.95,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.97,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 35.15,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.02,
+    "vz": -0.0,
+    "roll": 0.01,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.97,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (recovered upright, no cut needed)",
+   "log": "/tmp/staged_logs/tumble_1793003290.log",
+   "instance": 9
+  },
+  {
+   "scenario": "surge",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 3.34,
+    "dur_s": 2.5
+   },
+   "t_disturbance": 18.69,
+   "height_before": 1.29,
+   "guard": [],
+   "max_tilt": 3.2,
+   "max_height": 1.3,
+   "fastest_fall": -0.64,
+   "motor_max": 0.46,
+   "disarmed_at": 34.8,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.14,
+    "vz": 0.02,
+    "roll": 1.47,
+    "pitch": -1.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.8,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (PX4 held height)",
+   "log": "/tmp/staged_logs/surge_1793003392.log",
+   "instance": 9
+  },
+  {
+   "scenario": "ceiling",
+   "reached": true,
+   "disturbance": {
+    "stick": 0.85
+   },
+   "t_disturbance": 23.34,
+   "height_before": 0.9,
+   "guard": [
+    {
+     "t": 2.67,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.02 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 0.0,
+   "max_height": 2.05,
+   "fastest_fall": -0.66,
+   "motor_max": 0.48,
+   "disarmed_at": 9.12,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.05,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": -0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 2.08,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    4.0,
+    3.0,
+    2.0,
+    1.0
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/ceiling_1793003490.log",
+   "instance": 9
+  },
+  {
+   "scenario": "runaway",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.27,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 23.31,
+   "height_before": 0.91,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.93,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 48.14,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.04,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.93,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "MISSED (no cut)",
+   "log": "/tmp/staged_logs/runaway_1793003572.log",
+   "instance": 9
+  },
+  {
+   "scenario": "runaway_pilot",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.15,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 23.33,
+   "height_before": 0.91,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 0.97,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 48.15,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.06,
+    "vz": -0.0,
+    "roll": -0.0,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.98,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/runaway_pilot_1793003687.log",
+   "instance": 9
+  },
+  {
+   "scenario": "healthy_hover",
+   "reached": true,
+   "disturbance": {},
+   "t_disturbance": 23.24,
+   "height_before": 1.01,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 1.03,
+   "fastest_fall": -0.63,
+   "motor_max": 0.45,
+   "disarmed_at": 32.2,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.1,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.91,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/healthy_hover_1793003803.log",
+   "instance": 10
+  },
+  {
+   "scenario": "pilot_maneuvers",
+   "reached": true,
+   "disturbance": {
+    "sticks": "roll, pitch, yaw full; climb/descend"
+   },
+   "t_disturbance": 24.32,
+   "height_before": 0.94,
+   "guard": [],
+   "max_tilt": 21.6,
+   "max_height": 1.1,
+   "fastest_fall": -0.64,
+   "motor_max": 0.54,
+   "disarmed_at": 26.16,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.02,
+    "vz": -0.0,
+    "roll": 0.06,
+    "pitch": 0.07,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.04,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/pilot_maneuvers_1793003904.log",
+   "instance": 10
+  },
+  {
+   "scenario": "gust",
+   "reached": true,
+   "disturbance": {
+    "force_N": 4.17,
+    "dir_deg": 203
+   },
+   "t_disturbance": 22.33,
+   "height_before": 1.01,
+   "guard": [],
+   "max_tilt": 1.7,
+   "max_height": 1.02,
+   "fastest_fall": -0.63,
+   "motor_max": 0.55,
+   "disarmed_at": 33.11,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.04,
+    "vz": -0.0,
+    "roll": -0.02,
+    "pitch": -1.22,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.82,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/gust_1793004001.log",
+   "instance": 10
+  },
+  {
+   "scenario": "weak_motor",
+   "reached": true,
+   "disturbance": {
+    "motor": 2,
+    "max_speed_fraction": 0.65,
+    "cap_rad_s": 1965
+   },
+   "t_disturbance": 23.32,
+   "height_before": 0.98,
+   "guard": [],
+   "max_tilt": 13.6,
+   "max_height": 1.0,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 33.18,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.06,
+    "vz": -0.0,
+    "roll": -0.02,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.92,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/weak_motor_1793004102.log",
+   "instance": 10
+  },
+  {
+   "scenario": "motor_out",
+   "reached": true,
+   "disturbance": {
+    "motor": 2,
+    "max_speed_fraction": 0.0,
+    "cap_rad_s": 150
+   },
+   "t_disturbance": 23.4,
+   "height_before": 0.82,
+   "guard": [
+    {
+     "t": 0.33,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "tilt 77 deg >= 60.0 deg"
+     ]
+    },
+    {
+     "t": 1.79,
+     "action": "kill",
+     "did": "kill",
+     "why": [
+      "stage 1: tilt 172 deg >= 30 for 1.5s; stage 2: tilt 172 deg >= 45 for 1.5s"
+     ]
+    }
+   ],
+   "max_tilt": 180.0,
+   "max_height": 0.82,
+   "fastest_fall": -3.85,
+   "motor_max": 1.0,
+   "disarmed_at": 2.07,
+   "final": {
+    "armed": false,
+    "mode": "10.0",
+    "z": 0.02,
+    "vz": -0.02,
+    "roll": -179.88,
+    "pitch": 0.08,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 180.0,
+   "estimator_height_max": 0.92,
+   "texts": [
+    "Preflight Fail: Attitude failure (roll)",
+    "Failsafe activated",
+    "Disarmed by external command",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: heading estimate not stable",
+    "Preflight Fail: Flight termination active",
+    "Preflight Fail: Flight termination active"
+   ],
+   "px4_terminated": true,
+   "pilot_has_it": true,
+   "countdown": [
+    3.0
+   ],
+   "cut_by": "guard",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/motor_out_1793004203.log",
+   "instance": 10
+  },
+  {
+   "scenario": "tumble",
+   "reached": true,
+   "disturbance": {
+    "torque_Nm": 1.02,
+    "axis_deg": 41,
+    "dur_s": 0.08
+   },
+   "t_disturbance": 24.32,
+   "height_before": 1.03,
+   "guard": [],
+   "max_tilt": 0.0,
+   "max_height": 1.04,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 32.12,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.16,
+    "vz": -0.0,
+    "roll": 0.01,
+    "pitch": -0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.85,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (recovered upright, no cut needed)",
+   "log": "/tmp/staged_logs/tumble_1793004284.log",
+   "instance": 10
+  },
+  {
+   "scenario": "surge",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 3.74,
+    "dur_s": 2.5
+   },
+   "t_disturbance": 24.29,
+   "height_before": 0.86,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.92,
+   "fastest_fall": -0.64,
+   "motor_max": 0.45,
+   "disarmed_at": 37.16,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.08,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 1.0,
+   "texts": [
+    "Preflight Fail: No connection to the ground contro",
+    "l station",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok (PX4 held height)",
+   "log": "/tmp/staged_logs/surge_1793004387.log",
+   "instance": 10
+  },
+  {
+   "scenario": "ceiling",
+   "reached": true,
+   "disturbance": {
+    "stick": 0.85
+   },
+   "t_disturbance": 23.33,
+   "height_before": 0.89,
+   "guard": [
+    {
+     "t": 2.72,
+     "action": "land",
+     "did": "land",
+     "why": [
+      "stage 1: height 2.04 m above ceiling 2.0 m"
+     ]
+    }
+   ],
+   "max_tilt": 0.0,
+   "max_height": 2.08,
+   "fastest_fall": -0.65,
+   "motor_max": 0.49,
+   "disarmed_at": 9.12,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.03,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": 0.01,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 2.08,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by external command"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [
+    5.0,
+    4.0,
+    3.0,
+    2.0,
+    1.0
+   ],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/ceiling_1793004492.log",
+   "instance": 10
+  },
+  {
+   "scenario": "runaway",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.18,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 23.33,
+   "height_before": 0.87,
+   "guard": [],
+   "max_tilt": 0.1,
+   "max_height": 0.9,
+   "fastest_fall": -0.65,
+   "motor_max": 0.45,
+   "disarmed_at": 48.15,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": 0.09,
+    "vz": -0.0,
+    "roll": 0.0,
+    "pitch": 0.0,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.97,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "MISSED (no cut)",
+   "log": "/tmp/staged_logs/runaway_1793004573.log",
+   "instance": 10
+  },
+  {
+   "scenario": "runaway_pilot",
+   "reached": true,
+   "disturbance": {
+    "up_force_N": 5.2,
+    "pilot_took_over_s_after_descend": null
+   },
+   "t_disturbance": 23.06,
+   "height_before": 1.0,
+   "guard": [],
+   "max_tilt": 1.2,
+   "max_height": 1.05,
+   "fastest_fall": -0.62,
+   "motor_max": 0.45,
+   "disarmed_at": 47.41,
+   "final": {
+    "armed": false,
+    "mode": "ALTCTL",
+    "z": -0.03,
+    "vz": -0.0,
+    "roll": -0.68,
+    "pitch": 0.21,
+    "landed": 1,
+    "bat": 100
+   },
+   "sim_crashed": false,
+   "final_true_tilt": 0.0,
+   "estimator_height_max": 0.96,
+   "texts": [
+    "Arming denied: Resolve system health failures firs",
+    "t",
+    "Armed by external command",
+    "Takeoff detected",
+    "Landing at current position",
+    "Failsafe activated",
+    "Landing detected",
+    "Disarmed by landing"
+   ],
+   "px4_terminated": false,
+   "pilot_has_it": true,
+   "countdown": [],
+   "cut_by": "none",
+   "verdict": "ok",
+   "log": "/tmp/staged_logs/runaway_pilot_1793004689.log",
+   "instance": 10
+  }
+ ],
+ "finished": "2026-10-26 16:53:01"
+}

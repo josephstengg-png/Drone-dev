@@ -1,0 +1,21 @@
+{
+ "name": "EXP6 take flight 3 Hz indoors downlink",
+ "description": "Experiment 5: like EXP3-A (3 Hz, arm stage, radio, props OFF) but with the indoors (lean) downlink. Does Offboard survive the ~10 s armed window?",
+ "sysid": 113,
+ "link": "radio",
+ "flight_type": "bench",
+ "stage": "disarm",
+ "height_m": 1.0,
+ "hold_s": 900.0,
+ "wait_s": 60.0,
+ "takeoff_pause_m": 0.5,
+ "test_descent_rate": 0.06,
+ "final_descent_rate": 0.06,
+ "lift_by_climb": true,
+ "ground_attitude": true,
+ "height_timeout_s": null,
+ "battery_hold_pct": null,
+ "battery_land_pct": null,
+ "setpoint_hz": 3.0,
+ "downlink": "indoors"
+}

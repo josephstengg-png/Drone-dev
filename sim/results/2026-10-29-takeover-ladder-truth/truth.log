@@ -1,0 +1,5 @@
+[ 1] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.028 tilt=0.0
+[ 2] no_takeover  FALSE ALARM                  src=None stage=None lat=None losses=0 outcome=guard_acted hmax=1.141 tilt=5.1
+[ 3] no_takeover  FALSE ALARM                  src=None stage=None lat=None losses=0 outcome=guard_acted hmax=1.085 tilt=6.0
+[ 4] no_takeover  PASS                         src=None stage=None lat=None losses=0 outcome=landed_px4_disarmed hmax=1.02 tilt=0.0
+DONE /tmp/truth.json

@@ -1,0 +1,350 @@
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 1] gust             ok                           guard=[] cut_by=none tilt=6.0 h=0.93 motor=0.48 disarm=35.1
+[safety] LAND: tilt 121 deg >= 60.0 deg (error rate 0.0/min)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: tilt 175 deg >= 30 for 1.5s; stage 2: tilt 175 deg >= 45 for 1.5s (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: tilt 175 deg >= 30 for 1.5s; stage 2: tilt 175 deg >= 45 for 1.5s) -- force disarm, the aircraft will fall
+[safety] PILOT KILLED IT (Preflight Fail: Flight termination active). Standing down -- no setpoints, no mode changes, no commands.
+[ 1] tumble           ok                           guard=[(0.11, 'land'), (1.65, 'kill')] cut_by=guard tilt=180.0 h=0.93 motor=1.0 disarm=2.05
+[safety] LAND: stage 1: height 2.02 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] on the ground -- disarming
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 1] surge            ok                           guard=[(0.77, 'land')] cut_by=none tilt=4.2 h=2.18 motor=0.46 disarm=8.07
+[safety] LAND: stage 1: height 2.13 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: height 41.42 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin) (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: height 41.42 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin)) -- force disarm, the aircraft will fall
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 1] runaway          ok                           guard=[(0.78, 'land'), (5.79, 'kill')] cut_by=guard tilt=10.1 h=57.74 motor=0.45 disarm=6.18
+[safety] LAND: stage 1: height 2.18 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 1] runaway_pilot    ok                           guard=[(0.77, 'land')] cut_by=none tilt=0.0 h=12.88 motor=0.49 disarm=None
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 2] gust             ok                           guard=[] cut_by=none tilt=6.1 h=1.05 motor=0.68 disarm=32.9
+[safety] LAND: tilt 108 deg >= 60.0 deg (error rate 0.0/min)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] on the ground -- disarming
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 2] tumble           ok (recovered upright, no cut needed) guard=[(0.32, 'land')] cut_by=none tilt=132.9 h=0.94 motor=1.0 disarm=9.03
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 2] surge            ok (slow rise, under triggers) guard=[] cut_by=none tilt=0.1 h=1.82 motor=0.46 disarm=34.41
+[safety] LAND: stage 1: height 2.05 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: height 37.96 m above ceiling 2.0 m; stage 2: still climbing 5.1s after stage 1 (incl. 2s pilot margin) (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: height 37.96 m above ceiling 2.0 m; stage 2: still climbing 5.1s after stage 1 (incl. 2s pilot margin)) -- force disarm, the aircraft will fall
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 2] runaway          ok                           guard=[(0.73, 'land'), (5.78, 'kill')] cut_by=guard tilt=3.4 h=50.05 motor=0.45 disarm=6.06
+[safety] LAND: stage 1: height 2.16 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 2] runaway_pilot    ok                           guard=[(0.72, 'land')] cut_by=none tilt=0.0 h=11.35 motor=0.45 disarm=None
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 3] gust             ok                           guard=[] cut_by=none tilt=9.3 h=1.11 motor=0.63 disarm=32.3
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 3] tumble           ok (recovered upright, no cut needed) guard=[] cut_by=none tilt=70.6 h=0.93 motor=1.0 disarm=34.07
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 3] surge            ok (slow rise, under triggers) guard=[] cut_by=none tilt=1.8 h=1.69 motor=0.53 disarm=35.31
+[safety] LAND: stage 1: height 2.16 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: height 35.06 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin) (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: height 35.06 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin)) -- force disarm, the aircraft will fall
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 3] runaway          ok                           guard=[(0.77, 'land'), (5.77, 'kill')] cut_by=guard tilt=1.9 h=43.82 motor=0.45 disarm=6.0
+[safety] LAND: stage 1: height 2.08 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 3] runaway_pilot    ok                           guard=[(0.67, 'land')] cut_by=none tilt=0.0 h=12.16 motor=0.49 disarm=None
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 4] gust             ok                           guard=[] cut_by=none tilt=7.3 h=1.03 motor=0.49 disarm=33.06
+[safety] LAND: tilt 81 deg >= 60.0 deg (error rate 0.0/min)
+[safety] acting: LAND -> LAND (airborne)
+[safety] on the ground -- disarming
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 4] tumble           ok (recovered upright, no cut needed) guard=[(0.31, 'land')] cut_by=none tilt=80.0 h=0.94 motor=1.0 disarm=7.14
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 4] surge            ok (slow rise, under triggers) guard=[] cut_by=none tilt=0.1 h=1.41 motor=0.45 disarm=35.07
+[safety] LAND: stage 1: height 2.15 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: height 38.73 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin) (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: height 38.73 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin)) -- force disarm, the aircraft will fall
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 4] runaway          ok                           guard=[(0.77, 'land'), (5.78, 'kill')] cut_by=guard tilt=180.0 h=53.0 motor=0.45 disarm=6.17
+[safety] LAND: stage 1: height 2.05 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 4] runaway_pilot    ok                           guard=[(0.71, 'land')] cut_by=none tilt=0.0 h=12.38 motor=0.49 disarm=None
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 5] gust             ok                           guard=[] cut_by=none tilt=8.3 h=0.93 motor=0.5 disarm=35.02
+[safety] LAND: stage 1: height 3.53 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] on the ground -- disarming
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 5] tumble           ok (recovered upright, no cut needed) guard=[(0.11, 'land')] cut_by=none tilt=79.9 h=1.01 motor=0.96 disarm=6.23
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 5] surge            ok (slow rise, under triggers) guard=[] cut_by=none tilt=0.1 h=1.49 motor=0.46 disarm=35.06
+[safety] LAND: stage 1: height 2.08 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: height 39.91 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin) (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: height 39.91 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin)) -- force disarm, the aircraft will fall
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 5] runaway          ok                           guard=[(0.67, 'land'), (5.67, 'kill')] cut_by=guard tilt=119.2 h=50.13 motor=0.45 disarm=5.78
+[safety] LAND: stage 1: height 2.12 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 5] runaway_pilot    ok                           guard=[(0.78, 'land')] cut_by=none tilt=0.0 h=10.48 motor=0.49 disarm=None
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 6] gust             ok                           guard=[] cut_by=none tilt=8.9 h=0.98 motor=0.52 disarm=33.08
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 6] tumble           ok (recovered upright, no cut needed) guard=[] cut_by=none tilt=71.7 h=1.05 motor=1.0 disarm=32.21
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 6] surge            ok (slow rise, under triggers) guard=[] cut_by=none tilt=0.0 h=1.77 motor=0.48 disarm=35.2
+[safety] LAND: stage 1: height 2.09 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: height 36.03 m above ceiling 2.0 m; stage 2: still climbing 5.1s after stage 1 (incl. 2s pilot margin) (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: height 36.03 m above ceiling 2.0 m; stage 2: still climbing 5.1s after stage 1 (incl. 2s pilot margin)) -- force disarm, the aircraft will fall
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 6] runaway          ok                           guard=[(0.78, 'land'), (5.83, 'kill')] cut_by=guard tilt=2.8 h=47.56 motor=0.45 disarm=6.16
+[safety] LAND: stage 1: height 2.19 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 6] runaway_pilot    ok                           guard=[(0.78, 'land')] cut_by=none tilt=0.0 h=12.04 motor=0.49 disarm=None
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 7] gust             ok                           guard=[] cut_by=none tilt=7.8 h=0.94 motor=0.49 disarm=35.17
+[safety] LAND: tilt 106 deg >= 60.0 deg; stage 1: height 2.21 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] on the ground -- disarming
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 7] tumble           ok (recovered upright, no cut needed) guard=[(0.11, 'land')] cut_by=none tilt=105.9 h=0.99 motor=1.0 disarm=5.99
+[safety] LAND: stage 1: height 2.03 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] on the ground -- disarming
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 7] surge            ok                           guard=[(1.05, 'land')] cut_by=none tilt=4.5 h=2.09 motor=0.7 disarm=7.85
+[safety] LAND: stage 1: height 2.08 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: height 36.61 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin) (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: height 36.61 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin)) -- force disarm, the aircraft will fall
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 7] runaway          ok                           guard=[(0.73, 'land'), (5.73, 'kill')] cut_by=guard tilt=5.7 h=48.48 motor=0.45 disarm=6.07
+[safety] LAND: stage 1: height 2.10 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 7] runaway_pilot    ok                           guard=[(0.72, 'land')] cut_by=none tilt=0.1 h=12.48 motor=0.5 disarm=None
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 8] gust             ok                           guard=[] cut_by=none tilt=7.8 h=0.95 motor=0.5 disarm=35.23
+[safety] LAND: stage 1: height 3.44 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] on the ground -- disarming
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 8] tumble           ok (recovered upright, no cut needed) guard=[(0.26, 'land')] cut_by=none tilt=69.2 h=1.02 motor=0.76 disarm=5.46
+[safety] LAND: tilt 143 deg >= 60.0 deg (error rate 0.0/min)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: tilt 172 deg >= 30 for 1.7s; stage 2: tilt 172 deg >= 45 for 1.5s (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: tilt 172 deg >= 30 for 1.7s; stage 2: tilt 172 deg >= 45 for 1.5s) -- force disarm, the aircraft will fall
+[safety] PILOT KILLED IT (Preflight Fail: Flight termination active). Standing down -- no setpoints, no mode changes, no commands.
+[ 8] surge            NOT REACHED                  guard=[(-26.54, 'land'), (-25.09, 'kill')] cut_by=guard tilt=180.0 h=-0.02 motor=0.67 disarm=0.0
+[safety] LAND: stage 1: height 2.15 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: height 34.16 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin) (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: height 34.16 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin)) -- force disarm, the aircraft will fall
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 8] runaway          ok                           guard=[(0.84, 'land'), (5.86, 'kill')] cut_by=guard tilt=1.7 h=41.42 motor=0.45 disarm=6.02
+[safety] LAND: stage 1: height 2.03 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] on the ground -- disarming
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 8] runaway_pilot    NOT REACHED                  guard=[(-3.55, 'land')] cut_by=none tilt=0.0 h=0.0 motor=0.47 disarm=4.24
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 9] gust             ok                           guard=[] cut_by=none tilt=8.1 h=0.96 motor=0.49 disarm=34.99
+[safety] LAND: tilt 149 deg >= 60.0 deg (error rate 0.0/min)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: tilt 179 deg >= 30 for 1.5s; stage 2: tilt 179 deg >= 45 for 1.5s (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: tilt 179 deg >= 30 for 1.5s; stage 2: tilt 179 deg >= 45 for 1.5s) -- force disarm, the aircraft will fall
+[safety] PILOT KILLED IT (Preflight Fail: Flight termination active). Standing down -- no setpoints, no mode changes, no commands.
+[ 9] tumble           ok                           guard=[(0.17, 'land'), (1.93, 'kill')] cut_by=guard tilt=180.0 h=0.95 motor=1.0 disarm=1.99
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 9] surge            ok (slow rise, under triggers) guard=[] cut_by=none tilt=0.0 h=1.69 motor=0.47 disarm=35.18
+[safety] LAND: stage 1: height 2.03 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: height 36.25 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin) (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: height 36.25 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin)) -- force disarm, the aircraft will fall
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 9] runaway          ok                           guard=[(0.72, 'land'), (5.74, 'kill')] cut_by=guard tilt=4.1 h=47.83 motor=0.45 disarm=6.13
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[ 9] runaway_pilot    NOT REACHED                  guard=[] cut_by=none tilt=16.8 h=0.36 motor=0.83 disarm=8.62
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[10] gust             ok                           guard=[] cut_by=none tilt=5.7 h=1.09 motor=0.54 disarm=32.02
+[safety] LAND: tilt 152 deg >= 60.0 deg (error rate 0.0/min)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: tilt 176 deg >= 30 for 1.5s; stage 2: tilt 176 deg >= 45 for 1.5s (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: tilt 176 deg >= 30 for 1.5s; stage 2: tilt 176 deg >= 45 for 1.5s) -- force disarm, the aircraft will fall
+[safety] PILOT KILLED IT (Preflight Fail: Flight termination active). Standing down -- no setpoints, no mode changes, no commands.
+[10] tumble           ok                           guard=[(0.32, 'land'), (1.82, 'kill')] cut_by=guard tilt=180.0 h=0.96 motor=1.0 disarm=2.21
+[safety] WARN: PX4 failsafe: Failsafe activated (error rate 0.0/min)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[10] surge            ok (slow rise, under triggers) guard=[] cut_by=none tilt=0.0 h=1.69 motor=0.47 disarm=35.04
+[safety] LAND: stage 1: height 2.05 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 2s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 1s unless the pilot takes over (ch7)
+[safety] CUT: stage 1: height 43.07 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin) (error rate 0.0/min)
+[safety] acting: CUT -> CUT (airborne)
+[safety] KILL (stage 1: height 43.07 m above ceiling 2.0 m; stage 2: still climbing 5.0s after stage 1 (incl. 2s pilot margin)) -- force disarm, the aircraft will fall
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[10] runaway          ok                           guard=[(0.73, 'land'), (5.74, 'kill')] cut_by=guard tilt=8.2 h=59.17 motor=0.45 disarm=6.13
+[safety] LAND: stage 1: height 2.03 m above ceiling 2.0 m (error rate 0.0/min)
+[safety] DESCENDING -- CUT IN 5s unless the pilot takes over (ch7)
+[safety] acting: LAND -> LAND (airborne)
+[safety] DESCENDING -- CUT IN 4s unless the pilot takes over (ch7)
+[safety] DESCENDING -- CUT IN 3s unless the pilot takes over (ch7)
+[safety] PILOT HAS IT: main mode 4 -> 2. Standing down -- no setpoints, no mode changes, no disarm while airborne.
+[10] runaway_pilot    ok                           guard=[(0.51, 'land')] cut_by=none tilt=4.6 h=10.8 motor=0.58 disarm=None
+DONE /tmp/staged_push.json

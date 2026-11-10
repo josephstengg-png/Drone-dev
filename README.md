@@ -14,7 +14,7 @@ Two knobs matter, and only two:
 Everything else — drone count, scan pattern, overlap — is configuration.
 
 > **This file is how to operate the system.** Why each decision was made, what was measured
-> on which date, and every sortie's numbers live in [`../history.md`](../history.md).
+> on which date, and every sortie's numbers live in [`docs/history.md`](docs/history.md).
 
 ---
 
@@ -26,7 +26,8 @@ Everything else — drone count, scan pattern, overlap — is configuration.
 | **[2. Flying in simulation](#2-flying-in-simulation)** | one drone, a swarm, QGroundControl, separation |
 | **[3. Hardware operations](#3-hardware-operations)** | the network, companion computers, the ELRS link, bench flight controllers |
 | **[4. Commanding a swarm](#4-commanding-a-swarm)** | the launch handshake, preflight contract, fault matrix |
-| **[5. Reference](#5-reference)** | tools, traps, troubleshooting, tests, provenance |
+| **[5. Real aircraft: ground station, offboard flight, the radio link](#5-real-aircraft-ground-station-offboard-flight-the-radio-link)** | the GUI, mission profiles, downlink profiles, what the ELRS link can carry |
+| **[6. Reference](#6-reference)** | tools, traps, troubleshooting, tests, provenance |
 
 ---
 
@@ -783,7 +784,98 @@ That is what the matrix is for.
 
 ---
 
-# 5. Reference
+# 5. Real aircraft: ground station, offboard flight, the radio link
+
+The fleet today: **ARTEX113** (sysid 113) on **jetson-2** and **ARTEX115** (sysid 115) on **jetson-1**, each with its own
+ELRS transmitter and backpack, and each also reachable over USB (`/dev/ttyACM0`) from its Jetson. Since 10 Nov 2026 the two
+share one configuration (115 was given 113's parameters; calibration and identity were not copied). Both are currently set
+up for indoor work: **3 m/s speed caps, GPS checks off**, a 3 m vertical fence. Change that before any outdoor mission.
+
+## The ground-station GUI
+
+```bash
+python3 tools/gs_server.py --demo     # simulated aircraft, contacts nothing
+python3 tools/gs_server.py            # LIVE: runs the real agent on the Jetson over ssh
+# then open http://127.0.0.1:8787
+```
+
+Five pages: **Connect** (Preflight GO / NO-GO), **Profiles** (mission profiles in `profiles/`), **Run**, **Fleet**, **Records**
+(`runs/`). The server builds the same `drone_agent.py offboard-flight` command an operator would type, stops the agent at
+READY, and sends ARM only after the operator's recorded authorisation (typed aircraft name and the phrase
+`I TAKE RESPONSIBILITY FOR THIS RUN`, bound to the exact profile, valid 15 minutes) and a press-and-hold.
+
+* Risks are either **accepted** by the operator (untested stage, drift, untethered, long hover, radio loop...) or **block**
+  the run (an invalid profile, or props-on over the radio without a Preflight GO from the last 10 minutes).
+* **KILL is not a button** and the agent never runs with `--allow-kill`. The handset is the override.
+* **4 Fleet** runs several aircraft at once on waypoint missions (`profiles/fleet/`): each aircraft's resident agent
+  uploads and verifies its plan and runs the preflight contract; every aircraft must be READY or nobody arms; **ARM ALL**
+  and then **START ALL** (within 8 s, before PX4's on-ground auto-disarm) are separate press-and-holds; after the start,
+  a fault on one aircraft puts the others in HOLD. One named pilot per aircraft. Indoors the contract refuses READY (no
+  GPS fix), so real aircraft indoors can only use "upload and verify".
+* The server holds `gs_core` in memory: **restart it after changing `tools/gs_core.py`**.
+
+## Offboard flight and the handset
+
+`drone_agent.py offboard-flight --stage {prearm,arm,takeoff,hold,descent,landing,disarm}` runs the takeover ladder
+(`docs/takeover-ladder-plan.md`): the agent flies the stages in Offboard and the pilot can take over at any of them.
+
+| Handset (ARTEX113 and 115) | |
+|---|---|
+| ch5 | offboard switch: +100 = Offboard. **Taking over = ch5 off.** It must be **ON before ARM** (READY warns if not). |
+| ch7 | mode: -100 Stabilized, centre **Altitude** (keep it here while the agent flies), +100 Position |
+| ch8 | kill, held 5 s (`COM_KILL_DISARM`); a shorter press leaves it armed |
+
+Real-aircraft limits: hover cap 1.05 m by default, up to 2.0 m with `--max-height-m`; setpoints at 3 Hz over the radio,
+20 Hz over USB unless `--setpoint-hz` says otherwise. The agent classifies every exit from Offboard as a pilot switch or a
+lost link from the ch5/ch7 readings, and on either it stands down: no setpoints, no mode changes, no disarm.
+
+## Downlink profiles: Outdoors and Indoors
+
+Set per profile in the GUI (or `--downlink`):
+
+* **Outdoors** (the default) leaves PX4's own streams alone.
+* **Indoors** switches off 16 streams the agent never reads (GPS, gimbal, servo outputs, drone ID...) and slows ATTITUDE
+  to 3 Hz, so the half-duplex radio has room for commands and setpoints.
+
+Runtime `MAV_CMD_SET_MESSAGE_INTERVAL` only: nothing is saved, the agent restores the defaults when it exits, and
+`tools/restore_downlink.py` (on the Jetson) does it by hand if a run died. A reboot of the flight controller does the same.
+
+## What the ELRS link can carry (measured, Nov 2026)
+
+Radio: RadioMaster Pocket 2.4 GHz, ExpressLRS **F500, telemetry ratio 1:2 (9921 bps ≈ 1240 B/s of telemetry)**.
+
+| | |
+|---|---|
+| PX4's default downlink | ~27 messages/s, ~1.0-1.07 kB/s: **80-86 % of the telemetry capacity** |
+| Command round trip, default downlink | median 0.82 s idle, 0.98 s with 3 Hz setpoints; at 20 Hz most commands are lost |
+| Command round trip, downlink trimmed | median **0.26 s** idle, **0.24 s** at 3 Hz (p < 0.001) |
+| Offboard armed hold, 3 Hz, props off | Indoors downlink **8 of 9** runs stayed in Offboard; default downlink 1 of 8 (p = 0.003) |
+| Mission upload, default downlink | ~1 s per item (stop-and-wait), so a 76-item plan takes ~75 s |
+
+GNSS itself never crosses the radio: the GPS is wired to the flight controller. What costs link is the telemetry we ask
+for. The lean result is **bench evidence only** (on the ground, props off, ~10 s armed before PX4's auto-disarm); it does
+not show a flight holds. Write-ups: `docs/experiments/2026-11-04-radio-uplink.md` and
+`docs/experiments/2026-11-05-lean-downlink.md`.
+
+## Logs, parameters and experiments
+
+```bash
+# on the Jetson the board is plugged into (USB), with no run active
+python3 tools/pull_fc_logs.py --list                         # PX4 flight logs on the SD card
+python3 tools/pull_fc_logs.py --out ~/fclogs 128 129         # download by id
+python3 tools/param_dump.py --sysid 113 --link serial:/dev/ttyACM0 --out ARTEX113.params   # every parameter, read-only
+
+# on the workstation
+.venv/bin/python tools/ulog_failsafes.py DIR                 # per log: Offboard / GCS losses, setpoint gaps at PX4
+python3 tools/experiment_report.py exp3                      # GUI run records -> per-rate outcomes, Fisher tests
+```
+
+Vehicle parameters are never changed without a backup and the operator's say-so; `tools/param_baseline.py` applies the
+agreed indoor/outdoor baseline with a backup and a verified read-back.
+
+---
+
+# 6. Reference
 
 ## Tools
 
@@ -811,6 +903,18 @@ That is what the matrix is for.
 | `tools/elrs_pair.py` | Pins each companion to exactly one backpack by BSSID, and proves it. |
 | `tools/mavlink_bridge.py` | Puts a serial flight controller on UDP; can rewrite its system id. |
 | `tools/qgc_capture/` | Scripted QGC screenshots (X11 clicks; fragile by nature). |
+| `tools/gs_server.py`, `tools/gs_core.py`, `tools/gs_fleet.py`, `gui/index.html` | The ground-station GUI: profiles, responsibility, single and fleet runs. `--demo` uses `tools/fake_agent.py` and `tools/fake_resident_agent.py`. |
+| `tools/offboard_control.py` | The offboard height controller and the stage sequence the agent flies. |
+| `tools/preflight.py` | GO / NO-GO for the whole chain (link loss, latency, one relay per companion). Run it first. |
+| `tools/provision.py` | Bare companion to flight-ready, idempotent. |
+| `tools/restore_downlink.py` | Puts the streams the Indoors profile changed back to PX4's defaults. **Runs on the companion.** |
+| `tools/pull_fc_logs.py` | Downloads PX4 flight logs over USB. **Runs on the companion.** |
+| `tools/param_dump.py` | Saves every parameter to a QGC `.params` file. Read-only. |
+| `tools/param_baseline.py` | Applies the indoor/outdoor parameter baseline with a backup and a verified restore. |
+| `tools/mav_shell.py` | PX4's nsh over MAVLink (short commands only). |
+| `tools/ulog_failsafes.py` | Reads PX4 logs: which failsafe fired and the gaps in the setpoint stream. |
+| `tools/experiment_report.py` | Statistics for the radio experiments, from GUI run records. |
+| `tools/exp4_downlink_trim.py`, `tools/height_feed_probe.py`, `tools/arm_diag.py` | One-off measurement tools kept for repeatability. |
 
 Config files: `config.json` (planner), `fleet.yaml` (all-local SITL fleet),
 `fleet-jetson.yaml` (the real two-Jetson fleet), `artex-registry.yaml` (which backpack is
@@ -889,13 +993,16 @@ dead at every corner.
 
 ```bash
 python3 -m pip install -e ".[dev]"
-python3 -m pytest -q          # 135 tests
+python3 -m pytest -q          # 402 tests
 ```
 
 Covers KML parsing (including missing-geofence rejection), both scanners, guardrail
 accept/reject with transits, `.plan` structure, per-drone split, the parameter reference
-against live code, the RAG retriever and the Ollama client's fail-safe path. None of them
-needs hardware or a simulator; `test_handshake.py` is separate and does need live SITL.
+against live code, the RAG retriever and the Ollama client's fail-safe path, and on the
+aircraft side the abort ladder, takeover classification, the offboard controller and
+stages, the GUI core and server, the downlink profiles and the experiment statistics.
+None of them needs hardware or a simulator; `test_handshake.py` is separate and does need
+live SITL.
 
 ## Provenance and limitations
 
@@ -904,7 +1011,7 @@ multi-drone partition, deterministic guardrail, optional Gemma briefing) with th
 **drone-dev** coverage workspace (altitude-driven camera physics, blur-safe speed, complete
 takeoff→lawnmower→RTL missions proven in SITL). The retired single-drone pipeline is in
 `../legacy/planning/`. What changed from each source, and why, is recorded in
-[`../history.md`](../history.md).
+[`docs/history.md`](docs/history.md).
 
 Known limitations:
 
@@ -923,7 +1030,12 @@ Known limitations:
 * **The partition splits the OpsArea's long axis.** On SAFTI (305 × 721 m, 3 drones) that
   gives 30 lanes over 7.57 km; splitting the short axis gives 15 lanes over 8.45 km — half
   the turns for ~12 % more scan length. Worth revisiting now turn cost is measured.
-* **The RF hop is unmeasured**, and backpack **downlink is unproven** — `packets_down` has
-  never been non-zero on any board.
+* **Offboard over the radio is bench-proven only.** With the Indoors downlink PX4 stays in
+  Offboard in 8 of 9 props-off holds; no flight has been flown that way. Flight stages
+  are flown over USB.
+* **Both aircraft carry the indoor configuration** (3 m/s caps, GPS checks off, 3 m fence),
+  which fails an outdoor survey until it is changed back.
+* **Multi-aircraft GUI runs are demo- and test-proven only**; none has run against the real
+  aircraft yet, and indoors they stop at the preflight contract.
 * Projection is equirectangular; AEQD is marginally more accurate but negligible at SAR
   scale. `camera.py` models one nadir gimbal; zoom and oblique framing are out of scope.
