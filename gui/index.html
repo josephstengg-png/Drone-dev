@@ -26,7 +26,7 @@ button,input,select,textarea{font:inherit;color:var(--ink)}
 .btn.solid{background:var(--accent);color:#fff}.btn.danger{border-color:var(--no);color:var(--no)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.rail{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.rail{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 @media(max-width:760px){.rail{grid-template-columns:1fr 1fr}}
 .step{text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:8px 10px;cursor:pointer}
 .step .n{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
@@ -81,6 +81,14 @@ pre.cmd{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,M
 .steph{display:flex;gap:8px;align-items:baseline;margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);font-weight:700}
 .steph i{font-style:normal;background:var(--accent);color:#fff;border-radius:99px;min-width:20px;height:20px;display:inline-grid;place-items:center;font-size:11px}
 .divider{border:0;border-top:1px dashed var(--line);margin:12px 0}
+.fcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.fcard{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:6px;min-width:0}
+.fcard.fault{border-color:var(--no);box-shadow:0 0 0 2px var(--nob)}.fcard.held{border-color:var(--stale)}
+.fcard h3{margin:0;font-size:15px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.fac{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;margin:6px 0}
+.fac select{border:1px solid var(--line);background:var(--field);border-radius:6px;padding:5px 6px;font-size:13px;min-width:0;width:100%}
+.gates{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:600px){.gates{grid-template-columns:1fr}}
+.arm.go{background:#0b5cab}
 </style></head>
 <body><div class="wrap">
 <header>
@@ -215,7 +223,90 @@ pre.cmd{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,M
  </div>
 </section>
 
-<!-- 4 RECORDS -->
+<!-- 4 FLEET -->
+<section class="page" id="pg-fleet">
+ <div class="cols">
+  <div class="stack">
+   <div class="panel"><h2>Fleet profiles</h2>
+    <div class="e">A fleet profile is a multi-aircraft waypoint run: which aircraft, each one's mission plan, and how far to go. Plans come from one planning run (one <code>mission_drones</code> folder), so the separation guardrail covered them together. Archived profiles go to <code>profiles/fleet/deleted/</code>.</div>
+    <table id="fTable"></table>
+    <div class="bar"><button class="btn solid" id="fNew" type="button">New fleet profile</button></div>
+   </div>
+   <div class="panel"><h2>Edit fleet profile</h2>
+    <div id="fErr"></div>
+    <label class="f">Name<input id="ff-name" maxlength="60"></label>
+    <label class="f">Description<textarea id="ff-desc" rows="2"></textarea></label>
+    <div class="e" style="margin-top:8px"><b>Mode</b></div>
+    <div class="seg" id="ffModeSeg"><label><input type="radio" name="ff-mode" value="upload">Upload and verify</label><label><input type="radio" name="ff-mode" value="arm">Arm all, then disarm</label><label><input type="radio" name="ff-mode" value="mission">Fly the missions</label></div>
+    <div class="e" id="ffModeNote" style="margin:4px 0 8px"></div>
+    <div class="e"><b>Flight type</b></div>
+    <div class="seg" id="ffTypeSeg"><label><input type="radio" name="ff-type" value="bench">Bench, props OFF</label><label><input type="radio" name="ff-type" value="props_on">Props ON</label></div>
+    <div class="e" style="margin-top:10px"><b>Aircraft and plans</b></div>
+    <div id="ffAc"></div>
+    <div class="row">
+     <label class="f"><span>Arm-only hold (s) <span class="e">mode "arm", 1 to 8</span></span><input id="ff-hold" type="number" step="1"></label>
+     <label class="f"><span>Agent failsafe (s) <span class="e">RTL if the ground station goes silent</span></span><input id="ff-fs" type="number" step="5"></label>
+    </div>
+    <div class="bar">
+     <button class="btn solid" id="fSave" type="button">Save</button>
+     <button class="btn" id="fSaveNew" type="button">Save as new</button>
+     <button class="btn danger" id="fDel" type="button">Archive</button>
+    </div>
+    <div class="e" id="fMsg" style="margin-top:6px"></div>
+    <details><summary class="e">The agent commands this profile starts</summary><pre class="cmd" id="fCmd"></pre></details>
+   </div>
+   <div class="panel"><h2>What is happening</h2>
+    <div class="chips" id="fChips"></div>
+    <ul class="log" id="fFeed"></ul>
+   </div>
+  </div>
+  <div class="stack">
+   <div class="panel" id="fSetup">
+    <div class="steph"><i>1</i>Risks you are accepting</div>
+    <div id="fRisks"></div>
+    <hr class="divider">
+    <div class="steph"><i>2</i>Confirm the aircraft and the area</div>
+    <div id="fConfs"></div>
+    <hr class="divider">
+    <div class="steph"><i>3</i>Take responsibility: one pilot per aircraft</div>
+    <div class="e">Recorded with the run. Each aircraft's handset is its override, so each needs its own named pilot, and one person cannot hold two.</div>
+    <div class="row"><label class="f"><span>Responsible operator</span><input id="fOp" autocomplete="name" placeholder="your name"></label></div>
+    <div class="row" id="fPilots"></div>
+    <label class="f"><span>Type every aircraft name: <b id="fAcNames"></b></span><input id="fAcType" autocomplete="off"></label>
+    <label class="f"><span>Type exactly: <b id="fPhraseShow"></b></span><input id="fPhrase" autocomplete="off"></label>
+    <div class="bar"><button class="btn solid" id="fAuthBtn" type="button" disabled>Authorise this fleet run</button><span class="e" id="fAuthMsg"></span></div>
+    <div class="auth" id="fAuthBox" hidden></div>
+   </div>
+   <div class="panel">
+    <div class="steph"><i>4</i>Prepare, then the two gates</div>
+    <div class="e">Prepare starts one agent per aircraft: it uploads and reads back the mission and runs the preflight contract, then holds the link. Every aircraft must be READY or nobody arms. <b>Indoors there is no GPS fix, so a real aircraft stops at NOT READY</b>; use "Upload and verify" there.</div>
+    <div class="bar"><button class="btn solid" id="fStart" type="button" disabled>Prepare every aircraft</button><span class="e" id="fStartMsg"></span></div>
+    <div class="fcards" id="fCards" style="margin-top:10px"></div>
+    <hr class="divider">
+    <div class="gates">
+     <button class="arm" id="fArm" type="button" disabled><div class="fill" id="fArmFill"></div><span>HOLD: ARM ALL<span class="why" id="fArmWhy">Prepare first</span></span></button>
+     <button class="arm go" id="fGo" type="button" disabled><div class="fill" id="fGoFill"></div><span>HOLD: START ALL<span class="why" id="fGoWhy">Arm all first</span></span></button>
+    </div>
+    <div class="e" id="fClock" style="margin-top:6px"></div>
+    <hr class="divider">
+    <div class="steph"><i>5</i>While they fly</div>
+    <div class="e"><b>Each pilot's handset is the real override</b> (ch5 OFF, or ch8 kill held 5 s). If one aircraft faults, the others are put in HOLD automatically. These buttons go through the agents and the radios.</div>
+    <div class="bar" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+     <button class="btn" id="fHoldAll" type="button" disabled>HOLD ALL</button>
+     <button class="btn danger" id="fRtlAll" type="button" disabled>RTL ALL</button>
+     <button class="btn danger" id="fLandAll" type="button" disabled>LAND ALL</button>
+    </div>
+    <div class="bar" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+     <button class="abort" id="fCancel" type="button" disabled style="background:var(--idle)">CANCEL / END WATCH<br><span style="font-weight:500;font-size:12px">disarms if not yet started</span></button>
+     <button class="abort" id="fFlag" type="button" disabled>ABORT (flag)<br><span style="font-weight:500;font-size:12px">every aircraft, over ssh</span></button>
+    </div>
+   </div>
+   <div class="panel" id="fResult" hidden></div>
+  </div>
+ </div>
+</section>
+
+<!-- 5 RECORDS -->
 <section class="page" id="pg-rec">
  <div class="cols">
   <div class="panel"><h2>Run records</h2>
@@ -247,13 +338,13 @@ function setTheme(t) { const r = document.documentElement; if (t === 'auto') r.r
 $('thm').onclick = () => setTheme(THEMES[(THEMES.indexOf(store('gs-theme') || 'auto') + 1) % 3]);
 
 /* ---------- rail ---------- */
-const PAGES = [['connect', '1 Connect', 'Link and preflight'], ['prof', '2 Profiles', 'Create and edit'], ['run', '3 Run', 'Offboard missions'], ['rec', '4 Records', 'What was run']];
+const PAGES = [['connect', '1 Connect', 'Link and preflight'], ['prof', '2 Profiles', 'Create and edit'], ['run', '3 Run', 'Offboard missions'], ['fleet', '4 Fleet', 'Multi-aircraft missions'], ['rec', '5 Records', 'What was run']];
 function rail() {
-  const live = SNAP && ['starting', 'ready', 'armed', 'pilot'].includes(SNAP.state);
-  $('rail').innerHTML = PAGES.map(([k, n, t]) => `<button class="step ${k === page ? 'cur' : ''} ${k === 'run' && live ? 'live' : ''}" data-k="${k}" type="button"><div class="n">${n}</div><div class="t">${t}</div><div class="s">${k === 'run' && live ? 'RUN ACTIVE: ' + SNAP.state.toUpperCase() : k === 'prof' ? PROFILES.length + ' saved' : ''}&nbsp;</div></button>`).join('');
+  const live = SNAP && ['starting', 'ready', 'armed', 'pilot'].includes(SNAP.state), flive = fActive();
+  $('rail').innerHTML = PAGES.map(([k, n, t]) => `<button class="step ${k === page ? 'cur' : ''} ${(k === 'run' && live) || (k === 'fleet' && flive) ? 'live' : ''}" data-k="${k}" type="button"><div class="n">${n}</div><div class="t">${t}</div><div class="s">${k === 'run' && live ? 'RUN ACTIVE: ' + SNAP.state.toUpperCase() : k === 'fleet' && flive ? 'FLEET ACTIVE: ' + FSNAP.state.toUpperCase() : k === 'prof' ? PROFILES.length + ' saved' : k === 'fleet' ? FPROFILES.length + ' fleet profiles' : ''}&nbsp;</div></button>`).join('');
   $('rail').querySelectorAll('.step').forEach(b => b.onclick = () => go(b.dataset.k));
 }
-function go(k) { page = k; PAGES.forEach(([p]) => $('pg-' + p).classList.toggle('on', p === k)); rail(); if (k === 'rec') loadRecs(); if (k === 'run') refreshRun(); if (k === 'prof') edPreview(); redraw(); }
+function go(k) { page = k; PAGES.forEach(([p]) => $('pg-' + p).classList.toggle('on', p === k)); rail(); if (k === 'rec') loadRecs(); if (k === 'run') refreshRun(); if (k === 'prof') edPreview(); if (k === 'fleet') fPreview(); redraw(); }
 
 /* ---------- connect ---------- */
 function acCard(s) {
@@ -497,6 +588,180 @@ async function showRec(id) {
   $('cpHist').onclick = async () => { try { await navigator.clipboard.writeText(history); $('cpMsg').textContent = 'Copied. Paste it into history.md yourself.'; } catch (e) { $('cpMsg').textContent = 'Copy failed; select it from the record file.'; } };
 }
 
+
+/* ---------- fleet (multi-aircraft waypoint runs) ---------- */
+let FPROFILES = [], FPLANS = [], FED = null, FEDID = null, FPREV = null, FTOKEN = null, FTOKEN_AT = 0, FSNAP = null, FSINCE = 0, fpoll = null, fT = null;
+const fActive = () => FSNAP && !['none', 'done', 'ended'].includes(FSNAP.state);
+const FSTATE = {starting: 'Starting', preparing: 'Preparing (upload, contract)', ready: 'READY: waiting for ARM ALL', not_ready: 'NOT READY: nobody armed', arming: 'Arming', armed: 'ALL ARMED', disarming: 'Disarming', launching: 'Starting missions', flying: 'Flying', fault: 'FAULT: others held', done: 'Finished', ended: 'Ended'};
+async function fLoad() { [FPROFILES, FPLANS] = await Promise.all([api('GET', '/api/fleet/profiles'), api('GET', '/api/fleet/plans')]); fTable(); rail(); }
+function fTable() {
+  $('fTable').innerHTML = '<tr><th>Name</th><th>Mode</th><th>Aircraft</th></tr>' + (FPROFILES.length ? FPROFILES.map(p => `<tr class="pick ${p.id === FEDID ? 'on' : ''}" data-id="${esc(p.id)}"><td>${esc(p.name)}</td><td>${esc(p.mode)} / ${p.flight_type === 'bench' ? 'props off' : 'props on'}</td><td>${p.aircraft.map(a => 'ARTEX' + a.sysid).join(', ')}</td></tr>`).join('') : '<tr><td colspan="3" class="e">No fleet profiles yet.</td></tr>');
+  $('fTable').querySelectorAll('tr.pick').forEach(t => t.onclick = () => fEdLoad(FPROFILES.find(p => p.id === t.dataset.id)));
+}
+function planOptions(sel) {
+  const groups = {}; FPLANS.forEach(p => (groups[p.folder] = groups[p.folder] || []).push(p));
+  return '<option value="">choose a plan</option>' + Object.keys(groups).map(g => `<optgroup label="${esc(g)}">${groups[g].map(p => `<option value="${esc(p.path)}" ${p.path === sel ? 'selected' : ''}>${esc(p.path.split('/').pop())}: ${p.items} items, top ${p.top_alt_m} m</option>`).join('')}</optgroup>`).join('');
+}
+function fEdLoad(p) {
+  FED = JSON.parse(JSON.stringify(p)); FEDID = p.id || null;
+  $('ff-name').value = p.name || ''; $('ff-desc').value = p.description || '';
+  document.querySelectorAll('input[name=ff-mode]').forEach(r => r.checked = r.value === p.mode);
+  document.querySelectorAll('input[name=ff-type]').forEach(r => r.checked = r.value === p.flight_type);
+  $('ff-hold').value = p.arm_hold_s; $('ff-fs').value = p.failsafe_s;
+  const by = {}; (p.aircraft || []).forEach(a => by[a.sysid] = a);
+  $('ffAc').innerHTML = ST.aircraft.map(s => `<div class="fac"><label class="chk" style="margin:0"><input type="checkbox" class="facIn" data-s="${s}" ${by[s] ? 'checked' : ''}><b>ARTEX${s}</b></label><select class="facPlan" data-s="${s}">${planOptions(by[s] ? by[s].plan : '')}</select><select class="facLink" data-s="${s}"><option value="radio" ${!by[s] || by[s].link === 'radio' ? 'selected' : ''}>radio</option><option value="usb" ${by[s] && by[s].link === 'usb' ? 'selected' : ''}>USB</option></select></div>`).join('');
+  $('ffAc').querySelectorAll('input,select').forEach(x => x.addEventListener('change', fChanged));
+  FTOKEN = null; $('fAuthBox').hidden = true; fTable(); fChanged();
+}
+function fRead() {
+  const ac = [...document.querySelectorAll('.facIn')].filter(c => c.checked).map(c => ({sysid: +c.dataset.s, plan: document.querySelector(`.facPlan[data-s="${c.dataset.s}"]`).value, link: document.querySelector(`.facLink[data-s="${c.dataset.s}"]`).value}));
+  const num = id => $(id).value === '' ? null : +$(id).value;
+  return {name: $('ff-name').value, description: $('ff-desc').value, mode: (document.querySelector('input[name=ff-mode]:checked') || {}).value,
+    flight_type: (document.querySelector('input[name=ff-type]:checked') || {}).value, arm_hold_s: num('ff-hold'), failsafe_s: num('ff-fs'), aircraft: ac};
+}
+function fSegs() { document.querySelectorAll('#ffModeSeg label,#ffTypeSeg label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); }
+function fChanged() { fSegs(); clearTimeout(fT); fT = setTimeout(fPreview, 150); }
+['ff-name', 'ff-desc', 'ff-hold', 'ff-fs'].forEach(id => $(id).addEventListener('input', fChanged));
+document.querySelectorAll('input[name=ff-mode],input[name=ff-type]').forEach(r => r.addEventListener('change', fChanged));
+async function fPreview() {
+  if (!FED) return;
+  const p = fRead(); let r; try { r = await api('POST', '/api/fleet/preview', p); } catch (e) { return; }
+  const changed = FPREV && JSON.stringify(FPREV.profile) !== JSON.stringify(r.profile);
+  FPREV = r; if (changed && FTOKEN) { FTOKEN = null; $('fAuthBox').hidden = true; }
+  $('ffModeNote').textContent = r.mode_note || '';
+  $('fErr').innerHTML = r.errors.map(x => `<div class="err">${esc(x)}</div>`).join('');
+  $('fCmd').textContent = r.argv ? r.argv.map(a => a.join(' ')).join('\n') : 'Fix the profile first.';
+  $('fRisks').innerHTML = r.assessment.map(i => i.level === 'block' ? `<div class="blockbox"><b>${esc(i.title)}</b><div class="e">${esc(i.text)}</div></div>` : i.level === 'accept' ? `<label class="risk chk"><input type="checkbox" class="facc" data-id="${esc(i.id)}"><span><b>${esc(i.title)}</b><div class="e">${esc(i.text)}</div></span></label>` : `<div class="note"><b>${esc(i.title)}</b><div class="e">${esc(i.text)}</div></div>`).join('');
+  $('fConfs').innerHTML = r.confirmations.length ? r.confirmations.map(c => `<label class="chk"><input type="checkbox" class="fcf" data-id="${esc(c.id)}"><span>${esc(c.text)}</span></label>`).join('') : '<div class="e">Fix the profile first.</div>';
+  const keep = {}; document.querySelectorAll('.fpil').forEach(i => keep[i.dataset.s] = i.value);
+  $('fPilots').innerHTML = r.profile.aircraft.map(a => `<label class="f"><span>Pilot holding ARTEX${a.sysid}'s handset</span><input class="fpil" data-s="${a.sysid}" value="${esc(keep[a.sysid] || '')}" autocomplete="off"></label>`).join('');
+  $('fAcNames').textContent = r.profile.aircraft.map(a => 'ARTEX' + a.sysid).join(', ');
+  $('fPhraseShow').textContent = ST.phrase;
+  document.querySelectorAll('.facc,.fcf,.fpil').forEach(x => x.addEventListener('input', fAuthState));
+  fAuthState(); fCtl();
+}
+function fAuthState() {
+  const r = FPREV, need = r && r.profile.aircraft.map(a => 'ARTEX' + a.sysid).sort().join(',');
+  const typed = $('fAcType').value.toUpperCase().split(/[\s,+]+/).filter(Boolean).sort().join(',');
+  const pil = [...document.querySelectorAll('.fpil')].map(i => i.value.trim().toLowerCase());
+  const ok = r && !r.errors.length && !r.assessment.some(i => i.level === 'block') && !fActive() && !FTOKEN
+    && [...document.querySelectorAll('.facc,.fcf')].every(c => c.checked) && pil.every(n => n.length > 1) && new Set(pil).size === pil.length
+    && $('fOp').value.trim().length > 1 && typed === need && $('fPhrase').value.trim().toUpperCase() === ST.phrase;
+  $('fAuthBtn').disabled = !ok; $('fSetup').style.opacity = fActive() ? .55 : 1;
+  $('fAuthMsg').textContent = FTOKEN || ok ? '' : 'Every box, your name, a different pilot per aircraft, the aircraft names and the words are needed.';
+}
+['fOp', 'fAcType', 'fPhrase'].forEach(id => $(id).addEventListener('input', fAuthState));
+$('fAuthBtn').onclick = async () => {
+  store('gs-operator', $('fOp').value.trim());
+  const pilots = {}; document.querySelectorAll('.fpil').forEach(i => pilots[i.dataset.s] = i.value);
+  try {
+    const r = await api('POST', '/api/fleet/authorise', {profile: FPREV.profile, operator: $('fOp').value, pilots, aircraft: $('fAcType').value, phrase: $('fPhrase').value,
+      accepted: [...document.querySelectorAll('.facc')].map(c => c.dataset.id), confirmed: [...document.querySelectorAll('.fcf')].map(c => c.dataset.id)});
+    FTOKEN = r.token; FTOKEN_AT = Date.now(); $('fAuthBox').hidden = false; fTick();
+  } catch (e) { $('fAuthMsg').textContent = e.message; }
+  fAuthState(); fCtl();
+};
+async function fSave(asNew) {
+  const p = fRead(); if (asNew) p.name = (p.name || 'fleet') + ' copy';
+  try { const r = await api('POST', '/api/fleet/profiles', p); await fLoad(); fEdLoad(r); $('fMsg').textContent = 'Saved.'; } catch (e) { $('fMsg').textContent = e.message; }
+}
+$('fSave').onclick = () => fSave(false); $('fSaveNew').onclick = () => fSave(true);
+$('fDel').onclick = async () => { if (!FEDID || !confirm('Archive this fleet profile?')) return; await api('POST', '/api/fleet/profiles/delete', {id: FEDID}); await fLoad(); fEdLoad(FPROFILES[0] || fBlank()); };
+const fBlank = () => Object.assign({}, ST.fleet.defaults, {name: '', aircraft: ST.aircraft.map(s => ({sysid: s, plan: '', link: 'radio'}))});
+$('fNew').onclick = () => fEdLoad(fBlank());
+$('fStart').onclick = async () => {
+  $('fStart').disabled = true; FSINCE = 0; $('fFeed').innerHTML = ''; $('fResult').hidden = true;
+  try { await api('POST', '/api/fleet/start', {profile: FPREV.profile, token: FTOKEN}); fStartPoll(); } catch (e) { $('fStartMsg').textContent = e.message; fCtl(); }
+};
+function fTick() {
+  if (FTOKEN) {
+    const left = Math.max(0, ST.ttl_s - (Date.now() - FTOKEN_AT) / 1000);
+    if (left <= 0) { FTOKEN = null; $('fAuthBox').hidden = true; fAuthState(); fCtl(); }
+    else $('fAuthBox').innerHTML = `<b>Authorised</b> by ${esc($('fOp').value.trim())}, pilots ${[...document.querySelectorAll('.fpil')].map(i => 'ARTEX' + i.dataset.s + ' ' + esc(i.value.trim())).join(', ')}. This exact fleet profile. Expires in ${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}.`;
+  }
+  const w = FSNAP && FSNAP.window_s;
+  $('fClock').textContent = !FSNAP ? '' : FSNAP.state === 'ready' && w != null ? (FSNAP.arm_pressed ? 'ARM ALL sent.' : `ARM ALL within ${Math.ceil(w)} s, or every agent lets go and nobody arms.`)
+    : FSNAP.state === 'armed' && w != null ? (FSNAP.start_pressed ? 'START ALL sent.' : `START ALL within ${Math.ceil(w)} s, or every aircraft is DISARMED (PX4 disarms on the ground after ~10 s).`) : '';
+}
+function fCards() {
+  const s = FSNAP; if (!s || !s.members) { $('fCards').innerHTML = ''; return; }
+  const can = fActive() && ['launching', 'flying', 'fault'].includes(s.state);
+  $('fCards').innerHTML = s.members.map(m => {
+    const st = m.status || {}, bad = (m.checks || []).filter(c => !c.ok);
+    const chip = (t, c) => `<span class="pill ${c}">${t}</span>`;
+    return `<div class="fcard ${m.fault ? 'fault' : m.held ? 'held' : ''}"><h3><span>ARTEX${m.sysid}</span><span class="e">${esc((s.pilots || {})[m.sysid] || '')}</span></h3>
+     <div class="chips" style="margin:0">${m.ready === null ? chip('PREPARING', 'WAIT') : m.ready ? chip('READY', 'GO') : chip('NOT READY', 'NOGO')}${m.armed ? chip('ARMED', 'STALE') : ''}${m.started ? chip('STARTED', 'WAIT') : ''}${m.held ? chip('HELD', 'STALE') : ''}${m.fault ? chip('FAULT', 'NOGO') : ''}${m.finished ? chip('ON GROUND', 'NOTRUN') : ''}</div>
+     <div class="e">${esc(m.plan.split('/').slice(-2).join('/'))} &middot; ${m.items == null ? '?' : m.items} items &middot; ${esc(m.link)}</div>
+     ${m.status ? `<div><b>${esc(m.mode_text)}</b> &middot; wp ${esc(st.waypoint)} / ${m.items == null ? '?' : m.items - 1} &middot; ${st.rel_alt_m == null ? '?' : esc(st.rel_alt_m) + ' m'} &middot; batt ${st.battery_pct == null ? '?' : esc(st.battery_pct) + ' %'}${m.misses ? ` <span class="err">(${m.misses} status missed)</span>` : ''}</div>` : ''}
+     ${m.fault ? `<div class="err">${esc(m.fault)}</div>` : ''}${m.error ? `<div class="err">${esc(m.error)}</div>` : ''}
+     ${bad.length ? `<div class="e">${bad.map(c => '<b>' + esc(c.name) + '</b>: ' + esc(c.detail)).join('<br>')}</div>` : ''}
+     ${can ? `<div class="bar" style="margin:0"><button class="btn" data-w="HOLD" data-s="${m.sysid}" type="button">HOLD</button><button class="btn danger" data-w="RTL" data-s="${m.sysid}" type="button">RTL</button><button class="btn danger" data-w="LAND" data-s="${m.sysid}" type="button">LAND</button>${s.demo ? `<button class="btn" data-w="DEMO_TAKEOVER" data-s="${m.sysid}" type="button">demo: pilot takes over</button><button class="btn" data-w="DEMO_LINK" data-s="${m.sysid}" type="button">demo: link lost</button>` : ''}</div>` : ''}</div>`;
+  }).join('');
+  $('fCards').querySelectorAll('button[data-w]').forEach(b => b.onclick = () => fWord(b.dataset.w, b.dataset.s));
+}
+const fWord = (w, target) => api('POST', '/api/fleet/word', {word: w, target}).catch(e => alert(e.message));
+$('fHoldAll').onclick = () => fWord('HOLD', 'all'); $('fRtlAll').onclick = () => fWord('RTL', 'all'); $('fLandAll').onclick = () => fWord('LAND', 'all');
+$('fCancel').onclick = () => { if (confirm('Cancel the run? Before START this disarms every aircraft. After START it only stops watching: the aircraft keep flying under PX4.')) api('POST', '/api/fleet/cancel', {}).catch(e => alert(e.message)); };
+$('fFlag').onclick = async () => { if (!confirm('Set the out-of-band ABORT flag on EVERY aircraft? Each agent will command LAND.')) return; try { const r = await api('POST', '/api/fleet/abort_flag', {}); alert((r.ok ? 'Flag set: ' : 'FAILED: ') + r.text); } catch (e) { alert(e.message); } };
+function fCtl() {
+  const s = FSNAP, st = s ? s.state : 'none', act = fActive(), mission = s && s.profile && s.profile.mode === 'mission';
+  $('fStart').disabled = !FTOKEN || act || (ST.run_active) ; $('fStartMsg').textContent = act ? 'A fleet run is active.' : FTOKEN ? '' : 'Authorise the fleet run first.';
+  const canArm = act && st === 'ready' && FTOKEN && !s.arm_pressed, canGo = act && st === 'armed' && mission && FTOKEN && !s.start_pressed;
+  $('fArm').disabled = !canArm; $('fGo').disabled = !canGo;
+  $('fArmWhy').textContent = canArm ? 'Press and hold 1.2 s. Every aircraft arms at one instant.' : st === 'preparing' ? 'Preparing…' : st === 'not_ready' ? 'Not every aircraft is READY' : ['arming', 'armed', 'launching', 'flying', 'fault'].includes(st) ? 'Sent' : st === 'ready' && !FTOKEN ? 'Authorisation expired' : 'Prepare first';
+  $('fGoWhy').textContent = canGo ? 'Press and hold 1.2 s. Every aircraft starts its mission.' : s && s.profile && s.profile.mode !== 'mission' ? 'Not a mission run' : ['launching', 'flying', 'fault'].includes(st) ? 'Sent' : 'Arm all first';
+  ['fHoldAll', 'fRtlAll', 'fLandAll'].forEach(id => $(id).disabled = !(act && ['launching', 'flying', 'fault'].includes(st)));
+  $('fCancel').disabled = !act || st === 'preparing'; $('fFlag').disabled = !act;
+  const order = ['preparing', 'ready', 'armed', 'flying', 'done'], cur = st === 'fault' ? 'flying' : st === 'not_ready' || st === 'ended' ? 'done' : st === 'arming' ? 'ready' : st === 'launching' ? 'armed' : st;
+  $('fChips').innerHTML = !s || st === 'none' ? '<span class="e">No fleet run yet.</span>' : order.map((o, i) => `<span class="cs ${i < order.indexOf(cur) ? 'ok' : o === cur ? (['ended', 'not_ready', 'fault'].includes(st) ? 'bad' : 'act') : ''}">${{preparing: 'Prepare', ready: 'READY', armed: 'Armed', flying: 'Flying', done: 'Finished'}[o]}</span>`).join('') + `<span class="cs ${['fault', 'not_ready', 'ended'].includes(st) ? 'bad' : 'act'}">${esc(FSTATE[st] || st)}</span>`;
+  fCards(); fTick();
+}
+function fLine(f) {
+  const t = new Date(f.t * 1000).toTimeString().slice(0, 8), who = f.sysid ? `ARTEX${f.sysid}: ` : '';
+  if (f.kind === 'note') return `<li class="${f.bad ? 'bad' : 'ev'}">${t}  ${esc(f.text)}</li>`;
+  if (f.kind === 'sent') return `<li class="sent">${t}  ${who}sent ${esc(f.text)}</li>`;
+  if (f.kind === 'log') return `<li>${t}  ${who}${esc(f.text)}</li>`;
+  if (f.kind === 'event') return `<li class="bad">${t}  ${who}${esc(f.data.event)} ${esc(f.data.source || '')}</li>`;
+  return `<li>${t}  ${who}${esc(f.data.verb)} ${esc(JSON.stringify(f.data).slice(0, 120))}</li>`;
+}
+async function fPollOnce() {
+  let s; try { s = await api('GET', '/api/fleet?since=' + FSINCE); } catch (e) { return; }
+  if (s.state === 'none') return;
+  const feed = s.feed || []; FSNAP = Object.assign(FSNAP || {}, s); FSINCE += feed.length;
+  feed.forEach(f => $('fFeed').insertAdjacentHTML('afterbegin', fLine(f)));
+  fCtl(); rail();
+  if (['done', 'ended'].includes(s.state)) { fStopPoll(); fShowResult(s); FTOKEN = null; $('fAuthBox').hidden = true; $('fAcType').value = ''; $('fPhrase').value = ''; fAuthState(); fCtl(); }
+}
+function fStartPoll() { if (!fpoll) fpoll = setInterval(fPollOnce, 700); fPollOnce(); }
+function fStopPoll() { clearInterval(fpoll); fpoll = null; }
+function fShowResult(s) {
+  const r = s.result || {}, b = $('fResult'); b.hidden = false;
+  b.innerHTML = `<h2>Result</h2><div class="verdict"><span class="big">${esc(r.outcome || '?')}</span><span class="pill ${r.passed ? 'GO' : 'NOGO'}">${r.passed ? 'COMPLETED' : 'NOT COMPLETED'}</span></div>
+   <div class="e">Every aircraft's prepare report, the gates, each command and every status are in the record.</div>
+   <div class="bar"><button class="btn solid" id="fSeeRec" type="button">Open the record</button></div>`;
+  $('fSeeRec').onclick = async () => { go('rec'); await loadRecs(); showRec(s.id); };
+}
+function makeHold(btn, fill, why, path, confirmWord) {
+  let t = null, at = 0;
+  const stop = () => { if (t) { clearInterval(t); t = null; } $(fill).style.width = '0'; };
+  const start = e => { if ($(btn).disabled || t) return; e.preventDefault(); at = performance.now(); $(why).textContent = 'Keep holding…';
+    t = setInterval(async () => { const f = Math.min(1, (performance.now() - at) / 1200); $(fill).style.width = f * 100 + '%';
+      if (f >= 1) { stop(); try { await api('POST', path, {token: FTOKEN, confirm: confirmWord}); } catch (er) { $(why).textContent = er.message; } fPollOnce(); } }, 30); };
+  $(btn).addEventListener('pointerdown', start);
+  ['pointerup', 'pointerleave', 'pointercancel', 'blur'].forEach(ev => $(btn).addEventListener(ev, stop));
+  $(btn).addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') start(e); });
+  $(btn).addEventListener('keyup', e => { if (e.key === 'Enter' || e.key === ' ') stop(); });
+}
+makeHold('fArm', 'fArmFill', 'fArmWhy', '/api/fleet/arm_all', 'ARM ALL');
+makeHold('fGo', 'fGoFill', 'fGoWhy', '/api/fleet/start_all', 'START ALL');
+async function fBoot() {
+  $('fOp').value = store('gs-operator') || '';
+  await fLoad(); fEdLoad(FPROFILES[0] || fBlank());
+  const s = await api('GET', '/api/fleet?since=0');
+  if (s.state !== 'none') { FSNAP = s; FSINCE = (s.feed || []).length; (s.feed || []).forEach(f => $('fFeed').insertAdjacentHTML('afterbegin', fLine(f))); if (fActive()) fStartPoll(); else fShowResult(s); }
+  fCtl(); setInterval(fTick, 1000);
+}
+
 /* ---------- boot ---------- */
 async function loadState() { ST = await api('GET', '/api/state'); }
 async function boot() {
@@ -506,7 +771,7 @@ async function boot() {
   $('modeSub').textContent = ST.demo ? 'Nothing is contacted. Runs use a simulated agent so you can learn the screens.' : 'Runs start the real agent on the companion over ssh. The handset stays the override.';
   $('f-sysid').innerHTML = ST.aircraft.map(a => `<option value="${a}">ARTEX${a}</option>`).join('');
   $('f-stage').innerHTML = ST.stages.map(([s, n]) => `<option value="${s}">${s}: ${esc(n)}</option>`).join('');
-  connectRender(); await loadProfiles();
+  connectRender(); await loadProfiles(); await fBoot();
   edLoad(PROFILES[0] || Object.assign({}, ST.defaults, {name: ''}));
   const s = await api('GET', '/api/run?since=0'); if (s.state !== 'none') { SNAP = s; SINCE = s.feed.length; s.feed.forEach(f => $('feed').insertAdjacentHTML('afterbegin', line(f))); if (running()) startPoll(); else showResult(s); }
   rail(); setInterval(tick, 1000);

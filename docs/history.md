@@ -359,6 +359,31 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-10 — Multi-aircraft waypoint runs in the GUI ("4 Fleet" page): prepare, two gates, others HOLD on a fault
+
+Operator's decisions (asked, 10 Nov): waypoint missions first; **two gates** (ARM ALL only when every aircraft is READY, START ALL only when every
+aircraft is armed; a failure at either gate means nobody proceeds and the armed ones are disarmed); after START, **a fault on one aircraft puts the
+others in HOLD**; **one named pilot per aircraft** (the GUI refuses the same name twice).
+- Built on the existing resident protocol, no agent change: `drone_agent.py prepare --resident` per aircraft (identity, upload, read-back, preflight
+  contract, holds the link) -> `ARM <token> <t>` to all at one instant -> `START <token> <t>` (arms if needed, MISSION_START) -> `STATUS` polls.
+  New: `tools/gs_fleet.py` (fleet profiles in `profiles/fleet/`, validation, risks, confirmations, authorisation, the fault and HOLD rules),
+  `FleetRun`/`Member` in `tools/gs_server.py` (`/api/fleet/*`), `tools/fake_resident_agent.py` (demo), the Fleet page in `gui/index.html`.
+- Modes: **upload** (upload, verify, contract, never arms), **arm** (READY barrier, ARM ALL, hold 1-8 s, DISARM ALL), **mission** (the two gates, then watch).
+- **START ALL must come within 8 s of ALL ARMED**: PX4 disarms a grounded armed aircraft after ~10 s (`COM_DISARM_PRFLT`, seen in every armed bench run
+  on 5 Nov). Missing it DISARMs everyone. ARM ALL waits up to 150 s after READY.
+- Fault after START (any of): the pilot took over (agent event), the agent's own failsafe fired, 2 STATUS polls missed, disarmed mid-mission (not
+  after RTL/LAND or the last item), or left AUTO while armed. Then every other aircraft still flying its mission gets `HOLD` (AUTO.LOITER, needs a
+  position). Operator: HOLD / RTL / LAND for all or one aircraft, CANCEL (disarms before START; after START only stops watching), the out-of-band
+  ABORT flag on every aircraft (`takeover.py --fleet fleet-artex-pair.yaml`).
+- Refusals: plans must be `missions/<site>/.../drone-N.plan`; for arm/mission they must come from ONE planning folder (the separation guardrail only
+  checked drones planned together); one aircraft per Jetson; props-on over the radio needs a Preflight GO on every aircraft in the last 10 min;
+  mission cannot be props-off. **Indoors the agent's contract refuses READY (no GPS fix)**, so real aircraft indoors can only do "upload".
+- Verified: 12 new tests (core rules, and demo-server runs: two gates + fault -> other held, missed start window -> disarm all, one NOT READY ->
+  nobody arms, upload never arms, and a single-aircraft run cannot start meanwhile); full suite 402 pass; the page driven end to end in headless
+  Chrome (demo). Not run against the real aircraft. Saved profiles: "Seletar pair - upload and verify", "Seletar pair - arm all then disarm".
+- Not done: a lean outdoor downlink profile for missions (STATUS reads GLOBAL_POSITION_INT, which PX4's default stream does not send, so altitude
+  may show "?"), and HOLD needs a GPS position outdoors.
+
 ## 2026-11-10 — ARTEX115 given ARTEX113's configuration (operator's instruction); calibration and identity left alone
 
 Full dumps over USB, read-only first: 113 via jetson-2 (1079 params), 115 via jetson-1 (1080; `RC_CRSF_TEL_EN` exists only on 115). Saved with the diff in `~/drone-dev/fc-backups/2026-11-10/`

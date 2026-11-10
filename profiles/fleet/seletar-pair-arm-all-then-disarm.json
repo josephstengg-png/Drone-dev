@@ -1,0 +1,20 @@
+{
+ "name": "Seletar pair - arm all then disarm",
+ "description": "Props OFF, outdoors with GPS: prepare, READY barrier, ARM ALL, hold 5 s, DISARM ALL. Proves the gates. Indoors it stops at NOT READY.",
+ "mode": "arm",
+ "flight_type": "bench",
+ "arm_hold_s": 5.0,
+ "failsafe_s": 60.0,
+ "aircraft": [
+  {
+   "sysid": 113,
+   "plan": "missions/seletar/mission_drones/drone-2.plan",
+   "link": "radio"
+  },
+  {
+   "sysid": 115,
+   "plan": "missions/seletar/mission_drones/drone-1.plan",
+   "link": "radio"
+  }
+ ]
+}

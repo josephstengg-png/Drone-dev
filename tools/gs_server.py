@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import queue
 import subprocess
 import sys
 import threading
@@ -30,7 +31,8 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gs_core as core  # noqa: E402
-from swarm_deploy import host_argv  # noqa: E402
+import gs_fleet as fleet  # noqa: E402
+from swarm_deploy import host_argv, push as push_plan  # noqa: E402
 
 ROOT = core.ROOT
 GUI = ROOT / "gui" / "index.html"
@@ -142,13 +144,374 @@ class Run:
                     speed=float(os.environ.get("DEMO_SPEED", "4")) if self.demo else 1.0)
 
 
+FLEET_WORDS = {"HOLD": "HOLD", "RTL": "ABORT rtl", "LAND": "ABORT land"}
+FLEET_DEMO_WORDS = {"DEMO_TAKEOVER", "DEMO_LINK"}
+PREPARE_TIMEOUT_S = 240.0     # upload + read-back + contract over the radio (~1 s per item)
+
+
+class Member:
+    """One aircraft's resident agent (`drone_agent.py prepare --resident`), spoken to in json lines."""
+
+    def __init__(self, run: "FleetRun", m: dict, argv: list[str]):
+        self.run, self.sysid, self.plan, self.argv = run, m["sysid"], m["plan"], argv
+        self.replies: queue.Queue = queue.Queue()
+        self.proc: subprocess.Popen | None = None
+        self.wlock = threading.Lock()     # the conductor and a reader thread (HOLD on a fault) may both write
+        self.v = dict(sysid=self.sysid, plan=m["plan"], link=m["link"], ready=None, items=None, checks=[],
+                      token=None, armed=False, started=False, held=False, fault=None, finished=False,
+                      status=None, misses=0, error=None)
+
+    def start(self, demo: bool) -> None:
+        if demo:
+            cmd = [sys.executable, str(ROOT / "tools" / "fake_resident_agent.py")] + self.argv[2:]
+        else:
+            cmd, _ = host_argv(dict(host=core.AIRCRAFT[self.sysid]["host"], remote_dir="~/FlightPlanner"), self.argv)
+            cmd[1:1] = ["-o", "ConnectTimeout=8"]
+        self.run.rec.setdefault("commands", {})[str(self.sysid)] = cmd
+        self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                     text=True, bufsize=1, cwd=str(ROOT))
+        threading.Thread(target=self._out, daemon=True).start()
+        threading.Thread(target=self._err, daemon=True).start()
+
+    def _out(self) -> None:
+        for line in self.proc.stdout:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                self.run.push("log", self.sysid, text=line)
+                continue
+            if "verb" in ev:
+                self.replies.put(ev)
+            else:
+                self.run.on_event(self, ev)
+
+    def _err(self) -> None:
+        for line in self.proc.stderr:
+            if line.strip():
+                self.run.push("log", self.sysid, text=line.rstrip())
+
+    @property
+    def alive(self) -> bool:
+        return bool(self.proc) and self.proc.poll() is None
+
+    def send(self, cmd: str) -> bool:
+        if not self.alive:
+            return False
+        try:
+            with self.wlock:
+                self.proc.stdin.write(cmd + "\n")
+                self.proc.stdin.flush()
+        except (BrokenPipeError, OSError, ValueError):
+            return False
+        self.run.push("sent", self.sysid, text=cmd.split()[0] if cmd.split()[0] in ("ARM", "START") else cmd)
+        return True
+
+    def await_verb(self, verb: str, timeout: float) -> dict | None:
+        """The next reply of this kind; anything else on the way goes to the feed. None on timeout or a dead agent."""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                msg = self.replies.get(timeout=min(0.5, max(0.05, deadline - time.time())))
+            except queue.Empty:
+                if not self.alive and self.replies.empty():
+                    return None
+                continue
+            if msg.get("verb") == verb:
+                return msg
+            if msg.get("verb") == "failsafe":
+                self.run.mark_fault(self, "the agent's own failsafe returned it to launch (ground station silent)")
+            self.run.push("reply", self.sysid, data=msg)
+        return None
+
+
+class FleetRun:
+    """A multi-aircraft waypoint run: prepare -> barrier -> ARM ALL -> START ALL -> watch (tools/gs_fleet.py)."""
+
+    def __init__(self, rec: dict, demo: bool):
+        self.rec, self.demo, self.p = rec, demo, rec["profile"]
+        self.feed: list[dict] = []
+        self.lock = threading.Lock()
+        self.state = "starting"
+        self.t = dict(started=time.time(), ready=None, armed=None, flying=None, done=None)
+        self.result: dict | None = None
+        self.arm_evt, self.start_evt, self.cancel_evt = threading.Event(), threading.Event(), threading.Event()
+        rid = rec["id"]
+        self.members = {m["sysid"]: Member(self, m, fleet.agent_argv(self.p, m, f"gs{rid}"))
+                        for m in self.p["aircraft"]}
+
+    # ---- feed --------------------------------------------------------------------
+    def push(self, kind: str, sysid: int | None = None, **kw) -> None:
+        with self.lock:
+            self.feed.append(dict(n=len(self.feed), t=round(time.time(), 2), kind=kind, sysid=sysid, **kw))
+
+    def note(self, text: str, bad: bool = False, sysid: int | None = None) -> None:
+        self.push("note", sysid, text=text, bad=bad)
+
+    def on_event(self, m: Member, ev: dict) -> None:
+        self.push("event", m.sysid, data=ev)
+        if ev.get("event") in ("rc_takeover", "takeover_classified") and m.v["started"]:
+            src = ev.get("source")
+            self.mark_fault(m, "the pilot took over" if src in (None, "pilot_switch", "kill_switch")
+                            else f"left the mission ({src})")
+
+    def mark_fault(self, m: Member, why: str) -> None:
+        """First fault on an aircraft after START: flag it and put every other flying aircraft in HOLD."""
+        with self.lock:
+            if m.v["fault"]:
+                return
+            m.v["fault"] = why
+            vs = {s: mm.v for s, mm in self.members.items()}
+        self.note(f"ARTEX{m.sysid}: FAULT -- {why}", bad=True, sysid=m.sysid)
+        targets = fleet.hold_targets(vs, m.sysid)
+        for s in targets:
+            if self.members[s].send("HOLD"):
+                self.members[s].v["held"] = True
+        if targets:
+            self.note("Others put in HOLD: " + ", ".join(f"ARTEX{s}" for s in targets)
+                      + ". Decide: RTL, LAND or take over by handset.", bad=True)
+        if self.state in ("flying", "launching"):
+            self.state = "fault"
+
+    # ---- the sequence ------------------------------------------------------------
+    def start(self) -> None:
+        threading.Thread(target=self._conduct, daemon=True).start()
+
+    def _all(self, verb: str, timeout: float) -> dict[int, dict | None]:
+        """Await one reply from every agent, in parallel (the replies queue up while we wait on the first)."""
+        deadline = time.time() + timeout
+        return {s: m.await_verb(verb, max(0.1, deadline - time.time())) for s, m in self.members.items()}
+
+    def _wait_press(self, evt: threading.Event, seconds: float) -> bool:
+        end = time.time() + seconds
+        while time.time() < end:
+            if evt.wait(0.2):
+                return True
+            if self.cancel_evt.is_set():
+                return False
+        return False
+
+    def _disarm_all(self, why: str) -> None:
+        self.note(f"DISARM ALL: {why}", bad=True)
+        for m in self.members.values():
+            m.send("DISARM")       # also the ones that did not arm: a late ARM may still be in the radio
+        for s, r in self._all("disarm", 30.0).items():
+            ok = bool(r and r.get("disarmed"))
+            self.members[s].v["armed"] = not ok and self.members[s].v["armed"]
+            self.note(f"ARTEX{s}: " + ("disarmed" if ok else "DISARM NOT CONFIRMED -- disarm by handset (ch6 / hold kill 5 s)"),
+                      bad=not ok, sysid=s)
+
+    def _finish(self, outcome: str, ok: bool) -> None:
+        self.result = dict(outcome=outcome, passed=ok,
+                           aircraft={str(s): {k: v for k, v in m.v.items() if k != "token"}
+                                     for s, m in self.members.items()})
+        self.note(f"RUN ENDED: {outcome}", bad=not ok)
+
+    def _conduct(self) -> None:
+        try:
+            self._sequence()
+        except Exception as exc:          # never leave the record unwritten
+            self.note(f"ground station error: {type(exc).__name__}: {exc}", bad=True)
+            self._finish(f"ground station error ({type(exc).__name__})", False)
+        finally:
+            for m in self.members.values():
+                m.send("QUIT")
+            time.sleep(1.0)
+            for m in self.members.values():
+                if m.alive:
+                    try:
+                        m.proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        m.proc.kill()
+            self.state = "done" if self.result and self.result.get("passed") else "ended"
+            self.t["done"] = time.time()
+            self.rec.update(state=self.state, result=self.result, finished=time.strftime("%Y-%m-%d %H:%M:%S"),
+                            feed=self.feed)
+            core.save_run(self.rec)
+
+    def _sequence(self) -> None:
+        mode = self.p["mode"]
+        # 1. push and prepare
+        self.state = "preparing"
+        for s, m in self.members.items():
+            if not self.demo:
+                err = push_plan(dict(slot=s, host=core.AIRCRAFT[s]["host"], remote_dir="~/FlightPlanner"),
+                                Path(m.plan))
+                if err:
+                    m.v.update(ready=False, error=f"plan not pushed: {err}")
+                    self.note(f"ARTEX{s}: plan could not be copied to the companion -- {err}", bad=True, sysid=s)
+                    continue
+            m.start(self.demo)
+        for s, r in self._all("prepare", PREPARE_TIMEOUT_S).items():
+            m = self.members[s]
+            if m.v["error"]:
+                continue
+            if not r:
+                m.v.update(ready=False, error="no prepare report (agent died or timed out)")
+                self.note(f"ARTEX{s}: no prepare report", bad=True, sysid=s)
+                continue
+            m.v.update(ready=bool(r.get("ready")), items=r.get("items"), checks=r.get("checks") or [],
+                       token=r.get("token"), top_alt_m=r.get("top_alt_m"))
+            self.note(f"ARTEX{s}: " + ("READY" if r.get("ready") else "NOT READY -- " + ", ".join(r.get("reasons") or []))
+                      + f" ({r.get('items')} items on board check: "
+                      + next((c["detail"] for c in m.v["checks"] if c["name"] == "mission_uploaded"), "?") + ")",
+                      bad=not r.get("ready"), sysid=s)
+        all_ready = all(m.v["ready"] for m in self.members.values())
+        self.t["ready"] = time.time()
+        if mode == "upload":
+            self.state = "ready" if all_ready else "not_ready"
+            uploaded = all(any(c["name"] == "mission_uploaded" and c["ok"] for c in m.v["checks"])
+                           for m in self.members.values())
+            return self._finish("missions uploaded and verified" if uploaded else "upload FAILED on at least one aircraft",
+                                uploaded)
+        if not all_ready:
+            self.state = "not_ready"
+            return self._finish("not every aircraft READY -- NOBODY armed", False)
+
+        # 2. gate 1: ARM ALL
+        self.state = "ready"
+        self.note(f"BARRIER PASSED: every aircraft READY. Waiting up to {fleet.READY_GATE_S:.0f} s for ARM ALL.")
+        if not self._wait_press(self.arm_evt, fleet.READY_GATE_S):
+            return self._finish("ARM ALL was not pressed -- nobody armed", False)
+        self.state = "arming"
+        at = time.time() + fleet.ARM_LEAD_S
+        for m in self.members.values():
+            m.send(f"ARM {m.v['token']} {at:.3f}")
+        arms = self._all("arm", 40.0)
+        for s, r in arms.items():
+            self.members[s].v["armed"] = bool(r and r.get("armed"))
+            self.note(f"ARTEX{s}: " + ("ARMED" if self.members[s].v["armed"]
+                                       else f"NOT ARMED -- {(r or {}).get('error', 'no reply')}"),
+                      bad=not self.members[s].v["armed"], sysid=s)
+        if not all(m.v["armed"] for m in self.members.values()):
+            self.state = "disarming"
+            self._disarm_all("not every aircraft armed, so nobody proceeds")
+            return self._finish("ARM gate failed -- disarmed", False)
+        times = [r["t_epoch"] for r in arms.values() if r and r.get("t_epoch")]
+        spread = round(max(times) - min(times), 2) if len(times) > 1 else None
+        self.rec["arm_spread_s"] = spread
+        self.state, self.t["armed"] = "armed", time.time()
+        self.note(f"ALL ARMED (arm spread {spread} s).")
+        if mode == "arm":
+            self._wait_press(self.cancel_evt, self.p["arm_hold_s"])
+            self.state = "disarming"
+            self._disarm_all(f"arm-only run: held {self.p['arm_hold_s']:g} s")
+            ok = not any(m.v["armed"] for m in self.members.values())
+            return self._finish("ARM ALL and DISARM ALL proven" if ok else "armed, but a DISARM was not confirmed", ok)
+
+        # 3. gate 2: START ALL, inside PX4's auto-disarm window
+        self.note(f"Waiting up to {fleet.START_WINDOW_S:g} s for START ALL (PX4 disarms on the ground after ~10 s).")
+        if not self._wait_press(self.start_evt, fleet.START_WINDOW_S):
+            self.state = "disarming"
+            self._disarm_all("START ALL not pressed inside the window" if not self.cancel_evt.is_set()
+                             else "operator cancelled")
+            return self._finish("not started -- disarmed", False)
+        self.state = "launching"
+        at = time.time() + fleet.START_LEAD_S
+        for m in self.members.values():
+            m.send(f"START {m.v['token']} {at:.3f}")
+        starts = self._all("start", 60.0)
+        for s, r in starts.items():
+            self.members[s].v["started"] = bool(r and r.get("started"))
+        failed = [s for s, m in self.members.items() if not m.v["started"]]
+        self.state, self.t["flying"] = "flying", time.time()
+        for s in failed:
+            self.mark_fault(self.members[s], f"did not start: {(starts[s] or {}).get('error', 'no reply')}")
+            self.members[s].send("DISARM")
+        if not failed:
+            self.note("ALL AWAY: every aircraft started its mission.")
+
+        # 4. watch
+        deadline = time.time() + 1800
+        while time.time() < deadline and not self.cancel_evt.is_set():
+            live = [m for m in self.members.values() if not m.v["finished"] and m.alive]
+            if not live:
+                break
+            for m in live:
+                m.send("STATUS")
+            for m in live:
+                r = m.await_verb("status", 10.0)
+                if r:
+                    prev = m.v["status"] or {}
+                    r["_was_rtl"] = prev.get("_was_rtl") or (r.get("main_mode") == fleet.PX4_MAIN_AUTO
+                                                             and r.get("sub_mode") in (5, 6))
+                    m.v.update(status=r, misses=0)
+                else:
+                    m.v["misses"] += 1
+                why = fleet.member_fault(m.v["status"], m.v["items"], m.v["misses"])
+                if why and not m.v["fault"]:
+                    self.mark_fault(m, why)
+                st = m.v["status"] or {}
+                if st.get("armed") is False and m.v["started"]:
+                    m.v["finished"] = True
+                    m.v["armed"] = False
+                    how = (" (after a fault)" if m.v["fault"] else " (after HOLD / an operator command)" if m.v["held"]
+                           else " -- mission complete")
+                    self.note(f"ARTEX{m.sysid}: on the ground, disarmed{how}", sysid=m.sysid)
+            if all(m.v["finished"] for m in self.members.values()):
+                break
+            self.cancel_evt.wait(fleet.WATCH_POLL_S)
+        faults = [s for s, m in self.members.items() if m.v["fault"]]
+        if self.cancel_evt.is_set():
+            return self._finish("watch ended by the operator (agents released; aircraft keep their PX4 mode)", False)
+        if not all(m.v["finished"] for m in self.members.values()):
+            return self._finish("watch timed out or an agent died before landing", False)
+        held = [s for s, m in self.members.items() if m.v["held"] and not m.v["fault"]]
+        if not faults and held:
+            return self._finish("landed after an operator HOLD/RTL/LAND on " + ", ".join(f"ARTEX{s}" for s in held), True)
+        return self._finish("every aircraft completed its mission" if not faults else
+                            "landed, with faults on " + ", ".join(f"ARTEX{s}" for s in faults), not faults)
+
+    # ---- operator ----------------------------------------------------------------
+    def word(self, w: str, target: str) -> list[int]:
+        cmd = FLEET_WORDS.get(w) or (w if self.demo and w in FLEET_DEMO_WORDS else None)
+        if not cmd:
+            raise ValueError(f"{w} is not sent from here")
+        sent = []
+        for s, m in self.members.items():
+            if target in ("all", str(s)) and m.send(cmd):
+                sent.append(s)
+                if w == "HOLD":
+                    m.v["held"] = True
+        return sent
+
+    @property
+    def active(self) -> bool:
+        return self.state not in ("done", "ended")
+
+    def snapshot(self, since: int) -> dict:
+        with self.lock:
+            feed = self.feed[since:]
+        now = time.time()
+        window = None
+        if self.state == "ready" and self.t["ready"]:
+            window = max(0.0, fleet.READY_GATE_S - (now - self.t["ready"]))
+        elif self.state == "armed" and self.t["armed"] and self.p["mode"] == "mission":
+            window = max(0.0, fleet.START_WINDOW_S - (now - self.t["armed"]))
+        ms = []
+        for s, m in self.members.items():
+            v = {k: x for k, x in m.v.items() if k != "token"}
+            st = v["status"] or {}
+            v["mode_text"] = fleet.describe_mode(st.get("main_mode"), st.get("sub_mode")) if st else None
+            ms.append(v)
+        return dict(id=self.rec["id"], kind="fleet", state=self.state, t=self.t, window_s=window, result=self.result,
+                    profile=self.p, operator=self.rec["operator"], pilots=self.rec.get("pilots"), members=ms,
+                    feed=feed, demo=self.demo, arm_pressed=self.arm_evt.is_set(), start_pressed=self.start_evt.is_set())
+
+
 class App:
     def __init__(self, demo: bool):
         self.demo = demo
         self.tokens = core.Tokens()
         self.run: Run | None = None
+        self.fleet: FleetRun | None = None
         self.pre: dict[int, dict] = {}
         self.lock = threading.Lock()
+
+    def busy(self) -> bool:
+        return bool((self.run and self.run.active) or (self.fleet and self.fleet.active))
 
     def ctx(self, sysid: int) -> dict:
         p = self.pre.get(sysid)
@@ -238,6 +601,10 @@ def make_handler(app: App):
                                             preflight={k: dict(go=v["go"], age_s=time.time() - v["at"],
                                                                report=v["report"]) for k, v in app.pre.items()},
                                             run_active=bool(app.run and app.run.active),
+                                            fleet_active=bool(app.fleet and app.fleet.active),
+                                            fleet=dict(modes=[[k, fleet.MODE_NOTE[k]] for k in fleet.MODES],
+                                                       defaults=fleet.DEFAULTS, start_window_s=fleet.START_WINDOW_S,
+                                                       ready_gate_s=fleet.READY_GATE_S),
                                             ttl_s=core.TOKEN_TTL_S))
             if u.path == "/api/profiles":
                 return self._send(200, core.list_profiles())
@@ -245,6 +612,14 @@ def make_handler(app: App):
                 if not app.run:
                     return self._send(200, dict(state="none"))
                 return self._send(200, app.run.snapshot(int(q.get("since", ["0"])[0])))
+            if u.path == "/api/fleet/profiles":
+                return self._send(200, fleet.list_profiles())
+            if u.path == "/api/fleet/plans":
+                return self._send(200, fleet.list_plans())
+            if u.path == "/api/fleet":
+                if not app.fleet:
+                    return self._send(200, dict(state="none", kind="fleet"))
+                return self._send(200, app.fleet.snapshot(int(q.get("since", ["0"])[0])))
             if u.path == "/api/runs":
                 return self._send(200, core.list_runs())
             if u.path.startswith("/api/runs/"):
@@ -289,13 +664,15 @@ def make_handler(app: App):
                            phrase=core.PHRASE, aircraft_typed=b["aircraft"].strip().upper(),
                            authorised=time.strftime("%Y-%m-%d %H:%M:%S"))
                 return self._send(200, dict(token=app.tokens.issue(p, b["operator"], rec), ttl_s=core.TOKEN_TTL_S))
+            if path.startswith("/api/fleet"):
+                return self._fleet(path, b)
             if path == "/api/run/start":
                 p = core.normalise(b["profile"])
                 tok = app.tokens.get(b.get("token"), p)
                 if not tok:
                     return self._send(403, dict(error="Authorisation missing, expired or for a different profile."))
                 with app.lock:
-                    if app.run and app.run.active:
+                    if app.busy():
                         return self._send(409, dict(error="A run is already active. Only one agent may hold the link."))
                     rid = core.new_run_id()
                     rec = dict(id=rid, started=time.strftime("%Y-%m-%d %H:%M:%S"), mode="demo" if app.demo else "live",
@@ -324,6 +701,80 @@ def make_handler(app: App):
             if path == "/api/run/abort_flag":
                 sysid = int(run.rec["profile"]["sysid"]) if run else int(b["sysid"])
                 return self._send(200, app.abort_out_of_band(sysid))
+            self._send(404, dict(error="not found"))
+
+        def _fleet(self, path: str, b: dict):
+            ctx = lambda p: {m["sysid"]: app.ctx(m["sysid"]) for m in p["aircraft"]}  # noqa: E731
+            if path == "/api/fleet/profiles":
+                return self._send(200, fleet.save_profile(b))
+            if path == "/api/fleet/profiles/delete":
+                return self._send(200, dict(ok=fleet.delete_profile(str(b.get("id", "")))))
+            if path == "/api/fleet/preview":
+                p = fleet.normalise(b)
+                errs = fleet.validate(p)
+                return self._send(200, dict(profile=p, errors=errs, assessment=fleet.assess(p, ctx(p)),
+                                            confirmations=fleet.confirmations(p) if not errs else [],
+                                            plans={m["plan"]: fleet.plan_summary(m["plan"]) for m in p["aircraft"]
+                                                   if fleet.plan_ok(m["plan"])},
+                                            argv=[fleet.agent_argv(p, m, "gs<run>") for m in p["aircraft"]]
+                                            if not errs else None, mode_note=fleet.MODE_NOTE.get(p["mode"])))
+            if path == "/api/fleet/authorise":
+                p = fleet.normalise(b["profile"])
+                ok, why = fleet.authorise(p, ctx(p), b)
+                if not ok:
+                    return self._send(403, dict(error=why))
+                texts = {c["id"]: c["text"] for c in fleet.confirmations(p)}
+                pilots = {str(m["sysid"]): str((b.get("pilots") or {}).get(str(m["sysid"]), "")).strip()
+                          for m in p["aircraft"]}
+                rec = dict(operator=b["operator"].strip(), pilots=pilots, accepted=sorted(b["accepted"]),
+                           confirmations=[texts[i] for i in sorted(b["confirmed"]) if i in texts],
+                           phrase=core.PHRASE, aircraft_typed=str(b["aircraft"]).strip().upper(),
+                           authorised=time.strftime("%Y-%m-%d %H:%M:%S"))
+                return self._send(200, dict(token=app.tokens.issue(p, b["operator"], rec), ttl_s=core.TOKEN_TTL_S))
+            if path == "/api/fleet/start":
+                p = fleet.normalise(b["profile"])
+                tok = app.tokens.get(b.get("token"), p)
+                if not tok:
+                    return self._send(403, dict(error="Authorisation missing, expired or for a different fleet profile."))
+                with app.lock:
+                    if app.busy():
+                        return self._send(409, dict(error="A run is already active. Only one agent may hold each link."))
+                    rid = core.new_run_id()
+                    rec = dict(id=rid, kind="fleet", started=time.strftime("%Y-%m-%d %H:%M:%S"),
+                               mode="demo" if app.demo else "live", profile=p, **tok["record"])
+                    app.fleet = FleetRun(rec, app.demo)
+                    app.fleet.start()
+                return self._send(200, dict(id=rid))
+            fr = app.fleet
+            if not fr or not fr.active:
+                return self._send(409, dict(error="No active fleet run."))
+            if path in ("/api/fleet/arm_all", "/api/fleet/start_all"):
+                arm = path.endswith("arm_all")
+                if (arm and fr.state != "ready") or (not arm and (fr.state != "armed" or fr.p["mode"] != "mission")):
+                    return self._send(409, dict(error="Not at that gate." if arm else "Not every aircraft is armed, "
+                                                "or this is not a mission run."))
+                tok = app.tokens.get(b.get("token"), fr.p)
+                if not tok or b.get("confirm") != ("ARM ALL" if arm else "START ALL"):
+                    return self._send(403, dict(error="Authorisation expired or not confirmed. Authorise again."))
+                (fr.arm_evt if arm else fr.start_evt).set()
+                fr.rec["arm_all_pressed" if arm else "start_all_pressed"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                if not arm:
+                    app.tokens.revoke(b["token"])
+                return self._send(200, dict(ok=True))
+            if path == "/api/fleet/word":
+                w = str(b.get("word", "")).upper()
+                return self._send(200, dict(sent=fr.word(w, str(b.get("target", "all")))))
+            if path == "/api/fleet/cancel":
+                fr.cancel_evt.set()
+                fr.note("Operator: CANCEL / end watch", bad=True)
+                return self._send(200, dict(ok=True))
+            if path == "/api/fleet/abort_flag":
+                if app.demo:
+                    return self._send(200, dict(ok=True, text="DEMO: out-of-band abort flag simulated on every aircraft"))
+                r = subprocess.run([sys.executable, str(ROOT / "tools" / "takeover.py"), "--fleet",
+                                    "fleet-artex-pair.yaml", "--now"], capture_output=True, text=True,
+                                   timeout=40, cwd=str(ROOT))
+                return self._send(200, dict(ok=r.returncode == 0, text=(r.stderr or r.stdout).strip()[-400:]))
             self._send(404, dict(error="not found"))
 
     return H

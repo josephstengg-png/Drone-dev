@@ -431,6 +431,22 @@ def history_block(rec: dict) -> str:
     """A paste-ready history.md entry. The GUI offers it; a person decides whether to add it."""
     p, res = rec["profile"], rec.get("result") or {}
     acc = rec.get("accepted") or []
+    if rec.get("kind") == "fleet":
+        ac = res.get("aircraft") or {}
+        lines = [f"## {rec['started']} (GUI fleet run {rec['id']}) -- {p['name']}: "
+                 + ", ".join(f"ARTEX{m['sysid']}" for m in p["aircraft"])
+                 + f", {'DEMO' if rec.get('mode') == 'demo' else 'live'}", "",
+                 f"- Mode {p['mode']}, {p['flight_type']}. Responsible operator: {rec.get('operator')}; pilots: "
+                 + ", ".join(f"ARTEX{k} {v}" for k, v in (rec.get('pilots') or {}).items())
+                 + f". Accepted: {', '.join(acc) if acc else 'nothing beyond the confirmations'}.",
+                 f"- Outcome: {res.get('outcome')}; passed: {res.get('passed')}; arm spread {rec.get('arm_spread_s')} s."]
+        for m in p["aircraft"]:
+            v = ac.get(str(m["sysid"])) or {}
+            lines.append(f"- ARTEX{m['sysid']} ({m['plan']}): ready {v.get('ready')}, armed {v.get('armed')}, started "
+                         f"{v.get('started')}, held {v.get('held')}, fault {v.get('fault') or 'none'}"
+                         f"{', ' + v['error'] if v.get('error') else ''}.")
+        lines.append(f"- Record: `runs/{rec['id']}.json`")
+        return "\n".join(lines) + "\n"
     lines = [f"## {rec['started']} (GUI run {rec['id']}) -- {p['name']} on ARTEX{p['sysid']}, "
              f"{'DEMO' if rec.get('mode') == 'demo' else 'live'}", ""]
     lines.append(f"- Profile: {p['flight_type']} / {p['link']} / until stage {p['stage']}, "

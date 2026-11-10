@@ -799,7 +799,7 @@ python3 tools/gs_server.py            # LIVE: runs the real agent on the Jetson 
 # then open http://127.0.0.1:8787
 ```
 
-Four pages: **Connect** (Preflight GO / NO-GO), **Profiles** (mission profiles in `profiles/`), **Run**, **Records**
+Five pages: **Connect** (Preflight GO / NO-GO), **Profiles** (mission profiles in `profiles/`), **Run**, **Fleet**, **Records**
 (`runs/`). The server builds the same `drone_agent.py offboard-flight` command an operator would type, stops the agent at
 READY, and sends ARM only after the operator's recorded authorisation (typed aircraft name and the phrase
 `I TAKE RESPONSIBILITY FOR THIS RUN`, bound to the exact profile, valid 15 minutes) and a press-and-hold.
@@ -807,6 +807,11 @@ READY, and sends ARM only after the operator's recorded authorisation (typed air
 * Risks are either **accepted** by the operator (untested stage, drift, untethered, long hover, radio loop...) or **block**
   the run (an invalid profile, or props-on over the radio without a Preflight GO from the last 10 minutes).
 * **KILL is not a button** and the agent never runs with `--allow-kill`. The handset is the override.
+* **4 Fleet** runs several aircraft at once on waypoint missions (`profiles/fleet/`): each aircraft's resident agent
+  uploads and verifies its plan and runs the preflight contract; every aircraft must be READY or nobody arms; **ARM ALL**
+  and then **START ALL** (within 8 s, before PX4's on-ground auto-disarm) are separate press-and-holds; after the start,
+  a fault on one aircraft puts the others in HOLD. One named pilot per aircraft. Indoors the contract refuses READY (no
+  GPS fix), so real aircraft indoors can only use "upload and verify".
 * The server holds `gs_core` in memory: **restart it after changing `tools/gs_core.py`**.
 
 ## Offboard flight and the handset
@@ -898,7 +903,7 @@ agreed indoor/outdoor baseline with a backup and a verified read-back.
 | `tools/elrs_pair.py` | Pins each companion to exactly one backpack by BSSID, and proves it. |
 | `tools/mavlink_bridge.py` | Puts a serial flight controller on UDP; can rewrite its system id. |
 | `tools/qgc_capture/` | Scripted QGC screenshots (X11 clicks; fragile by nature). |
-| `tools/gs_server.py`, `tools/gs_core.py`, `gui/index.html` | The ground-station GUI: profiles, responsibility, runs. `--demo` uses `tools/fake_agent.py`. |
+| `tools/gs_server.py`, `tools/gs_core.py`, `tools/gs_fleet.py`, `gui/index.html` | The ground-station GUI: profiles, responsibility, single and fleet runs. `--demo` uses `tools/fake_agent.py` and `tools/fake_resident_agent.py`. |
 | `tools/offboard_control.py` | The offboard height controller and the stage sequence the agent flies. |
 | `tools/preflight.py` | GO / NO-GO for the whole chain (link loss, latency, one relay per companion). Run it first. |
 | `tools/provision.py` | Bare companion to flight-ready, idempotent. |
@@ -988,7 +993,7 @@ dead at every corner.
 
 ```bash
 python3 -m pip install -e ".[dev]"
-python3 -m pytest -q          # 390 tests
+python3 -m pytest -q          # 402 tests
 ```
 
 Covers KML parsing (including missing-geofence rejection), both scanners, guardrail
@@ -1030,7 +1035,7 @@ Known limitations:
   are flown over USB.
 * **Both aircraft carry the indoor configuration** (3 m/s caps, GPS checks off, 3 m fence),
   which fails an outdoor survey until it is changed back.
-* **Multi-aircraft runs from the GUI are not built yet**; `tools/pair_arm_test.py` and
-  `swarm_deploy.py` are the command-line paths.
+* **Multi-aircraft GUI runs are demo- and test-proven only**; none has run against the real
+  aircraft yet, and indoors they stop at the preflight contract.
 * Projection is equirectangular; AEQD is marginally more accurate but negligible at SAR
   scale. `camera.py` models one nadir gimbal; zoom and oblique framing are out of scope.
