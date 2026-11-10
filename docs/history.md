@@ -359,6 +359,18 @@ bench run wants the agent to stop at READY and never arm.
 
 # Entries
 
+## 2026-11-10 — ARTEX115 given ARTEX113's configuration (operator's instruction); calibration and identity left alone
+
+Full dumps over USB, read-only first: 113 via jetson-2 (1079 params), 115 via jetson-1 (1080; `RC_CRSF_TEL_EN` exists only on 115). Saved with the diff in `~/drone-dev/fc-backups/2026-11-10/`
+(`ARTEX115-2026-11-10.params` is the BACKUP to restore from). 44 differed. Note: the operator said 115 was on jetson-2; the probe found jetson-2's USB on sysid 113 and jetson-1's on sysid 115.
+- **Copied to 115 (15), each written and read back, all verified:** `RC_MAP_OFFB_SW` 0->5, `COM_FLTMODE1/2/4` 1/2/7 -> 8/-1/1 (113's handset layout: ch5 Offboard, ch7 Stabilized/Altitude/Position),
+  `RC_CRSF_PRT_CFG` and `RC_SBUS_PRT_CFG` 300->0 (the handset-ignored-after-boot fix, now on 115 too), `MPC_XY_CRUISE` 5->3, `MPC_VEL_MANUAL` 10->3, `MPC_XY_VEL_MAX` 12->3, `MIS_TAKEOFF_ALT` 2.5->1.5,
+  `RTL_RETURN_ALT` 5->2, `EKF2_GPS_CHECK` 1023->0, `GPS_1_GNSS` 63->0, `GPS_SAT_INFO` 1->0, `BAT1_V_CHARGED` 4.2->4.1.
+- **Not copied (29), deliberately:** 21 `CAL_*` (sensor calibration), `SENS_BOARD_X/Y_OFF`, `BAT1_V_DIV` (voltage-divider calibration), `EKF2_MAG_DECL`, `MAV_SYS_ID`, `COM_FLIGHT_UUID`, `LND_FLIGHT_T_LO`, `_HASH_CHECK`.
+  A re-dump after the copy shows exactly these 29 still differing.
+- **Consequences to remember:** 115 is now speed-capped at 3 m/s like 113, which fails outdoor survey speeds (up to 12 m/s) until changed back; GPS checks off and GNSS constellation 0 on both (113 differed from the
+  19 Oct indoor profile, which had checks on; the operator will explain). RC port and GPS changes take effect after a flight-controller reboot (not done). 115's handset must use the same switch layout.
+
 ## 2026-11-05 (night) — Experiment 5 finished and written up: Indoors downlink, 8 clean of 9 against 1 of 8 with the default (p = 0.003); ulogs 128-132 pulled
 
 Full write-up: `docs/experiments/2026-11-05-lean-downlink.md`. Ulogs 128-132 = runs `164342`, `164515`, `164644`, `164831`, `165058` (ch5 ON in all). Clean in 4 of 5; log 129 (`164515`) lost Offboard once at 1.8 s with the longest gap at PX4 1.13 s;

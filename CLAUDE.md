@@ -134,7 +134,7 @@ display here. Use the agent for anything that must work, and USB for parameter w
    receiver on TELEM1. **Keep `RC_CRSF_PRT_CFG` and `RC_SBUS_PRT_CFG` at 0.** The vendor set both to
    the empty RC port, and a dead CRSF input then took `input_rc` instance 0, the only one PX4 reads,
    whenever the handset was off at boot. The handset was then ignored until a reboot. Set to 0 on
-   113, 3 Nov 2026; 112 and 115 still carry 300.
+   113, 3 Nov 2026, and on 115, 10 Nov 2026; 112 still carries 300.
 3. **The operator**: `a` + ENTER in the pair-test console, or `tools/takeover.py --now`
    out-of-band over ssh, which survives the orchestrator dying.
 
